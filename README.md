@@ -1,2 +1,1 @@
-K19-Arquivos
-============
+Arquivos utilizados nos exercícios das apostilas da K19.
