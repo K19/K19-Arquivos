@@ -1,0 +1,166 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<jaxb:bindings xmlns:jaxb="http://java.sun.com/xml/ns/jaxb"
+        xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+        xmlns:inheritance="http://jaxb2-commons.dev.java.net/basic/inheritance"
+        jaxb:extensionBindingPrefixes="inheritance"
+        version="2.1">
+
+    <jaxb:bindings schemaLocation="../resources/org/hibernate/hibernate-mapping-4.0.xsd" node="/xsd:schema">
+
+        <jaxb:schemaBindings>
+            <jaxb:nameXmlTransform>
+                <jaxb:typeName prefix="Jaxb"/>
+                <jaxb:elementName prefix="Jaxb"/>
+                <jaxb:modelGroupName prefix="Jaxb"/>
+                <jaxb:anonymousTypeName prefix="Jaxb"/>
+            </jaxb:nameXmlTransform>
+        </jaxb:schemaBindings>
+
+        <!-- Mix-ins -->
+        <jaxb:bindings node="//xsd:element[@name='class']/xsd:complexType">
+            <inheritance:implements>org.hibernate.internal.jaxb.mapping.hbm.EntityElement</inheritance:implements>
+            <inheritance:implements>org.hibernate.internal.jaxb.mapping.hbm.JoinElementSource</inheritance:implements>
+        </jaxb:bindings>
+        <jaxb:bindings node="//xsd:complexType[@name='subclass-element']">
+            <inheritance:implements>org.hibernate.internal.jaxb.mapping.hbm.SubEntityElement</inheritance:implements>
+            <inheritance:implements>org.hibernate.internal.jaxb.mapping.hbm.JoinElementSource</inheritance:implements>
+        </jaxb:bindings>
+        <jaxb:bindings node="//xsd:complexType[@name='joined-subclass-element']">
+            <inheritance:implements>org.hibernate.internal.jaxb.mapping.hbm.SubEntityElement</inheritance:implements>
+        </jaxb:bindings>
+        <jaxb:bindings node="//xsd:complexType[@name='union-subclass-element']">
+            <inheritance:implements>org.hibernate.internal.jaxb.mapping.hbm.SubEntityElement</inheritance:implements>
+        </jaxb:bindings>
+        <jaxb:bindings node="//xsd:complexType[@name='sql-insert-element']">
+            <inheritance:implements>org.hibernate.internal.jaxb.mapping.hbm.CustomSqlElement</inheritance:implements>
+        </jaxb:bindings>
+        <jaxb:bindings node="//xsd:complexType[@name='sql-update-element']">
+            <inheritance:implements>org.hibernate.internal.jaxb.mapping.hbm.CustomSqlElement</inheritance:implements>
+        </jaxb:bindings>
+        <jaxb:bindings node="//xsd:complexType[@name='sql-delete-element']">
+            <inheritance:implements>org.hibernate.internal.jaxb.mapping.hbm.CustomSqlElement</inheritance:implements>
+        </jaxb:bindings>
+        <jaxb:bindings node="//xsd:complexType[@name='sql-delete-all-element']">
+            <inheritance:implements>org.hibernate.internal.jaxb.mapping.hbm.CustomSqlElement</inheritance:implements>
+        </jaxb:bindings>
+
+        <jaxb:bindings node="//xsd:complexType[@name='property-element']">
+            <inheritance:implements>org.hibernate.internal.jaxb.mapping.hbm.SingularAttributeSource</inheritance:implements>
+        </jaxb:bindings>
+        <jaxb:bindings node="//xsd:element[@name='id']/xsd:complexType">
+            <inheritance:implements>org.hibernate.internal.jaxb.mapping.hbm.SingularAttributeSource</inheritance:implements>
+        </jaxb:bindings>
+<!--
+        <jaxb:bindings node="//xsd:element[@name='version']/xsd:complexType">
+            <inheritance:implements>org.hibernate.internal.jaxb.mapping.hbm.SingularAttributeSource</inheritance:implements>
+        </jaxb:bindings>
+        <jaxb:bindings node="//xsd:element[@name='timestamp']/xsd:complexType">
+            <inheritance:implements>org.hibernate.internal.jaxb.mapping.hbm.SingularAttributeSource</inheritance:implements>
+        </jaxb:bindings>
+-->
+        <jaxb:bindings node="//xsd:complexType[@name='bag-element']">
+            <inheritance:implements>org.hibernate.internal.jaxb.mapping.hbm.PluralAttributeElement</inheritance:implements>
+        </jaxb:bindings>
+        <jaxb:bindings node="//xsd:complexType[@name='idbag-element']">
+            <inheritance:implements>org.hibernate.internal.jaxb.mapping.hbm.PluralAttributeElement</inheritance:implements>
+            <inheritance:extends>org.hibernate.internal.jaxb.mapping.hbm.IdBagPluralAttributeElementAdapter</inheritance:extends>
+        </jaxb:bindings>
+        <jaxb:bindings node="//xsd:complexType[@name='list-element']">
+            <inheritance:implements>org.hibernate.internal.jaxb.mapping.hbm.PluralAttributeElement</inheritance:implements>
+        </jaxb:bindings>
+        <jaxb:bindings node="//xsd:complexType[@name='map-element']">
+            <inheritance:implements>org.hibernate.internal.jaxb.mapping.hbm.PluralAttributeElement</inheritance:implements>
+        </jaxb:bindings>
+        <jaxb:bindings node="//xsd:complexType[@name='set-element']">
+            <inheritance:implements>org.hibernate.internal.jaxb.mapping.hbm.PluralAttributeElement</inheritance:implements>
+        </jaxb:bindings>
+
+
+        <jaxb:bindings node="//xsd:element[@name='class']//xsd:attribute[@name='subselect']">
+            <jaxb:property name="subselectAttribute"/>
+        </jaxb:bindings> 
+        <jaxb:bindings node="//xsd:element[@name='discriminator']//xsd:attribute[@name='column']">
+            <jaxb:property name="columnAttribute"/>
+        </jaxb:bindings> 
+        <jaxb:bindings node="//xsd:element[@name='discriminator']//xsd:attribute[@name='formula']">
+            <jaxb:property name="formulaAttribute"/>
+        </jaxb:bindings> 
+        <jaxb:bindings node="//xsd:element[@name='id']//xsd:attribute[@name='column']">
+            <jaxb:property name="columnAttribute"/>
+        </jaxb:bindings> 
+        <jaxb:bindings node="//xsd:element[@name='id']//xsd:attribute[@name='type']">
+            <jaxb:property name="typeAttribute"/>
+        </jaxb:bindings> 
+        <jaxb:bindings node="//xsd:element[@name='version']//xsd:attribute[@name='column']">
+            <jaxb:property name="columnAttribute"/>
+        </jaxb:bindings> 
+        <jaxb:bindings node="//xsd:complexType[@name='array-element']//xsd:attribute[@name='subselect']">
+            <jaxb:property name="subselectAttribute"/>
+        </jaxb:bindings> 
+        <jaxb:bindings node="//xsd:complexType[@name='bag-element']//xsd:attribute[@name='subselect']">
+            <jaxb:property name="subselectAttribute"/>
+        </jaxb:bindings> 
+        <jaxb:bindings node="//xsd:complexType[@name='element-element']//xsd:attribute[@name='type']">
+            <jaxb:property name="typeAttribute"/>
+        </jaxb:bindings> 
+        <jaxb:bindings node="//xsd:complexType[@name='idbag-element']//xsd:attribute[@name='subselect']">
+            <jaxb:property name="subselectAttribute"/>
+        </jaxb:bindings> 
+        <jaxb:bindings node="//xsd:complexType[@name='idbag-element']//xsd:element[@name='collection-id']//xsd:attribute[@name='column']">
+            <jaxb:property name="columnAttribute"/>
+        </jaxb:bindings> 
+        <jaxb:bindings node="//xsd:complexType[@name='index-element']//xsd:attribute[@name='column']">
+            <jaxb:property name="columnAttribute"/>
+        </jaxb:bindings> 
+        <jaxb:bindings node="//xsd:complexType[@name='join-element']//xsd:attribute[@name='subselect']">
+            <jaxb:property name="subselectAttribute"/>
+        </jaxb:bindings> 
+        <jaxb:bindings node="//xsd:complexType[@name='joined-subclass-element']//xsd:attribute[@name='subselect']">
+            <jaxb:property name="subselectAttribute"/>
+        </jaxb:bindings> 
+        <jaxb:bindings node="//xsd:complexType[@name='key-element']//xsd:attribute[@name='column']">
+            <jaxb:property name="columnAttribute"/>
+        </jaxb:bindings> 
+        <jaxb:bindings node="//xsd:complexType[@name='key-many-to-one-element']//xsd:attribute[@name='column']">
+            <jaxb:property name="columnAttribute"/>
+        </jaxb:bindings> 
+        <jaxb:bindings node="//xsd:complexType[@name='key-property-element']//xsd:attribute[@name='column']">
+            <jaxb:property name="columnAttribute"/>
+        </jaxb:bindings> 
+        <jaxb:bindings node="//xsd:complexType[@name='key-property-element']//xsd:attribute[@name='type']">
+            <jaxb:property name="typeAttribute"/>
+        </jaxb:bindings> 
+        <jaxb:bindings node="//xsd:complexType[@name='list-element']//xsd:attribute[@name='subselect']">
+            <jaxb:property name="subselectAttribute"/>
+        </jaxb:bindings> 
+        <jaxb:bindings node="//xsd:complexType[@name='list-index-element']//xsd:attribute[@name='column']">
+            <jaxb:property name="columnAttribute"/>
+        </jaxb:bindings> 
+        <jaxb:bindings node="//xsd:complexType[@name='map-element']//xsd:attribute[@name='subselect']">
+            <jaxb:property name="subselectAttribute"/>
+        </jaxb:bindings> 
+        <jaxb:bindings node="//xsd:complexType[@name='map-element']//xsd:element[@name='map-key']//xsd:attribute[@name='type']">
+            <jaxb:property name="typeAttribute"/>
+        </jaxb:bindings> 
+        <jaxb:bindings node="//xsd:complexType[@name='map-element']//xsd:element[@name='index-many-to-many']//xsd:attribute[@name='column']">
+            <jaxb:property name="columnAttribute"/>
+        </jaxb:bindings> 
+        <jaxb:bindings node="//xsd:complexType[@name='one-to-one-element']//xsd:attribute[@name='formula']">
+            <jaxb:property name="formulaAttribute"/>
+        </jaxb:bindings> 
+        <jaxb:bindings node="//xsd:complexType[@name='primitive-array-element']//xsd:attribute[@name='subselect']">
+            <jaxb:property name="subselectAttribute"/>
+        </jaxb:bindings> 
+        <jaxb:bindings node="//xsd:complexType[@name='property-element']//xsd:attribute[@name='type']">
+            <jaxb:property name="typeAttribute"/>
+        </jaxb:bindings> 
+        <jaxb:bindings node="//xsd:complexType[@name='set-element']//xsd:attribute[@name='subselect']">
+            <jaxb:property name="subselectAttribute"/>
+        </jaxb:bindings> 
+        <jaxb:bindings node="//xsd:complexType[@name='union-subclass-element']//xsd:attribute[@name='subselect']">
+            <jaxb:property name="subselectAttribute"/>
+        </jaxb:bindings> 
+    </jaxb:bindings>
+
+</jaxb:bindings>

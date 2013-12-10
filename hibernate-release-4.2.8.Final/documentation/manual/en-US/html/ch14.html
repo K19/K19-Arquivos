@@ -1,0 +1,267 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml"><head><title>Chapter 14. Interceptors and events</title><link rel="stylesheet" type="text/css" href="css/hibernate.css"/><meta name="generator" content="DocBook XSL Stylesheets V1.76.1"/><link rel="home" href="index.html" title="HIBERNATE - Relational Persistence for Idiomatic Java"/><link rel="up" href="index.html" title="HIBERNATE - Relational Persistence for Idiomatic Java"/><link rel="prev" href="ch13.html" title="Chapter 13. Transactions and Concurrency"/><link rel="next" href="ch15.html" title="Chapter 15. Batch processing"/><link rel="copyright" href="ln-d5e19.html" title="Legal Notice"/><meta xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" http-equiv="Content-Type" content="text/html; charset=UTF-8"/></head><body><p xmlns:d="http://docbook.org/ns/docbook" id="title"><a href="http://www.hibernate.org" class="site_href"><strong>Hibernate.org</strong></a><a href="http://hibernate.org/Documentation/DocumentationOverview" class="doc_href"><strong>Community Documentation</strong></a></p><ul xmlns:d="http://docbook.org/ns/docbook" class="docnav"><li class="previous"><a accesskey="p" href="ch13.html"><strong>Prev</strong></a></li><li class="next"><a accesskey="n" href="ch15.html"><strong>Next</strong></a></li></ul><div class="chapter" title="Chapter 14. Interceptors and events"><div class="titlepage"><div><div><h2 class="title"><a id="events"/>Chapter 14. Interceptors and events</h2></div></div></div><div class="toc"><p><strong>Table of Contents</strong></p><dl><dt><span class="section"><a href="ch14.html#objectstate-interceptors">14.1. Interceptors</a></span></dt><dt><span class="section"><a href="ch14.html#objectstate-events">14.2. Event system</a></span></dt><dt><span class="section"><a href="ch14.html#objectstate-decl-security">14.3. Hibernate declarative security</a></span></dt></dl></div>
+    
+
+    <p>
+        It is useful for the application to react to certain events that occur
+        inside Hibernate. This allows for the implementation of generic 
+        functionality and the extension of Hibernate functionality.
+    </p>
+
+    <div class="section" title="14.1. Interceptors"><div class="titlepage"><div><div><h2 class="title"><a id="objectstate-interceptors"/>14.1. Interceptors</h2></div></div></div>
+        
+
+        <p>
+            The <code class="literal">Interceptor</code> interface provides callbacks from the session to the 
+            application, allowing the application to inspect and/or manipulate properties of a
+            persistent object before it is saved, updated, deleted or loaded. One 
+            possible use for this is to track auditing information. For example, the following 
+            <code class="literal">Interceptor</code> automatically sets the  <code class="literal">createTimestamp</code> 
+            when an <code class="literal">Auditable</code> is created and updates the 
+            <code class="literal">lastUpdateTimestamp</code> property when an <code class="literal">Auditable</code> is 
+            updated.
+        </p>
+
+        <p>
+            You can either implement <code class="literal">Interceptor</code> directly or extend
+            <code class="literal">EmptyInterceptor</code>.
+        </p>
+
+        <pre xmlns="" xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="">package org.hibernate.test;
+
+import java.io.Serializable;
+import java.util.Date;
+import java.util.Iterator;
+
+import org.hibernate.EmptyInterceptor;
+import org.hibernate.Transaction;
+import org.hibernate.type.Type;
+
+public class AuditInterceptor extends EmptyInterceptor {
+
+    private int updates;
+    private int creates;
+    private int loads;
+
+    public void onDelete(Object entity,
+                         Serializable id,
+                         Object[] state,
+                         String[] propertyNames,
+                         Type[] types) {
+        // do nothing
+    }
+
+    public boolean onFlushDirty(Object entity,
+                                Serializable id,
+                                Object[] currentState,
+                                Object[] previousState,
+                                String[] propertyNames,
+                                Type[] types) {
+
+        if ( entity instanceof Auditable ) {
+            updates++;
+            for ( int i=0; i &lt; propertyNames.length; i++ ) {
+                if ( "lastUpdateTimestamp".equals( propertyNames[i] ) ) {
+                    currentState[i] = new Date();
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    public boolean onLoad(Object entity,
+                          Serializable id,
+                          Object[] state,
+                          String[] propertyNames,
+                          Type[] types) {
+        if ( entity instanceof Auditable ) {
+            loads++;
+        }
+        return false;
+    }
+
+    public boolean onSave(Object entity,
+                          Serializable id,
+                          Object[] state,
+                          String[] propertyNames,
+                          Type[] types) {
+
+        if ( entity instanceof Auditable ) {
+            creates++;
+            for ( int i=0; i&lt;propertyNames.length; i++ ) {
+                if ( "createTimestamp".equals( propertyNames[i] ) ) {
+                    state[i] = new Date();
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    public void afterTransactionCompletion(Transaction tx) {
+        if ( tx.wasCommitted() ) {
+            System.out.println("Creations: " + creates + ", Updates: " + updates + "Loads: " + loads);
+        }
+        updates=0;
+        creates=0;
+        loads=0;
+    }
+
+}</pre>
+
+        <p>
+            There are two kinds of inteceptors: <code class="literal">Session</code>-scoped and
+            <code class="literal">SessionFactory</code>-scoped.
+        </p>
+
+        <p>
+            A <code class="literal">Session</code>-scoped interceptor is specified
+            when a session is opened.
+        </p>
+
+        <pre xmlns="" xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="">Session session = sf.withOptions( new AuditInterceptor() ).openSession();</pre>
+
+        <p>
+            A <code class="literal">SessionFactory</code>-scoped interceptor is registered with the <code class="literal">Configuration</code>
+            object prior to building the <code class="literal">SessionFactory</code>.  Unless
+            a session is opened explicitly specifying the interceptor to use, the supplied interceptor
+            will be applied to all sessions opened from that <code class="literal">SessionFactory</code>.  <code class="literal">SessionFactory</code>-scoped
+            interceptors must be thread safe. Ensure that you do not store session-specific states, since multiple
+            sessions will use this interceptor potentially concurrently.
+        </p>
+    
+        <pre xmlns="" xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="">new Configuration().setInterceptor( new AuditInterceptor() );</pre>
+
+    </div>
+
+     <div class="section" title="14.2. Event system"><div class="titlepage"><div><div><h2 class="title"><a id="objectstate-events"/>14.2. Event system</h2></div></div></div>
+        
+
+        <p>
+            If you have to react to particular events in your persistence layer, you can
+            also use the Hibernate <span class="emphasis"><em>event</em></span> architecture. The event
+            system can be used in addition, or as a replacement, for interceptors.
+        </p>
+
+        <p>
+            Many methods of the <code class="literal">Session</code> interface correlate to an event type.  The
+            full range of defined event types is declared as enum values on
+            <code class="classname">org.hibernate.event.spi.EventType</code>. When a request is made of one of
+            these methods, the Hibernate <code class="literal">Session</code> generates an appropriate
+            event and passes it to the configured event listeners for that type. Out-of-the-box,
+            these listeners implement the same processing in which those methods always resulted.
+            However, you are free to implement a customization of one of the listener interfaces
+            (i.e., the <code class="literal">LoadEvent</code> is processed by the registered implementation
+            of the <code class="literal">LoadEventListener</code> interface), in which case their
+            implementation would be responsible for processing any <code class="literal">load()</code> requests
+            made of the <code class="literal">Session</code>.
+        </p>
+
+         <div xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="note" style="margin-left: 0.5in; margin-right: 0.5in;"><h2>Note</h2>
+             <p>
+                 See the <em class="citetitle">Hibernate Developer Guide</em> for information on registering
+                 custom event listeners.
+             </p>
+         </div>
+
+        <p>
+            The listeners should be considered stateless; they are shared between requests, and should not save any
+            state as instance variables.
+        </p>
+
+        <p>
+            A custom listener implements the appropriate interface for the event it wants to
+            process and/or extend one of the convenience base classes (or even the default event
+            listeners used by Hibernate out-of-the-box as these are declared non-final for this
+            purpose). Here is an example of a custom load event listener:
+        </p>
+
+        <pre xmlns="" xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="">public class MyLoadListener implements LoadEventListener {
+    // this is the single method defined by the LoadEventListener interface
+    public void onLoad(LoadEvent event, LoadEventListener.LoadType loadType)
+            throws HibernateException {
+        if ( !MySecurity.isAuthorized( event.getEntityClassName(), event.getEntityId() ) ) {
+            throw MySecurityException("Unauthorized access");
+        }
+    }
+}</pre>
+
+    </div>
+
+    <div class="section" title="14.3. Hibernate declarative security"><div class="titlepage"><div><div><h2 class="title"><a id="objectstate-decl-security"/>14.3. Hibernate declarative security</h2></div></div></div>
+        
+        <p>
+            Usually, declarative security in Hibernate applications is managed in a session facade
+            layer. Hibernate allows certain actions to be permissioned via JACC, and authorized
+            via JAAS. This is an optional functionality that is built on top of the event architecture.
+        </p>
+        
+        <p>
+            First, you must configure the appropriate event listeners, to enable the use of JACC
+            authorization.  Again, see <em class="citetitle">Hibernate Developer Guide</em>
+            for the details.  Below is an example of an appropriate
+            <code class="interfacename">org.hibernate.integrator.spi.Integrator</code> implementation for this purpose.
+        </p>
+
+        <pre xmlns="" xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="">import org.hibernate.event.service.spi.DuplicationStrategy;
+import org.hibernate.event.service.spi.EventListenerRegistry;
+import org.hibernate.integrator.spi.Integrator;
+import org.hibernate.secure.internal.JACCPreDeleteEventListener;
+import org.hibernate.secure.internal.JACCPreInsertEventListener;
+import org.hibernate.secure.internal.JACCPreLoadEventListener;
+import org.hibernate.secure.internal.JACCPreUpdateEventListener;
+import org.hibernate.secure.internal.JACCSecurityListener;
+
+public class JaccEventListenerIntegrator implements Integrator {
+
+	private static final DuplicationStrategy JACC_DUPLICATION_STRATEGY = new DuplicationStrategy() {
+		@Override
+		public boolean areMatch(Object listener, Object original) {
+			return listener.getClass().equals( original.getClass() ) &amp;&amp;
+					JACCSecurityListener.class.isInstance( original );
+		}
+
+		@Override
+		public Action getAction() {
+			return Action.KEEP_ORIGINAL;
+		}
+	};
+
+	@Override
+	@SuppressWarnings( {"unchecked"})
+	public void integrate(
+			Configuration configuration,
+			SessionFactoryImplementor sessionFactory,
+			SessionFactoryServiceRegistry serviceRegistry) {
+		boolean isSecurityEnabled = configuration.getProperties().containsKey( AvailableSettings.JACC_ENABLED );
+		if ( !isSecurityEnabled ) {
+			return;
+		}
+
+		final EventListenerRegistry eventListenerRegistry = serviceRegistry.getService( EventListenerRegistry.class );
+		eventListenerRegistry.addDuplicationStrategy( JACC_DUPLICATION_STRATEGY );
+
+		final String jaccContextId = configuration.getProperty( Environment.JACC_CONTEXTID );
+		eventListenerRegistry.prependListeners( EventType.PRE_DELETE, new JACCPreDeleteEventListener(jaccContextId) );
+		eventListenerRegistry.prependListeners( EventType.PRE_INSERT, new JACCPreInsertEventListener(jaccContextId) );
+		eventListenerRegistry.prependListeners( EventType.PRE_UPDATE, new JACCPreUpdateEventListener(jaccContextId) );
+		eventListenerRegistry.prependListeners( EventType.PRE_LOAD, new JACCPreLoadEventListener(jaccContextId) );
+	}
+}</pre>
+
+        <p>
+            You must also decide how to configure your JACC provider.  One option is to tell Hibernate what permissions
+            to bind to what roles and have it configure the JACC provider.  This would be done in the
+            <code class="literal">hibernate.cfg.xml</code> file.
+        </p>
+
+        <pre xmlns="" xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="">&lt;grant role="admin" entity-name="User" actions="insert,update,read"/&gt;
+&lt;grant role="su" entity-name="User" actions="*"/&gt;</pre>
+        
+       
+    </div>
+
+</div><hr xmlns="" xmlns:d="http://docbook.org/ns/docbook"/><a xmlns="" xmlns:d="http://docbook.org/ns/docbook" href="legalnotice.html"/><ul xmlns:d="http://docbook.org/ns/docbook" class="docnav"><li class="previous"><a accesskey="p" href="ch13.html"><strong>Prev</strong>Chapter 13. Transactions and Concurrency</a></li><li class="up"><a accesskey="u" href="#"><strong>Up</strong></a></li><li class="home"><a accesskey="h" href="index.html"><strong>Home</strong></a></li><li class="next"><a accesskey="n" href="ch15.html"><strong>Next</strong>Chapter 15. Batch processing</a></li></ul></body></html>

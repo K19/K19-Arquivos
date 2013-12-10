@@ -1,0 +1,914 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml"><head><title xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory">Chapter 3. Configuration</title><link rel="stylesheet" href="css/hibernate.css" type="text/css"/><meta xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" name="generator" content="DocBook XSL Stylesheets V1.72.0"/><link rel="start" href="index.html" title="Hibernate Search"/><link rel="up" href="index.html" title="Hibernate Search"/><link rel="prev" href="search-architecture.html" title="Chapter 2. Architecture"/><link rel="next" href="search-mapping.html" title="Chapter 4. Mapping entities to the index structure"/></head><body><p id="title"><a href="http://www.hibernate.org" class="site_href"><strong>Hibernate.org</strong></a><a href="http://hibernate.org/Documentation/DocumentationOverview" class="doc_href"><strong>Community Documentation</strong></a></p><ul class="docnav"><li class="previous"><a accesskey="p" href="search-architecture.html"><strong>Prev</strong></a></li><li class="next"><a accesskey="n" href="search-mapping.html"><strong>Next</strong></a></li></ul><div class="chapter" lang="en-US"><div class="titlepage"><div><div><h2 class="title"><a id="search-configuration"/>Chapter 3. Configuration</h2></div></div></div><div class="toc"><dl><dt><span class="section"><a href="search-configuration.html#search-configuration-event">3.1. Enabling Hibernate Search and automatic indexing</a></span></dt><dd><dl><dt><span class="section"><a href="search-configuration.html#d0e758">3.1.1. Enabling Hibernate Search</a></span></dt><dt><span class="section"><a href="search-configuration.html#d0e769">3.1.2. Automatic indexing</a></span></dt></dl></dd><dt><span class="section"><a href="search-configuration.html#configuration-indexmanager">3.2. Configuring the <code class="classname">IndexManager</code></a></span></dt><dd><dl><dt><span class="section"><a href="search-configuration.html#d0e813">3.2.1. <code class="literal">directory-based</code></a></span></dt><dt><span class="section"><a href="search-configuration.html#d0e828">3.2.2. <code class="literal">near-real-time</code></a></span></dt><dt><span class="section"><a href="search-configuration.html#d0e856">3.2.3. Custom</a></span></dt></dl></dd><dt><span class="section"><a href="search-configuration.html#search-configuration-directory">3.3. Directory configuration</a></span></dt><dd><dl><dt><span class="section"><a href="search-configuration.html#infinispan-directories">3.3.1. Infinispan Directory configuration</a></span></dt></dl></dd><dt><span class="section"><a href="search-configuration.html#d0e1439">3.4. Worker configuration</a></span></dt><dd><dl><dt><span class="section"><a href="search-configuration.html#jms-backend">3.4.1. JMS Master/Slave back end</a></span></dt><dt><span class="section"><a href="search-configuration.html#jgroups-backend">3.4.2. JGroups Master/Slave back end</a></span></dt></dl></dd><dt><span class="section"><a href="search-configuration.html#configuration-reader-strategy">3.5. Reader strategy configuration</a></span></dt><dt><span class="section"><a href="search-configuration.html#d0e1995">3.6. Exception handling</a></span></dt><dt><span class="section"><a href="search-configuration.html#d0e2031">3.7. Lucene configuration</a></span></dt><dd><dl><dt><span class="section"><a href="search-configuration.html#lucene-indexing-performance">3.7.1. Tuning indexing performance</a></span></dt><dt><span class="section"><a href="search-configuration.html#search-configuration-directory-lockfactories">3.7.2. LockFactory configuration</a></span></dt><dt><span class="section"><a href="search-configuration.html#d0e2627">3.7.3. Index format compatibility</a></span></dt></dl></dd><dt><span class="section"><a href="search-configuration.html#d0e2658">3.8. Metadata API</a></span></dt><dt><span class="section"><a href="search-configuration.html#search-configuration-deploy-on-AS7">3.9. Hibernate Search as JBoss AS module</a></span></dt></dl></div><div class="section" lang="en-US"><div class="titlepage"><div><div><h2 class="title"><a id="search-configuration-event"/>3.1. Enabling Hibernate Search and automatic indexing</h2></div></div></div><p>Let's start with the most basic configuration question - how do I
+    enable Hibernate Search?</p><div class="section" lang="en-US"><div class="titlepage"><div><div><h3 class="title"><a id="d0e758"/>3.1.1. Enabling Hibernate Search</h3></div></div></div><p>The good news is that Hibernate Search is enabled out of the box
+      when detected on the classpath by Hibernate Core. If, for some reason
+      you need to disable it, set
+      <code class="literal">hibernate.search.autoregister_listeners</code> to
+      <code class="constant">false</code>. Note that there is no performance penalty
+      when the listeners are enabled but no entities are annotated as
+      indexed.</p></div><div class="section" lang="en-US"><div class="titlepage"><div><div><h3 class="title"><a id="d0e769"/>3.1.2. Automatic indexing</h3></div></div></div><p>By default, every time an object is inserted, updated or deleted
+      through Hibernate, Hibernate Search updates the according Lucene index.
+      It is sometimes desirable to disable that features if either your index
+      is read-only or if index updates are done in a batch way (see <a href="manual-index-changes.html#search-batchindex" title="6.3. Rebuilding the whole index">Section 6.3, “Rebuilding the whole index”</a>).</p><p>To disable event based indexing, set</p><pre class="programlisting">hibernate.search.indexing_strategy = manual</pre><div xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="note"><h2>Note</h2><p>In most case, the JMS backend provides the best of both world, a
+        lightweight event based system keeps track of all changes in the
+        system, and the heavyweight indexing process is done by a separate
+        process or machine.</p></div></div></div><div class="section" lang="en-US"><div class="titlepage"><div><div><h2 class="title"><a id="configuration-indexmanager"/>3.2. Configuring the <code class="classname">IndexManager</code></h2></div></div></div><p>The role of the index manager component is described in <a href="search-architecture.html" title="Chapter 2. Architecture">Chapter 2, <i xmlns:xlink="http://www.w3.org/1999/xlink">Architecture</i></a>. Hibernate Search provides two possible
+    implementations for this interface to choose from.</p><div class="itemizedlist"><ul><li><p><code class="literal">directory-based</code>: the default implementation
+        which uses the Lucene <code class="classname">Directory</code> abstraction to
+        manage index files.</p></li><li><p><code class="literal">near-real-time</code>: avoid flushing writes to disk
+        at each commit. This index manager is also
+        <code class="classname">Directory</code> based, but also makes uses of
+        Lucene's NRT functionality.</p></li></ul></div><p>To select an alternative you specify the property:</p><pre class="programlisting">hibernate.search.[default|&lt;indexname&gt;].indexmanager = near-real-time</pre><div class="section" lang="en-US"><div class="titlepage"><div><div><h3 class="title"><a id="d0e813"/>3.2.1. <code class="literal">directory-based</code></h3></div></div></div><p>The default <code class="classname">IndexManager</code> implementation.
+      This is the one mostly referred to in this documentation. It is highly
+      configurable and allows you to select different settings for the reader
+      strategy, back ends and directory providers. Refer to <a href="search-configuration.html#search-configuration-directory" title="3.3. Directory configuration">Section 3.3, “Directory configuration”</a>, <a href="search-configuration.html#configuration-worker">Section 3.4, “Worker configuration”</a> and <a href="search-configuration.html#configuration-reader-strategy" title="3.5. Reader strategy configuration">Section 3.5, “Reader strategy configuration”</a> for more details.</p></div><div class="section" lang="en-US"><div class="titlepage"><div><div><h3 class="title"><a id="d0e828"/>3.2.2. <code class="literal">near-real-time</code></h3></div></div></div><p>The <code class="classname">NRTIndexManager</code> is an extension of the
+      default <code class="classname">IndexManager</code>, leveraging the Lucene NRT
+      (Near Real Time) features for extreme low latency index writes. As a
+      tradeoff it requires a non-clustered and non-shared index. In other
+      words, it will ignore configuration settings for alternative back ends
+      other than <code class="literal">lucene</code> and will acquire exclusive write
+      locks on the <code class="classname">Directory</code>.</p><p>To achieve this low latency writes, the
+      <code class="classname">IndexWriter</code> will not flush every change to disk.
+      Queries will be allowed to read updated state from the unflushed index
+      writer buffers; the downside of this strategy is that if the application
+      crashes or the <code class="classname">IndexWriter</code> is otherwise killed
+      you'll have to rebuild the indexes as some updates might be lost.</p><p>Because of these downsides, and because a master node in cluster
+      can be configured for good performance as well, the NRT configuration is
+      only recommended for non clustered websites with a limited amount of
+      data.</p></div><div class="section" lang="en-US"><div class="titlepage"><div><div><h3 class="title"><a id="d0e856"/>3.2.3. Custom</h3></div></div></div><p>It is also possible to configure a custom
+      <code class="classname">IndexManager</code> implementation by specifying the
+      fully qualified class name of your custom implementation. This
+      implementation must have a no-argument constructor:</p><pre class="programlisting">hibernate.search.[default|&lt;indexname&gt;].indexmanager = my.corp.myapp.CustomIndexManager</pre><div xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="tip"><h2>Tip</h2><p>Your custom index manager implementation doesn't need to use the
+        same components as the default implementations. For example, you can
+        delegate to a remote indexing service which doesn't expose a
+        <code class="classname">Directory</code> interface.</p></div></div></div><div class="section" lang="en-US"><div class="titlepage"><div><div><h2 class="title"><a id="search-configuration-directory"/>3.3. Directory configuration</h2></div></div></div><p>As we have seen in <a href="search-configuration.html#configuration-indexmanager" title="3.2. Configuring the IndexManager">Section 3.2, “Configuring the <code class="classname">IndexManager</code>”</a> the
+    default index manager uses Lucene's notion of a
+    <code class="classname">Directory</code> to store the index files. The
+    <code class="classname">Directory</code> implementation can be customized and
+    Lucene comes bundled with a file system and an in-memory implementation.
+    <code class="classname">DirectoryProvider</code> is the Hibernate Search
+    abstraction around a Lucene <code class="classname">Directory</code> and handles
+    the configuration and the initialization of the underlying Lucene
+    resources. <a href="search-configuration.html#directory-provider-table" title="Table 3.1. List of built-in DirectoryProvider">Table 3.1, “List of built-in <code class="classname">DirectoryProvider</code>”</a> shows the list of
+    the directory providers available in Hibernate Search together with their
+    corresponding options.</p><p>To configure your <code class="classname">DirectoryProvider</code> you have
+    to understand that each indexed entity is associated to a Lucene index
+    (except of the case where multiple entities share the same index - <a href="search-lucene-native.html#section-sharing-indexes" title="10.5. Sharing indexes">Section 10.5, “Sharing indexes”</a>). The name of the index is given by
+    the <code class="constant">index</code> property of the
+    <code class="classname">@Indexed</code> annotation. If the
+    <code class="constant">index</code> property is not specified the fully qualified
+    name of the indexed class will be used as name (recommended).</p><p>Knowing the index name, you can configure the directory provider and
+    any additional options by using the prefix
+    <code class="constant">hibernate.search.</code><em class="replaceable"><code>&lt;indexname&gt;</code></em>.
+    The name <code class="constant">default</code>
+    (<code class="constant">hibernate.search.default</code>) is reserved and can be
+    used to define properties which apply to all indexes. <a href="search-configuration.html#example-configuring-directory-providers" title="Example 3.2. Configuring directory providers">Example 3.2, “Configuring directory providers”</a> shows how
+    <code class="constant">hibernate.search.default.directory_provider</code> is used
+    to set the default directory provider to be the filesystem one.
+    <code class="constant">hibernate.search.default.indexBase</code> sets then the
+    default base directory for the indexes. As a result the index for the
+    entity <code class="classname">Status</code> is created in
+    <code class="filename">/usr/lucene/indexes/org.hibernate.example.Status</code>.</p><p>The index for the <code class="classname">Rule</code> entity, however, is
+    using an in-memory directory, because the default directory provider for
+    this entity is overridden by the property
+    <code class="constant">hibernate.search.Rules.directory_provider</code>.</p><p>Finally the <code class="classname">Action</code> entity uses a custom
+    directory provider <code class="classname">CustomDirectoryProvider</code>
+    specified via
+    <code class="constant">hibernate.search.Actions.directory_provider</code>.</p><div class="example"><a id="d0e955"/><p class="title"><b>Example 3.1. Specifying the index name</b></p><div class="example-contents"><pre xmlns="" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="JAVA"><!-- <br/> --><span class="java_keyword">package</span><!-- <br/> --><span class="java_plain">&nbsp;org</span><!-- <br/> --><span class="java_separator">.</span><!-- <br/> --><span class="java_plain">hibernate</span><!-- <br/> --><span class="java_separator">.</span><!-- <br/> --><span class="java_plain">example</span><!-- <br/> --><span class="java_separator">;</span>
+</span>
+<!--  --><br/><span class="java_plain">@</span><span class="java_type">Indexed</span>
+<!--  --><br/><span class="java_keyword">public</span><span class="java_plain">&nbsp;</span><span class="java_keyword">class</span><span class="java_plain">&nbsp;</span><span class="java_type">Status</span><span class="java_plain">&nbsp;</span><span class="java_separator">{</span><span class="java_plain">&nbsp;</span><span class="java_separator">...</span><span class="java_plain">&nbsp;</span><span class="java_separator">}</span>
+</span>
+<!--  --><br/><span class="java_plain">@</span><span class="java_type">Indexed</span><span class="java_separator">(</span><span class="java_plain">index</span><span class="java_operator">=</span><span class="java_literal">&quot;Rules&quot;</span><span class="java_separator">)</span>
+<!--  --><br/><span class="java_keyword">public</span><span class="java_plain">&nbsp;</span><span class="java_keyword">class</span><span class="java_plain">&nbsp;</span><span class="java_type">Rule</span><span class="java_plain">&nbsp;</span><span class="java_separator">{</span><span class="java_plain">&nbsp;</span><span class="java_separator">...</span><span class="java_plain">&nbsp;</span><span class="java_separator">}</span>
+</span>
+<!--  --><br/><span class="java_plain">@</span><span class="java_type">Indexed</span><span class="java_separator">(</span><span class="java_plain">index</span><span class="java_operator">=</span><span class="java_literal">&quot;Actions&quot;</span><span class="java_separator">)</span>
+<!--  --><br/><span class="java_keyword">public</span><span class="java_plain">&nbsp;</span><span class="java_keyword">class</span><span class="java_plain">&nbsp;</span><span class="java_type">Action</span><span class="java_plain">&nbsp;</span><span class="java_separator">{</span><span class="java_plain">&nbsp;</span><span class="java_separator">...</span><span class="java_plain">&nbsp;</span><span class="java_separator">}</span></pre></div></div><br class="example-break"/><div class="example"><a id="example-configuring-directory-providers"/><p class="title"><b>Example 3.2. Configuring directory providers</b></p><div class="example-contents"><pre class="programlisting">hibernate.search.default.directory_provider = filesystem
+hibernate.search.default.indexBase = /usr/lucene/indexes
+hibernate.search.Rules.directory_provider = ram
+hibernate.search.Actions.directory_provider = com.acme.hibernate.CustomDirectoryProvider</pre></div></div><br class="example-break"/><div xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="tip"><h2>Tip</h2><p>Using the described configuration scheme you can easily define
+      common rules like the directory provider and base directory, and
+      override those defaults later on on a per index basis.</p></div><div class="table"><a id="directory-provider-table"/><p class="title"><b>Table 3.1. List of built-in <code class="classname">DirectoryProvider</code></b></p><div class="table-contents"><table summary="List of built-in DirectoryProvider" border="1"><colgroup><col/><col/></colgroup><thead><tr><th align="center">Name and description</th><th align="center">Properties</th></tr></thead><tbody><tr><td><span class="property">ram</span>: Memory based directory, the
+            directory will be uniquely identified (in the same deployment
+            unit) by the <code class="literal">@Indexed.index</code> element</td><td>none</td></tr><tr><td><span class="property">filesystem</span>: File system based
+            directory. The directory used will be &lt;indexBase&gt;/&lt;
+            indexName &gt;</td><td><p><code class="literal">indexBase</code> : base
+            directory</p><p><code class="literal">indexName</code>: override
+            @Indexed.index (useful for sharded
+            indexes)</p><p><code class="literal">locking_strategy</code> :
+            optional, see <a href="search-configuration.html#search-configuration-directory-lockfactories" title="3.7.2. LockFactory configuration">Section 3.7.2, “LockFactory configuration”</a>
+            </p><p><code class="literal">filesystem_access_type</code>: allows to
+            determine the exact type of <code class="classname">FSDirectory</code>
+            implementation used by this
+            <code class="classname">DirectoryProvider</code>. Allowed values are
+            <code class="literal">auto</code> (the default value, selects
+            <code class="classname">NIOFSDirectory</code> on non Windows systems,
+            <code class="classname">SimpleFSDirectory</code> on Windows),
+            <code class="literal">simple</code>
+            (<code class="classname">SimpleFSDirectory</code>), <code class="literal">nio</code>
+            (<code class="classname">NIOFSDirectory</code>), <code class="literal">mmap</code>
+            (<code class="classname">MMapDirectory</code>). Make sure to refer to
+            Javadocs of these <code class="classname">Directory</code> implementations
+            before changing this setting. Even though
+            <code class="classname">NIOFSDirectory</code> or
+            <code class="classname">MMapDirectory</code> can bring substantial
+            performace boosts they also have their issues.</p></td></tr><tr><td><p><span class="property">filesystem-master</span>: File system
+            based directory. Like <code class="literal">filesystem</code>. It also
+            copies the index to a source directory (aka copy directory) on a
+            regular basis.</p><p>The recommended value for the refresh
+            period is (at least) 50% higher that the time to copy the
+            information (default 3600 seconds - 60 minutes).</p><p>Note
+            that the copy is based on an incremental copy mechanism reducing
+            the average copy time.</p><p>DirectoryProvider typically
+            used on the master node in a JMS back end cluster.</p><p>The
+            <code class="literal"> buffer_size_on_copy</code> optimum depends on your
+            operating system and available RAM; most people reported good
+            results using values between 16 and 64MB.</p></td><td><p><code class="literal">indexBase</code>: base
+            directory</p><p><code class="literal">indexName</code>: override
+            @Indexed.index (useful for sharded
+            indexes)</p><p><code class="literal">sourceBase</code>: source (copy)
+            base directory.</p><p><code class="literal">source</code>: source
+            directory suffix (default to <code class="literal">@Indexed.index</code>).
+            The actual source directory name being
+            <code class="filename">&lt;sourceBase&gt;/&lt;source&gt;</code>
+            </p><p><code class="literal">refresh</code>: refresh period in seconds
+            (the copy will take place every <code class="constant">refresh</code>
+            seconds). If a copy is still in progress when the following
+            <code class="constant">refresh</code> period elapses, the second copy
+            operation will be
+            skipped.</p><p><code class="literal">buffer_size_on_copy</code>: The
+            amount of MegaBytes to move in a single low level copy
+            instruction; defaults to
+            16MB.</p><p><code class="literal">locking_strategy</code> : optional,
+            see <a href="search-configuration.html#search-configuration-directory-lockfactories" title="3.7.2. LockFactory configuration">Section 3.7.2, “LockFactory configuration”</a>
+            </p><p><code class="literal">filesystem_access_type</code>: allows to
+            determine the exact type of <code class="classname">FSDirectory</code>
+            implementation used by this
+            <code class="classname">DirectoryProvider</code>. Allowed values are
+            <code class="literal">auto</code> (the default value, selects
+            <code class="classname">NIOFSDirectory</code> on non Windows systems,
+            <code class="classname">SimpleFSDirectory</code> on Windows),
+            <code class="literal">simple</code>
+            (<code class="classname">SimpleFSDirectory</code>), <code class="literal">nio</code>
+            (<code class="classname">NIOFSDirectory</code>), <code class="literal">mmap</code>
+            (<code class="classname">MMapDirectory</code>). Make sure to refer to
+            Javadocs of these <code class="classname">Directory</code> implementations
+            before changing this setting. Even though
+            <code class="classname">NIOFSDirectory</code> or
+            <code class="classname">MMapDirectory</code> can bring substantial
+            performace boosts they also have their issues.</p></td></tr><tr><td><p><span class="property">filesystem-slave</span>: File system
+            based directory. Like <code class="literal">filesystem</code>, but retrieves
+            a master version (source) on a regular basis. To avoid locking and
+            inconsistent search results, 2 local copies are
+            kept.</p><p>The recommended value for the refresh period is
+            (at least) 50% higher that the time to copy the information
+            (default 3600 seconds - 60 minutes).</p><p>Note that the
+            copy is based on an incremental copy mechanism reducing the
+            average copy time. If a copy is still in progress when
+            <code class="constant">refresh</code> period elapses, the second copy
+            operation will be skipped.</p><p>DirectoryProvider typically
+            used on slave nodes using a JMS back end.</p><p>The
+            <code class="literal"> buffer_size_on_copy</code> optimum depends on your
+            operating system and available RAM; most people reported good
+            results using values between 16 and 64MB.</p></td><td><p><code class="literal">indexBase</code>: Base
+            directory</p><p><code class="literal">indexName</code>: override
+            @Indexed.index (useful for sharded
+            indexes)</p><p><code class="literal">sourceBase</code>: Source (copy)
+            base directory.</p><p><code class="literal">source</code>: Source
+            directory suffix (default to <code class="literal">@Indexed.index</code>).
+            The actual source directory name being
+            <code class="filename">&lt;sourceBase&gt;/&lt;source&gt;</code>
+            </p><p><code class="literal">refresh</code>: refresh period in second
+            (the copy will take place every refresh
+            seconds).</p><p><code class="literal">buffer_size_on_copy</code>: The
+            amount of MegaBytes to move in a single low level copy
+            instruction; defaults to
+            16MB.</p><p><code class="literal">locking_strategy</code> : optional,
+            see <a href="search-configuration.html#search-configuration-directory-lockfactories" title="3.7.2. LockFactory configuration">Section 3.7.2, “LockFactory configuration”</a>
+            </p><p><code class="literal">retry_marker_lookup</code> : optional,
+            default to 0. Defines how many times we look for the marker files
+            in the source directory before failing. Waiting 5 seconds between
+            each try. </p><p><code class="literal">retry_initialize_period</code>
+            : optional, set an integer value in seconds to enable the retry
+            initialize feature: if the slave can't find the master index it
+            will try again until it's found in background, without preventing
+            the application to start: fullText queries performed before the
+            index is initialized are not blocked but will return empty
+            results. When not enabling the option or explicitly setting it to
+            zero it will fail with an exception instead of scheduling a retry
+            timer. To prevent the application from starting without an invalid
+            index but still control an initialization timeout, see
+            <code class="literal">retry_marker_lookup</code>
+            instead.</p><p><code class="literal">filesystem_access_type</code>:
+            allows to determine the exact type of
+            <code class="classname">FSDirectory</code> implementation used by this
+            <code class="classname">DirectoryProvider</code>. Allowed values are
+            <code class="literal">auto</code> (the default value, selects
+            <code class="classname">NIOFSDirectory</code> on non Windows systems,
+            <code class="classname">SimpleFSDirectory</code> on Windows),
+            <code class="literal">simple</code>
+            (<code class="classname">SimpleFSDirectory</code>), <code class="literal">nio</code>
+            (<code class="classname">NIOFSDirectory</code>), <code class="literal">mmap</code>
+            (<code class="classname">MMapDirectory</code>). Make sure to refer to
+            Javadocs of these <code class="classname">Directory</code> implementations
+            before changing this setting. Even though
+            <code class="classname">NIOFSDirectory</code> or
+            <code class="classname">MMapDirectory</code> can bring substantial
+            performace boosts they also have their issues.</p></td></tr><tr><td><p><span class="property">infinispan</span>: Infinispan based
+            directory. Use it to store the index in a distributed grid, making
+            index changes visible to all elements of the cluster very quickly.
+            Also see <a href="search-configuration.html#infinispan-directories" title="3.3.1. Infinispan Directory configuration">Section 3.3.1, “Infinispan Directory configuration”</a> for additional
+            requirements and configuration settings. Infinispan needs a global
+            configuration and additional dependencies; the settings defined
+            here apply to each different index.</p></td><td><p><code class="literal">locking_cachename</code>: name of the
+            Infinispan cache to use to store
+            locks.</p><p><code class="literal">data_cachename</code> : name of the
+            Infinispan cache to use to store the largest data chunks; this
+            area will contain the largest objects, use replication if you have
+            enough memory or switch to distribution.</p>
+            <p><code class="literal">metadata_cachename</code>: name of the
+            Infinispan cache to use to store the metadata relating to the
+            index; this data is rather small and read very often, it's
+            recommended to have this cache setup using replication.</p>
+            <p><code class="literal">chunk_size</code>: large files of the index are
+            split in smaller chunks, you might want to set the highest value
+            efficiently handled by your network. Networking tuning might be
+            useful.</p></td></tr></tbody></table></div></div><br class="table-break"/><div xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="tip"><h2>Tip</h2><p>If the built-in directory providers do not fit your needs, you can
+      write your own directory provider by implementing the
+      <code class="classname">org.hibernate.store.DirectoryProvider</code> interface.
+      In this case, pass the fully qualified class name of your provider into
+      the <code class="literal">directory_provider</code> property. You can pass any
+      additional properties using the prefix
+      <code class="constant">hibernate.search.</code><em class="replaceable"><code>&lt;indexname&gt;</code></em>.</p></div><div class="section" lang="en-US"><div class="titlepage"><div><div><h3 class="title"><a id="infinispan-directories"/>3.3.1. Infinispan Directory configuration</h3></div></div></div><p>Infinispan is a distributed, scalable, highly available data grid
+      platform which supports autodiscovery of peer nodes. Using Infinispan
+      and Hibernate Search in combination, it is possible to store the Lucene
+      index in a distributed environment where index updates are quickly
+      available on all nodes.</p><p>This section describes in greater detail how to configure
+      Hibernate Search to use an Infinispan Lucene Directory.</p><p>When using an Infinispan Directory the index is stored in memory
+      and shared across multiple nodes. It is considered a single directory
+      distributed across all participating nodes. If a node updates the index,
+      all other nodes are updated as well. Updates on one node can be
+      immediately searched for in the whole cluster.</p><p>The default configuration replicates all data defining the index
+      across all nodes, thus consuming a significant amount of memory. For
+      large indexes it's suggested to enable data distribution, so that each
+      piece of information is replicated to a subset of all cluster
+      members.</p><p>It is also possible to offload part or most information to a
+      <code class="literal">CacheStore</code>, such as plain filesystem, Amazon S3,
+      Cassandra, Berkley DB or standard relational databases. You can
+      configure it to have a <code class="literal">CacheStore</code> on each node or
+      have a single centralized one shared by each node.</p><p>See the <a xmlns:xlink="http://www.w3.org/1999/xlink" href="https://docs.jboss.org/author/display/ISPN/Home"> Infinispan
+      documentation</a> for all Infinispan configuration options.</p><div class="section" lang="en-US"><div class="titlepage"><div><div><h4 class="title"><a id="d0e1348"/>3.3.1.1. Requirements</h4></div></div></div><p>To use the Infinispan directory via Maven, add the following
+        dependencies:</p><div class="example"><a id="d0e1353"/><p class="title"><b>Example 3.3. Maven dependencies for Hibernate Search</b></p><div class="example-contents"><pre xmlns="" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="XML"><!-- XML : generated by JHighlight v1.0 (http://jhighlight.dev.java.net) -->
+<span class="xml_tag_symbols">&lt;</span><span class="xml_tag_name">dependency</span><span class="xml_tag_symbols">&gt;</span><span class="xml_plain"></span><br />
+<span class="xml_plain">&nbsp;&nbsp;&nbsp;</span><span class="xml_tag_symbols">&lt;</span><span class="xml_tag_name">groupId</span><span class="xml_tag_symbols">&gt;</span><span class="xml_plain">org.hibernate</span><span class="xml_tag_symbols">&lt;/</span><span class="xml_tag_name">groupId</span><span class="xml_tag_symbols">&gt;</span><span class="xml_plain"></span><br />
+<span class="xml_plain">&nbsp;&nbsp;&nbsp;</span><span class="xml_tag_symbols">&lt;</span><span class="xml_tag_name">artifactId</span><span class="xml_tag_symbols">&gt;</span><span class="xml_plain">hibernate-search</span><span class="xml_tag_symbols">&lt;/</span><span class="xml_tag_name">artifactId</span><span class="xml_tag_symbols">&gt;</span><span class="xml_plain"></span><br />
+<span class="xml_plain">&nbsp;&nbsp;&nbsp;</span><span class="xml_tag_symbols">&lt;</span><span class="xml_tag_name">version</span><span class="xml_tag_symbols">&gt;</span><span class="xml_plain">4.4.1.Final</span><span class="xml_tag_symbols">&lt;/</span><span class="xml_tag_name">version</span><span class="xml_tag_symbols">&gt;</span><span class="xml_plain"></span><br />
+<span class="xml_tag_symbols">&lt;/</span><span class="xml_tag_name">dependency</span><span class="xml_tag_symbols">&gt;</span><span class="xml_plain"></span><br />
+<span class="xml_tag_symbols">&lt;</span><span class="xml_tag_name">dependency</span><span class="xml_tag_symbols">&gt;</span><span class="xml_plain"></span><br />
+<span class="xml_plain">&nbsp;&nbsp;&nbsp;</span><span class="xml_tag_symbols">&lt;</span><span class="xml_tag_name">groupId</span><span class="xml_tag_symbols">&gt;</span><span class="xml_plain">org.hibernate</span><span class="xml_tag_symbols">&lt;/</span><span class="xml_tag_name">groupId</span><span class="xml_tag_symbols">&gt;</span><span class="xml_plain"></span><br />
+<span class="xml_plain">&nbsp;&nbsp;&nbsp;</span><span class="xml_tag_symbols">&lt;</span><span class="xml_tag_name">artifactId</span><span class="xml_tag_symbols">&gt;</span><span class="xml_plain">hibernate-search-infinispan</span><span class="xml_tag_symbols">&lt;/</span><span class="xml_tag_name">artifactId</span><span class="xml_tag_symbols">&gt;</span><span class="xml_plain"></span><br />
+<span class="xml_plain">&nbsp;&nbsp;&nbsp;</span><span class="xml_tag_symbols">&lt;</span><span class="xml_tag_name">version</span><span class="xml_tag_symbols">&gt;</span><span class="xml_plain">4.4.1.Final</span><span class="xml_tag_symbols">&lt;/</span><span class="xml_tag_name">version</span><span class="xml_tag_symbols">&gt;</span><span class="xml_plain"></span><br />
+<span class="xml_tag_symbols">&lt;/</span><span class="xml_tag_name">dependency</span><span class="xml_tag_symbols">&gt;</span><span class="xml_plain"></span><br />
+</pre></div></div><br class="example-break"/><p>For the non-maven users, add
+        <code class="literal">hibernate-search-infinispan.jar</code>,
+        <code class="literal">infinispan-lucene-directory.jar</code> and
+        <code class="literal">infinispan-core.jar</code> to your application classpath.
+        These last two jars are distributed by <a xmlns:xlink="http://www.w3.org/1999/xlink" href="http://www.jboss.org/infinispan/downloads">Infinispan</a>.</p></div><div class="section" lang="en-US"><div class="titlepage"><div><div><h4 class="title"><a id="d0e1372"/>3.3.1.2. Architecture</h4></div></div></div><p>Even when using an Infinispan directory it's still recommended
+        to use the JMS Master/Slave or JGroups backend, because in Infinispan
+        all nodes will share the same index and it is likely that
+        <code class="classname">IndexWriter</code>s being active on different nodes
+        will try to acquire the lock on the same index. So instead of sending
+        updates directly to the index, send it to a JMS queue or JGroups
+        channel and have a single node apply all changes on behalf of all
+        other nodes.</p><p>Configuring a non-default backend is not a requirement but a
+        performance optimization as locks are enabled to have a single node
+        writing.</p><p>To configure a JMS slave only the backend must be replaced, the
+        directory provider must be set to <code class="literal">infinispan</code>; set
+        the same directory provider on the master, they will connect without
+        the need to setup the copy job across nodes. Using the JGroups backend
+        is very similar - just combine the backend configuration with the
+        <code class="literal">infinispan</code> directory provider.</p></div><div class="section" lang="en-US"><div class="titlepage"><div><div><h4 class="title"><a id="d0e1390"/>3.3.1.3. Infinispan Configuration</h4></div></div></div><p>The most simple configuration only requires to enable the
+        backend:</p><pre class="programlisting">hibernate.search.[default|&lt;indexname&gt;].directory_provider = infinispan</pre><p>That's all what is needed to get a cluster-replicated index, but
+        the default configuration does not enable any form of permanent
+        persistence for the index; to enable such a feature an Infinispan
+        configuration file should be provided.</p><p>To use Infinispan, Hibernate Search requires a
+        <code class="classname">CacheManager</code>; it can lookup and reuse an
+        existing <code class="classname">CacheManager,</code> via JNDI, or start and
+        manage a new one. In the latter case Hibernate Search will start and
+        stop it ( closing occurs when the Hibernate
+        <code class="classname">SessionFactory</code> is closed).</p><p>To use and existing <code class="classname">CacheManager</code> via JNDI
+        (optional parameter):</p><pre class="programlisting">hibernate.search.infinispan.cachemanager_jndiname = [jndiname]</pre><p>To start a new <code class="classname">CacheManager</code> from a
+        configuration file (optional parameter):</p><pre class="programlisting">hibernate.search.infinispan.configuration_resourcename = [infinispan configuration filename]</pre><p>If both parameters are defined, JNDI will have priority. If none
+        of these is defined, Hibernate Search will use the default Infinispan
+        configuration included in
+        <code class="literal">hibernate-search-infinispan.jar</code>. This configuration
+        should work fine in most cases but does not store the index in a
+        persistent cache store.</p><p>As mentioned in <a href="search-configuration.html#directory-provider-table" title="Table 3.1. List of built-in DirectoryProvider">Table 3.1, “List of built-in <code class="classname">DirectoryProvider</code>”</a>, each
+        index makes use of three caches, so three different caches should be
+        configured as shown in the
+        <code class="literal">default-hibernatesearch-infinispan.xml</code> provided in
+        the <code class="literal">hibernate-search-infinispan.jar</code>. Several
+        indexes can share the same caches.</p></div></div></div><div class="section" lang="en-US"><div class="titlepage"><div><div><h2 class="title"><a id="d0e1439"/>3.4. Worker configuration</h2></div></div></div><p>It is possible to refine how Hibernate Search interacts with Lucene
+    through the worker configuration. There exist several architectural
+    components and possible extension points. Let's have a closer look.</p><p>First there is a <code class="classname">Worker</code>. An implementation of
+    the <code class="classname">Worker</code> interface is responsible for receiving
+    all entity changes, queuing them by context and applying them once a
+    context ends. The most intuitive context, especially in connection with
+    ORM, is the transaction. For this reason Hibernate Search will per default
+    use the <code class="classname">TransactionalWorker</code> to scope all changes
+    per transaction. One can, however, imagine a scenario where the context
+    depends for example on the number of entity changes or some other
+    application (lifecycle) events. For this reason the
+    <code class="classname">Worker</code> implementation is configurable as shown in
+    <a href="search-configuration.html#table-worker-configuration" title="Table 3.2. Scope configuration">Table 3.2, “Scope configuration”</a>.</p><div class="table"><a id="table-worker-configuration"/><p class="title"><b>Table 3.2. Scope configuration</b></p><div class="table-contents"><table summary="Scope configuration" border="1"><colgroup><col/><col/></colgroup><tbody><tr><td><span class="bold"><strong>Property</strong></span></td><td><span class="bold"><strong>Description</strong></span></td></tr><tr><td><span class="property">hibernate.search.worker.scope</span></td><td>The fully qualified class name of the
+            <code class="classname">Worker</code> implementation to use. If this
+            property is not set, empty or <code class="literal">transaction</code> the
+            default <code class="classname">TransactionalWorker</code> is
+            used.</td></tr><tr><td><span class="property">hibernate.search.worker.*</span></td><td>All configuration properties prefixed with
+            <code class="literal">hibernate.search.worker</code> are passed to the
+            Worker during initialization. This allows adding custom, worker
+            specific parameters.</td></tr></tbody></table></div></div><br class="table-break"/><p>Once a context ends it is time to prepare and apply the index
+    changes. This can be done synchronously or asynchronously from within a
+    new thread. Synchronous updates have the advantage that the index is at
+    all times in sync with the databases. Asynchronous updates, on the other
+    hand, can help to minimize the user response time. The drawback is
+    potential discrepancies between database and index states. Lets look at
+    the configuration options shown in <a href="search-configuration.html#table-work-execution-configuration" title="Table 3.3. Execution configuration">Table 3.3, “Execution configuration”</a>.</p><div xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="note"><h2>Note</h2><p>The following options can be different on each index; in fact they
+      need the indexName prefix or use <code class="literal">default</code> to set the
+      default value for all indexes.</p></div><div class="table"><a id="table-work-execution-configuration"/><p class="title"><b>Table 3.3. Execution configuration</b></p><div class="table-contents"><table summary="Execution configuration" border="1"><colgroup><col/><col/></colgroup><tbody><tr><td><span class="bold"><strong>Property</strong></span></td><td><span class="bold"><strong>Description</strong></span></td></tr><tr><td><span class="property">hibernate.search.&lt;indexName&gt;.​worker.execution</span></td><td><p><code class="literal">sync</code>: synchronous execution
+            (default)</p><p><code class="literal">async</code>: asynchronous
+            execution</p></td></tr><tr><td><span class="property">hibernate.search.&lt;indexName&gt;.​worker.thread_pool.size</span></td><td>The backend can apply updates from the same transaction
+            context (or batch) in parallel, using a threadpool. The default
+            value is 1. You can experiment with larger values if you have many
+            operations per transaction.</td></tr><tr><td><span class="property">hibernate.search.&lt;indexName&gt;.​worker.buffer_queue.max</span></td><td>Defines the maximal number of work queue if the thread poll
+            is starved. Useful only for asynchronous execution. Default to
+            infinite. If the limit is reached, the work is done by the main
+            thread.</td></tr></tbody></table></div></div><br class="table-break"/><p>So far all work is done within the same Virtual Machine (VM), no
+    matter which execution mode. The total amount of work has not changed for
+    the single VM. Luckily there is a better approach, namely delegation. It
+    is possible to send the indexing work to a different server by configuring
+    hibernate.search.worker.backend - see <a href="search-configuration.html#table-backend-configuration" title="Table 3.4. Backend configuration">Table 3.4, “Backend configuration”</a>. Again this option can be
+    configured differently for each index.</p><div class="table"><a id="table-backend-configuration"/><p class="title"><b>Table 3.4. Backend configuration</b></p><div class="table-contents"><table summary="Backend configuration" border="1"><colgroup><col/><col/></colgroup><tbody><tr><td><span class="bold"><strong>Property</strong></span></td><td><span class="bold"><strong>Description</strong></span></td></tr><tr><td><span class="property">hibernate.search.&lt;indexName&gt;.​worker.backend</span></td><td><p><code class="literal">lucene</code>: The default backend which
+            runs index updates in the same VM. Also used when the property is
+            undefined or empty.</p><p><code class="literal">jms</code>: JMS
+            backend. Index updates are send to a JMS queue to be processed by
+            an indexing master. See <a href="search-configuration.html#table-jms-backend-configuration" title="Table 3.5. JMS backend configuration">Table 3.5, “JMS backend configuration”</a> for additional
+            configuration options and <a href="search-configuration.html#jms-backend" title="3.4.1. JMS Master/Slave back end">Section 3.4.1, “JMS Master/Slave back end”</a> for a more
+            detailed description of this setup.</p>
+            <p><code class="literal">jgroupsMaster</code>,
+            <code class="literal">jgroupsSlave</code> or <code class="literal">jgroups</code>:
+            Backend using <a xmlns:xlink="http://www.w3.org/1999/xlink" href="http://www.jgroups.org/">JGroups</a>
+            as communication layer. See <a href="search-configuration.html#jgroups-backend" title="3.4.2. JGroups Master/Slave back end">Section 3.4.2, “JGroups Master/Slave back end”</a> for
+            a more detailed description of this setup.</p>
+            <p><code class="literal">blackhole</code>: Mainly a test/developer
+            setting which ignores all indexing work</p> <p>You can also
+            specify the fully qualified name of a class implementing
+            <code class="classname">BackendQueueProcessor</code>. This way you can
+            implement your own communication layer. The implementation is
+            responsible for returning a <code class="classname">Runnable</code>
+            instance which on execution will process the index
+            work.</p></td></tr></tbody></table></div></div><br class="table-break"/><div class="table"><a id="table-jms-backend-configuration"/><p class="title"><b>Table 3.5. JMS backend configuration</b></p><div class="table-contents"><table summary="JMS backend configuration" border="1"><colgroup><col/><col/></colgroup><tbody><tr><td><span class="bold"><strong>Property</strong></span></td><td><span class="bold"><strong>Description</strong></span></td></tr><tr><td><span class="property">hibernate.search.&lt;indexName&gt;.​worker.jndi.*</span></td><td>Defines the JNDI properties to initiate the InitialContext
+            (if needed). JNDI is only used by the JMS back end.</td></tr><tr><td><span class="property">hibernate.search.&lt;indexName&gt;.​worker.jms.connection_factory</span></td><td>Mandatory for the JMS back end. Defines the JNDI name to
+            lookup the JMS connection factory from
+            (<code class="literal">/ConnectionFactory</code> by default in JBoss
+            AS)</td></tr><tr><td><span class="property">hibernate.search.&lt;indexName&gt;.​worker.jms.queue</span></td><td>Mandatory for the JMS back end. Defines the JNDI name to
+            lookup the JMS queue from. The queue will be used to post work
+            messages.</td></tr><tr><td><span class="property">hibernate.search.&lt;indexName&gt;.​worker.jms.login</span></td><td>Optional for the JMS slaves. Use it when your queue
+            requires login credentials to define your login.</td></tr><tr><td><span class="property">hibernate.search.&lt;indexName&gt;.​worker.jms.login</span></td><td>Optional for the JMS slaves. Use it when your queue
+            requires login credentials to define your password.</td></tr></tbody></table></div></div><br class="table-break"/><div xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="warning"><h2>Warning</h2><p>As you probably noticed, some of the shown properties are
+      correlated which means that not all combinations of property values make
+      sense. In fact you can end up with a non-functional configuration. This
+      is especially true for the case that you provide your own
+      implementations of some of the shown interfaces. Make sure to study the
+      existing code before you write your own <code class="classname">Worker</code> or
+      <code class="classname">BackendQueueProcessor</code> implementation.</p></div><div class="section" lang="en-US"><div class="titlepage"><div><div><h3 class="title"><a id="jms-backend"/>3.4.1. JMS Master/Slave back end</h3></div></div></div><p>This section describes in greater detail how to configure the
+      Master/Slave Hibernate Search architecture.</p><div class="mediaobject" align="center"><img src="jms-backend.png" align="middle"/><div class="caption"><p>JMS back end configuration.</p></div></div><div class="section" lang="en-US"><div class="titlepage"><div><div><h4 class="title"><a id="d0e1673"/>3.4.1.1. Slave nodes</h4></div></div></div><p>Every index update operation is sent to a JMS queue. Index
+        querying operations are executed on a local index copy.</p><div class="example"><a id="d0e1678"/><p class="title"><b>Example 3.4. JMS Slave configuration</b></p><div class="example-contents"><pre class="programlisting">### slave configuration
+
+## DirectoryProvider
+# (remote) master location
+hibernate.search.default.sourceBase = /mnt/mastervolume/lucenedirs/mastercopy
+
+# local copy location
+hibernate.search.default.indexBase = /Users/prod/lucenedirs
+
+# refresh every half hour
+hibernate.search.default.refresh = 1800
+
+# appropriate directory provider
+hibernate.search.default.directory_provider = filesystem-slave
+
+## Backend configuration
+hibernate.search.default.worker.backend = jms
+hibernate.search.default.worker.jms.connection_factory = /ConnectionFactory
+hibernate.search.default.worker.jms.queue = queue/hibernatesearch
+#optionally authentication credentials:
+hibernate.search.default.worker.jms.login = myname
+hibernate.search.default.worker.jms.password = wonttellyou
+#optional jndi configuration (check your JMS provider for more information)
+
+## Optional asynchronous execution strategy
+# hibernate.search.default.worker.execution = async
+# hibernate.search.default.worker.thread_pool.size = 2
+# hibernate.search.default.worker.buffer_queue.max = 50</pre></div></div><br class="example-break"/><div xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="tip"><h2>Tip</h2><p>A file system local copy is recommended for faster search
+          results.</p></div></div><div class="section" lang="en-US"><div class="titlepage"><div><div><h4 class="title"><a id="d0e1686"/>3.4.1.2. Master node</h4></div></div></div><p>Every index update operation is taken from a JMS queue and
+        executed. The master index is copied on a regular basis.</p><div class="example"><a id="d0e1691"/><p class="title"><b>Example 3.5. JMS Master configuration</b></p><div class="example-contents"><pre class="programlisting">### master configuration
+
+## DirectoryProvider
+# (remote) master location where information is copied to
+hibernate.search.default.sourceBase = /mnt/mastervolume/lucenedirs/mastercopy
+
+# local master location
+hibernate.search.default.indexBase = /Users/prod/lucenedirs
+
+# refresh every half hour
+hibernate.search.default.refresh = 1800
+
+# appropriate directory provider
+hibernate.search.default.directory_provider = filesystem-master
+
+## Backend configuration
+#Backend is the default lucene one</pre></div></div><br class="example-break"/><div xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="tip"><h2>Tip</h2><p>It is recommended that the refresh period be higher than the
+          expected copy time; if a copy operation is still being performed
+          when the next refresh triggers, the second refresh is skipped: it's
+          safe to set this value low even when the copy time is not
+          known.</p></div><p>In addition to the Hibernate Search framework configuration, a
+        Message Driven Bean has to be written and set up to process the index
+        works queue through JMS.</p><div class="example"><a id="d0e1701"/><p class="title"><b>Example 3.6. Message Driven Bean processing the indexing queue</b></p><div class="example-contents"><pre xmlns="" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="JAVA"><!-- <br/> --><span class="java_plain">@</span><!-- <br/> --><span class="java_type">MessageDriven</span><!-- <br/> --><span class="java_separator">(</span><!-- <br/> --><span class="java_plain">activationConfig&nbsp;</span><!-- <br/> --><span class="java_operator">=</span><!-- <br/> --><span class="java_plain">&nbsp;</span><!-- <br/> --><span class="java_separator">{</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;@</span><span class="java_type">ActivationConfigProperty</span><span class="java_separator">(</span><span class="java_plain">propertyName</span><span class="java_operator">=</span><span class="java_literal">&quot;destinationType&quot;</span><span class="java_separator">,</span><span class="java_plain">&nbsp;</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;propertyValue</span><span class="java_operator">=</span><span class="java_literal">&quot;javax.jms.Queue&quot;</span><span class="java_separator">),</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;@</span><span class="java_type">ActivationConfigProperty</span><span class="java_separator">(</span><span class="java_plain">propertyName</span><span class="java_operator">=</span><span class="java_literal">&quot;destination&quot;</span><span class="java_separator">,</span><span class="java_plain">&nbsp;</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;propertyValue</span><span class="java_operator">=</span><span class="java_literal">&quot;queue/hibernatesearch&quot;</span><span class="java_separator">),</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;@</span><span class="java_type">ActivationConfigProperty</span><span class="java_separator">(</span><span class="java_plain">propertyName</span><span class="java_operator">=</span><span class="java_literal">&quot;DLQMaxResent&quot;</span><span class="java_separator">,</span><span class="java_plain">&nbsp;propertyValue</span><span class="java_operator">=</span><span class="java_literal">&quot;1&quot;</span><span class="java_separator">)</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;&nbsp;</span><span class="java_separator">}</span><span class="java_plain">&nbsp;</span><span class="java_separator">)</span>
+<!--  --><br/><span class="java_keyword">public</span><span class="java_plain">&nbsp;</span><span class="java_keyword">class</span><span class="java_plain">&nbsp;</span><span class="java_type">MDBSearchController</span><span class="java_plain">&nbsp;</span><span class="java_keyword">extends</span><span class="java_plain">&nbsp;</span><span class="java_type">AbstractJMSHibernateSearchController</span><span class="java_plain">&nbsp;</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="java_keyword">implements</span><span class="java_plain">&nbsp;</span><span class="java_type">MessageListener</span><span class="java_plain">&nbsp;</span><span class="java_separator">{</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;&nbsp;&nbsp;@</span><span class="java_type">PersistenceContext</span><span class="java_plain">&nbsp;</span><span class="java_type">EntityManager</span><span class="java_plain">&nbsp;em</span><span class="java_separator">;</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;&nbsp;&nbsp;</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="java_operator">//</span><span class="java_plain">method&nbsp;retrieving&nbsp;the&nbsp;appropriate&nbsp;session</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="java_keyword">protected</span><span class="java_plain">&nbsp;</span><span class="java_type">Session</span><span class="java_plain">&nbsp;getSession</span><span class="java_separator">()</span><span class="java_plain">&nbsp;</span><span class="java_separator">{</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="java_keyword">return</span><span class="java_plain">&nbsp;</span><span class="java_separator">(</span><span class="java_type">Session</span><span class="java_separator">)</span><span class="java_plain">&nbsp;em</span><span class="java_separator">.</span><span class="java_plain">getDelegate</span><span class="java_separator">();</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="java_separator">}</span>
+</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="java_operator">//</span><span class="java_plain">potentially&nbsp;close&nbsp;the&nbsp;session&nbsp;opened&nbsp;in&nbsp;#getSession</span><span class="java_separator">(),</span><span class="java_plain">&nbsp;not&nbsp;needed&nbsp;here</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="java_keyword">protected</span><span class="java_plain">&nbsp;</span><span class="java_type">void</span><span class="java_plain">&nbsp;cleanSessionIfNeeded</span><span class="java_separator">(</span><span class="java_type">Session</span><span class="java_plain">&nbsp;session</span><span class="java_separator">)</span><span class="java_plain">&nbsp;</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="java_separator">}</span>
+<!--  --><br/><span class="java_separator">}</span></pre></div></div><br class="example-break"/><p>This example inherits from the abstract JMS controller class
+        available in the Hibernate Search source code and implements a JavaEE
+        MDB. This implementation is given as an example and can be adjusted to
+        make use of non Java EE Message Driven Beans. For more information
+        about the <code class="methodname">getSession()</code> and
+        <code class="methodname">cleanSessionIfNeeded()</code>, please check
+        <code class="classname">AbstractJMSHibernateSearchController</code>'s
+        javadoc.</p></div></div><div class="section" lang="en-US"><div class="titlepage"><div><div><h3 class="title"><a id="jgroups-backend"/>3.4.2. JGroups Master/Slave back end</h3></div></div></div><p>This section describes how to configure the JGroups Master/Slave
+      back end. The master and slave roles are similar to what is illustrated
+      in <a href="search-configuration.html#jms-backend" title="3.4.1. JMS Master/Slave back end">Section 3.4.1, “JMS Master/Slave back end”</a>, only a different backend
+      (<code class="constant">hibernate.search.worker.backend</code>) needs to be
+      set.</p><p>A specific backend can be configured to act either as a slave
+      using <code class="literal">jgroupsSlave</code>, as a master using
+      <code class="literal">jgroupsMaster</code>, or can automatically switch between
+      the roles as needed by using <code class="literal">jgroups</code>.</p><div xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="note"><h2>Note</h2><p>Either you specify a single <code class="literal">jgroupsMaster</code> and
+        a set of <code class="literal">jgroupsSlave</code> instances, or you specify all
+        instances as <code class="literal">jgroups</code>. Never mix the two
+        approaches!</p></div><p>All backends configured to use JGroups share the same channel. The
+      JGroups <code class="classname">JChannel</code> is the main communication link
+      across all nodes participating in the same cluster group; since it is
+      convenient to have just one channel shared across all backends, the
+      Channel configuration properties are not defined on a per-worker section
+      but are defined globally. See <a href="search-configuration.html#jgroups-channel-configuration" title="3.4.2.4. JGroups channel configuration">Section 3.4.2.4, “JGroups channel configuration”</a>.</p><p>Table <a href="search-configuration.html#table-jgroups-backend-configuration" title="Table 3.6. JGroups backend configuration properties">Table 3.6, “JGroups backend configuration properties”</a>
+      contains all configuration options which can be set independently on
+      each index backend. These apply to all three variants of the backend:
+      <code class="literal">jgroupsSlave</code>, <code class="literal">jgroupsMaster</code>,
+      <code class="literal">jgroups</code>. It is very unlikely that you need to change
+      any of these from their defaults.</p><div class="table"><a id="table-jgroups-backend-configuration"/><p class="title"><b>Table 3.6. JGroups backend configuration properties</b></p><div class="table-contents"><table summary="JGroups backend configuration properties" border="1"><colgroup><col/><col/></colgroup><tbody><tr><td><span class="bold"><strong>Property</strong></span></td><td><span class="bold"><strong>Description</strong></span></td></tr><tr><td><span class="property">hibernate.search.&lt;indexName&gt;.jgroups.block_waiting_ack</span></td><td>Set to either <code class="literal">true</code> or
+              <code class="literal">false</code>. False is more efficient but will not
+              wait for the operation to be delivered to the peers. Defaults to
+              <code class="literal">true</code> when the backend is synchronous, to
+              <code class="literal">false</code> when the backend is
+              <code class="literal">async</code>.</td></tr><tr><td><span class="property">hibernate.search.&lt;indexName&gt;.jgroups.​messages_timeout</span></td><td>The timeout of waiting for a single command to be
+              acknowledged and executed when
+              <code class="literal">block_waiting_ack</code> is <code class="literal">true</code>,
+              or just acknowledged otherwise. Value in milliseconds, defaults
+              to <code class="literal">20000</code>.</td></tr><tr><td><span class="property">hibernate.search.&lt;indexName&gt;.jgroups.delegate_backend</span></td><td>The master node receiving indexing operations forwards
+              them to a standard backend to be performed. Defaults to
+              <code class="literal">lucene</code>. See also <a href="search-configuration.html#table-backend-configuration" title="Table 3.4. Backend configuration">Table 3.4, “Backend configuration”</a> for other options, but
+              probably the only useful option is <code class="literal">blackhole</code>,
+              or a custom implementation, to help isolating network latency
+              problems.</td></tr></tbody></table></div></div><br class="table-break"/><div class="section" lang="en-US"><div class="titlepage"><div><div><h4 class="title"><a id="d0e1832"/>3.4.2.1. Slave nodes</h4></div></div></div><p>Every index update operation is sent through a JGroups channel
+        to the master node. Index querying operations are executed on a local
+        index copy. Enabling the JGroups worker only makes sure the index
+        operations are sent to the master, you still have to synchronize
+        configuring an appropriate directory (See
+        <code class="literal">filesystem-master</code>,
+        <code class="literal">filesystem-slave</code> or <code class="literal">infinispan</code>
+        options in <a href="search-configuration.html#search-configuration-directory" title="3.3. Directory configuration">Section 3.3, “Directory configuration”</a>).</p><div class="example"><a id="d0e1848"/><p class="title"><b>Example 3.7. JGroups Slave configuration</b></p><div class="example-contents"><pre class="programlisting">### slave configuration
+hibernate.search.default.worker.backend = jgroupsSlave     </pre></div></div><br class="example-break"/></div><div class="section" lang="en-US"><div class="titlepage"><div><div><h4 class="title"><a id="d0e1853"/>3.4.2.2. Master node</h4></div></div></div><p>Every index update operation is taken from a JGroups channel and
+        executed. The master index is copied on a regular basis.</p><div class="example"><a id="d0e1858"/><p class="title"><b>Example 3.8. JGroups Master configuration</b></p><div class="example-contents"><pre class="programlisting">### master configuration
+hibernate.search.default.worker.backend = jgroupsMaster   </pre></div></div><br class="example-break"/></div><div class="section" lang="en-US"><div class="titlepage"><div><div><h4 class="title"><a id="d0e1863"/>3.4.2.3. Automatic master election</h4></div></div></div><div xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="important"><h2>Important</h2><p>This feature is considered experimental. In particular during
+          a re-election process there is a small window of time in which
+          indexing requests could be lost.</p></div><p>In this mode the different nodes will autonomously elect a
+        master node. When a master fails, a new node is elected
+        automatically.</p><p>When setting this backend it is expected that all Hibernate
+        Search instances in the same cluster use the same backend for each
+        specific index: this configuration is an alternative to the static
+        <code class="literal">jgroupsMaster</code> and <code class="literal">jgroupsSlave</code>
+        approach so make sure to not mix them.</p><p>To synchronize the indexes in this configuration avoid
+        <code class="literal">filesystem-master</code> and
+        <code class="literal">filesystem-slave</code> directory providers as their
+        behaviour can not be switched dynamically; use the Infinispan
+        <code class="literal">Directory</code> instead, which has no need for different
+        configurations on each instance and allows dynamic switching of
+        writers; see also <a href="search-configuration.html#infinispan-directories" title="3.3.1. Infinispan Directory configuration">Section 3.3.1, “Infinispan Directory configuration”</a>.</p><div class="example"><a id="d0e1892"/><p class="title"><b>Example 3.9. JGroups configuration for automatic master
+          configuration</b></p><div class="example-contents"><pre class="programlisting">### automatic configuration
+hibernate.search.default.worker.backend = jgroups  </pre></div></div><br class="example-break"/><div xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="tip"><h2>Tip</h2><p>Should you use <code class="literal">jgroups</code> or the couple
+          <code class="literal">jgroupsMaster</code>,
+          <code class="literal">jgroupsSlave</code>?</p><p>The dynamic <code class="literal">jgroups</code> backend is better
+          suited for environments in which your master is more likely to need
+          to failover to a different machine, as in clouds. The static
+          configuration has the benefit of keeping the master at a well known
+          location: your architecture might take advantage of it by sending
+          most write requests to the known master. Also optimisation and
+          MassIndexer operations need to be triggered on the master
+          node.</p></div></div><div class="section" lang="en-US"><div class="titlepage"><div><div><h4 class="title"><a id="jgroups-channel-configuration"/>3.4.2.4. JGroups channel configuration</h4></div></div></div><p>Configuring the JGroups channel essentially entails specifying
+        the transport in terms of a network protocol stack. To configure the
+        JGroups transport, point the configuration property
+        <code class="constant">hibernate.search.services.jgroups.configurationFile</code>
+        to a JGroups configuration file; this can be either a file path or a
+        Java resource name.</p><div xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="tip"><h2>Tip</h2><p>If no property is explicitly specified it is assumed that the
+          JGroups default configuration file <code class="literal">flush-udp.xml</code>
+          is used. This example configuration is known to work in most
+          scenarios, with the notable exception of Amazon AWS; refer to the
+          <a xmlns:xlink="http://www.w3.org/1999/xlink" href="http://www.jgroups.org/manual-3.x/html/">JGroups
+          manual</a> for more examples and protocol configuration
+          details.</p></div><p>The default cluster name is <code class="literal">Hibernate Search
+        Cluster</code> which can be configured as seen in <a href="search-configuration.html#example-jgroups-cluster-name" title="Example 3.10. JGroups cluster name configuration">Example 3.10, “JGroups cluster name configuration”</a>.</p><div class="example"><a id="example-jgroups-cluster-name"/><p class="title"><b>Example 3.10. JGroups cluster name configuration</b></p><div class="example-contents"><pre class="programlisting">hibernate.search.services.jgroups.clusterName = My-Custom-Cluster-Id</pre></div></div><br class="example-break"/><p>The cluster name is what identifies a group: by changing the
+        name you can run different clusters in the same network in
+        isolation.</p><div class="section" lang="en-US"><div class="titlepage"><div><div><h5 class="title"><a id="d0e1945"/>3.4.2.4.1. JGroups channel instance injection</h5></div></div></div><p>For programmatic configurations, one additional option is
+          available to configure the JGroups channel: to pass an existing
+          channel instance to Hibernate Search directly using the property
+          <code class="literal">hibernate.search.services.jgroups.providedChannel</code>,
+          as shown in the following example.</p></div><p/><pre xmlns="" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="JAVA"><!-- <br/> --><span class="java_keyword">import</span><!-- <br/> --><span class="java_plain">&nbsp;org</span><!-- <br/> --><span class="java_separator">.</span><!-- <br/> --><span class="java_plain">hibernate</span><!-- <br/> --><span class="java_separator">.</span><!-- <br/> --><span class="java_plain">search</span><!-- <br/> --><span class="java_separator">.</span><!-- <br/> --><span class="java_plain">backend</span><!-- <br/> --><span class="java_separator">.</span><!-- <br/> --><span class="java_plain">impl</span><!-- <br/> --><span class="java_separator">.</span><!-- <br/> --><span class="java_plain">jgroups</span><!-- <br/> --><span class="java_separator">.</span><!-- <br/> --><span class="java_type">JGroupsChannelProvider</span><!-- <br/> --><span class="java_separator">;</span>
+</span>
+<!--  --><br/><span class="java_plain">org</span><span class="java_separator">.</span><span class="java_plain">jgroups</span><span class="java_separator">.</span><span class="java_type">JChannel</span><span class="java_plain">&nbsp;channel&nbsp;</span><span class="java_operator">=</span><span class="java_plain">&nbsp;</span><span class="java_separator">...</span>
+<!--  --><br/><span class="java_type">Map</span><span class="java_operator">&lt;</span><span class="java_type">String</span><span class="java_separator">,</span><span class="java_type">String</span><span class="java_operator">&gt;</span><span class="java_plain">&nbsp;properties&nbsp;</span><span class="java_operator">=</span><span class="java_plain">&nbsp;</span><span class="java_keyword">new</span><span class="java_plain">&nbsp;</span><span class="java_type">HashMap</span><span class="java_operator">&lt;</span><span class="java_type">String</span><span class="java_separator">,</span><span class="java_type">String</span><span class="java_separator">)(</span><span class="java_literal">1</span><span class="java_separator">);</span>
+<!--  --><br/><span class="java_plain">properties</span><span class="java_separator">.</span><span class="java_plain">put</span><span class="java_separator">(</span><span class="java_plain">&nbsp;</span><span class="java_type">JGroupsChannelProvider</span><span class="java_separator">.</span><span class="java_plain">CHANNEL_INJECT</span><span class="java_separator">,</span><span class="java_plain">&nbsp;channel&nbsp;</span><span class="java_separator">);</span>
+<!--  --><br/><span class="java_type">EntityManagerFactory</span><span class="java_plain">&nbsp;emf&nbsp;</span><span class="java_operator">=</span><span class="java_plain">&nbsp;</span><span class="java_type">Persistence</span><span class="java_separator">.</span><span class="java_plain">createEntityManagerFactory</span><span class="java_separator">(</span><span class="java_plain">&nbsp;</span><span class="java_literal">&quot;userPU&quot;</span><span class="java_separator">,</span><span class="java_plain">&nbsp;properties&nbsp;</span><span class="java_separator">);</span></pre></div></div></div><div class="section" lang="en-US"><div class="titlepage"><div><div><h2 class="title"><a id="configuration-reader-strategy"/>3.5. Reader strategy configuration</h2></div></div></div><p>The different reader strategies are described in <a href="search-architecture.html#search-architecture-readerstrategy" title="2.3. Reader strategy">Reader strategy</a>. Out of the box strategies
+    are:</p><div class="itemizedlist"><ul><li><p><code class="literal">shared</code>: share index readers across several
+        queries. This strategy is the most efficient.</p></li><li><p><code class="literal">not-shared</code>: create an index reader for each
+        individual query</p></li></ul></div><p>The default reader strategy is <code class="literal">shared</code>. This can
+    be adjusted:</p><pre class="programlisting">hibernate.search.[default|&lt;indexname&gt;].reader.strategy = not-shared</pre><p>Adding this property switches to the <code class="literal">not-shared</code>
+    strategy.</p><p>Or if you have a custom reader strategy:</p><pre class="programlisting">hibernate.search.[default|&lt;indexname&gt;].reader.strategy = my.corp.myapp.CustomReaderProvider</pre><p>where <code class="classname">my.corp.myapp.CustomReaderProvider</code> is
+    the custom strategy implementation.</p></div><div class="section" lang="en-US"><div class="titlepage"><div><div><h2 class="title"><a id="d0e1995"/>3.6. Exception handling</h2></div></div></div><p>Hibernate Search allows you to configure how exceptions are handled
+    during the indexing process. If no configuration is provided then
+    exceptions are logged to the log output by default. It is possible to
+    explicitly declare the exception logging mechanism as seen below:</p><pre class="programlisting">hibernate.search.error_handler = log</pre><p>The default exception handling occurs for both synchronous and
+    asynchronous indexing. Hibernate Search provides an easy mechanism to
+    override the default error handling implementation.</p><p>In order to provide your own implementation you must implement the
+    <code class="classname">ErrorHandler</code> interface, which provides the
+    <code class="code">handle(ErrorContext context)</code> method.
+    <code class="code">ErrorContext</code> provides a reference to the primary
+    <code class="code">LuceneWork</code> instance, the underlying exception and any
+    subsequent <code class="code">LuceneWork</code> instances that could not be processed
+    due to the primary exception.</p><pre xmlns="" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="JAVA"><!-- <br/> --><span class="java_keyword">public</span><!-- <br/> --><span class="java_plain">&nbsp;</span><!-- <br/> --><span class="java_keyword">interface</span><!-- <br/> --><span class="java_plain">&nbsp;</span><!-- <br/> --><span class="java_type">ErrorContext</span><!-- <br/> --><span class="java_plain">&nbsp;</span><!-- <br/> --><span class="java_separator">{</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;&nbsp;</span><span class="java_type">List</span><span class="java_operator">&lt;</span><span class="java_type">LuceneWork</span><span class="java_operator">&gt;</span><span class="java_plain">&nbsp;getFailingOperations</span><span class="java_separator">();</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;&nbsp;</span><span class="java_type">LuceneWork</span><span class="java_plain">&nbsp;getOperationAtFault</span><span class="java_separator">();</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;&nbsp;</span><span class="java_type">Throwable</span><span class="java_plain">&nbsp;getThrowable</span><span class="java_separator">();</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;&nbsp;</span><span class="java_type">boolean</span><span class="java_plain">&nbsp;hasErrors</span><span class="java_separator">();</span>
+<!--  --><br/><span class="java_separator">}</span></pre><p>To register this error handler with Hibernate Search you must
+    declare the fully qualified classname of your
+    <code class="classname">ErrorHandler</code> implementation in the configuration
+    properties:</p><pre class="programlisting">hibernate.search.error_handler = CustomerErrorHandler</pre></div><div class="section" lang="en-US"><div class="titlepage"><div><div><h2 class="title"><a id="d0e2031"/>3.7. Lucene configuration</h2></div></div></div><p>Even though Hibernate Search will try to shield you as much as
+    possible from Lucene specifics, there are several Lucene specifics which
+    can be directly configured, either for performance reasons or for
+    satisfying a specific usecase. The following sections discuss these
+    configuration options.</p><div class="section" lang="en-US"><div class="titlepage"><div><div><h3 class="title"><a id="lucene-indexing-performance"/>3.7.1. Tuning indexing performance</h3></div></div></div><p>Hibernate Search allows you to tune the Lucene indexing
+      performance by specifying a set of parameters which are passed through
+      to underlying Lucene <code class="literal">IndexWriter</code> such as
+      <code class="literal">mergeFactor</code>, <code class="literal">maxMergeDocs</code> and
+      <code class="literal">maxBufferedDocs</code>. You can specify these parameters
+      either as default values applying for all indexes, on a per index basis,
+      or even per shard.</p><p>There are several low level <code class="literal">IndexWriter</code>
+      settings which can be tuned for different use cases. These parameters
+      are grouped by the <code class="literal">indexwriter</code> keyword:
+      </p><pre class="programlisting">hibernate.search.[default|&lt;indexname&gt;].indexwriter.&lt;parameter_name&gt;</pre><p>If no value is set for an <code class="literal">indexwriter</code> value in
+      a specific shard configuration, Hibernate Search will look at the index
+      section, then at the default section.</p><div class="example"><a id="example-performamce-option-configuration"/><p class="title"><b>Example 3.11. Example performance option configuration</b></p><div class="example-contents"><pre class="programlisting">hibernate.search.Animals.2.indexwriter.max_merge_docs = 10
+hibernate.search.Animals.2.indexwriter.merge_factor = 20
+hibernate.search.Animals.2.indexwriter.term_index_interval = default
+hibernate.search.default.indexwriter.max_merge_docs = 100
+hibernate.search.default.indexwriter.ram_buffer_size = 64</pre></div></div><p><br class="example-break"/> The configuration in <a href="search-configuration.html#example-performamce-option-configuration" title="Example 3.11. Example performance option configuration">Example 3.11, “Example performance option configuration”</a> will result in
+      these settings applied on the second shard of the
+      <code class="classname">Animal</code> index:</p><div class="itemizedlist"><ul><li><p><code class="literal">max_merge_docs</code> = 10</p></li><li><p><code class="literal">merge_factor</code> = 20</p></li><li><p><code class="literal">ram_buffer_size</code> = 64MB</p></li><li><p><code class="literal">term_index_interval</code> = Lucene default</p></li></ul></div><p>All other values will use the defaults defined in Lucene.</p><p>The default for all values is to leave them at Lucene's own
+      default. The values listed in <a href="search-configuration.html#table-performance-parameters" title="Table 3.7. List of indexing performance and behavior properties">Table 3.7, “List of indexing performance and behavior properties”</a> depend for this reason on the
+      version of Lucene you are using. The values shown are relative to
+      version <code class="literal">2.4</code>. For more information about Lucene
+      indexing performance, please refer to the Lucene documentation.</p><div class="table"><a id="table-performance-parameters"/><p class="title"><b>Table 3.7. List of indexing performance and behavior properties</b></p><div class="table-contents"><table summary="List of indexing performance and behavior properties" border="1"><colgroup><col/><col/><col/></colgroup><thead><tr><th align="center">Property</th><th align="center">Description</th><th align="center">Default Value</th></tr></thead><tbody><tr><td>
+                <span class="property">hibernate.search.​[default|&lt;indexname&gt;].​exclusive_index_use</span>
+              </td><td>
+                <p>Set to <code class="literal">true</code> when no other process
+                will need to write to the same index. This will enable
+                Hibernate Search to work in exclusive mode on the index and
+                improve performance when writing changes to the index.</p>
+              </td><td><code class="literal">true</code> (improved performance, releases
+              locks only at shutdown)</td></tr><tr><td>
+                <span class="property">hibernate.search.​[default|&lt;indexname&gt;].​max_queue_length</span>
+              </td><td>
+                <p>Each index has a separate "pipeline" which contains the
+                updates to be applied to the index. When this queue is full
+                adding more operations to the queue becomes a blocking
+                operation. Configuring this setting doesn't make much sense
+                unless the <code class="literal">worker.execution</code> is configured
+                as <code class="literal">async</code>.</p>
+              </td><td>
+                <code class="literal">1000</code>
+              </td></tr><tr><td>
+                <span class="property">hibernate.search.​[default|&lt;indexname&gt;].​indexwriter.max_buffered_delete_terms</span>
+              </td><td>
+                <p>Determines the minimal number of delete terms required
+                before the buffered in-memory delete terms are applied and
+                flushed. If there are documents buffered in memory at the
+                time, they are merged and a new segment is created.</p>
+              </td><td>Disabled (flushes by RAM usage)</td></tr><tr><td>
+                <span class="property">hibernate.search.​[default|&lt;indexname&gt;].​indexwriter.max_buffered_docs</span>
+              </td><td>
+                <p>Controls the amount of documents buffered in memory
+                during indexing. The bigger the more RAM is consumed.</p>
+              </td><td>Disabled (flushes by RAM usage)</td></tr><tr><td>
+                <span class="property">hibernate.search.​[default|&lt;indexname&gt;].​indexwriter.max_merge_docs</span>
+              </td><td>
+                <p>Defines the largest number of documents allowed in a
+                segment. Smaller values perform better on frequently changing
+                indexes, larger values provide better search performance if
+                the index does not change often.</p>
+              </td><td>Unlimited (Integer.MAX_VALUE)</td></tr><tr><td>
+                <span class="property">hibernate.search.​[default|&lt;indexname&gt;].​indexwriter.merge_factor</span>
+              </td><td>
+                <p>Controls segment merge frequency and size.</p>
+
+                <p>Determines how often segment indexes are merged when
+                insertion occurs. With smaller values, less RAM is used while
+                indexing, and searches on unoptimized indexes are faster, but
+                indexing speed is slower. With larger values, more RAM is used
+                during indexing, and while searches on unoptimized indexes are
+                slower, indexing is faster. Thus larger values (&gt; 10) are
+                best for batch index creation, and smaller values (&lt; 10)
+                for indexes that are interactively maintained. The value must
+                not be lower than 2.</p>
+              </td><td>10</td></tr><tr><td>
+                <span class="property">hibernate.search.​[default|&lt;indexname&gt;].​indexwriter.merge_min_size</span>
+              </td><td>
+                <p>Controls segment merge frequency and size.</p>
+
+                <p>Segments smaller than this size (in MB) are always
+                considered for the next segment merge operation.</p>
+
+                <p>Setting this too large might result in expensive merge
+                operations, even tough they are less frequent.</p>
+
+                <p>See also
+                <code class="classname">org.apache.lucene.index.LogDocMergePolicy</code>.
+                <code class="literal">minMergeSize</code>.</p>
+              </td><td>0 MB (actually ~1K)</td></tr><tr><td>
+                <span class="property">hibernate.search.​[default|&lt;indexname&gt;].​indexwriter.merge_max_size</span>
+              </td><td>
+                <p>Controls segment merge frequency and size.</p>
+
+                <p>Segments larger than this size (in MB) are never merged
+                in bigger segments.</p>
+
+                <p>This helps reduce memory requirements and avoids some
+                merging operations at the cost of optimal search speed. When
+                optimizing an index this value is ignored.</p>
+
+                <p>See also
+                <code class="classname">org.apache.lucene.index.LogDocMergePolicy</code>.
+                <code class="literal">maxMergeSize</code>.</p>
+              </td><td>Unlimited</td></tr><tr><td>
+                <span class="property">hibernate.search.​[default|&lt;indexname&gt;].​indexwriter.merge_max_optimize_size</span>
+              </td><td>
+                <p>Controls segment merge frequency and size.</p>
+
+                <p>Segments larger than this size (in MB) are not merged in
+                bigger segments even when optimizing the index (see
+                <code class="literal">merge_max_size</code> setting as well).</p>
+
+                <p>Applied to
+                <code class="classname">org.apache.lucene.index.LogDocMergePolicy</code>.
+                <code class="literal">maxMergeSizeForOptimize</code>.</p>
+              </td><td>Unlimited</td></tr><tr><td>
+                <span class="property">hibernate.search.​[default|&lt;indexname&gt;].​indexwriter.merge_calibrate_by_deletes</span>
+              </td><td>
+                <p>Controls segment merge frequency and size.</p>
+
+                <p>Set to <code class="literal">false</code> to not consider deleted
+                documents when estimating the merge policy.</p>
+
+                <p>Applied to
+                <code class="classname">org.apache.lucene.index.LogMergePolicy</code>.
+                <code class="literal">calibrateSizeByDeletes</code>.</p>
+              </td><td>
+                <code class="literal">true</code>
+              </td></tr><tr><td>
+                <span class="property">hibernate.search.​[default|&lt;indexname&gt;].​indexwriter.ram_buffer_size</span>
+              </td><td>
+                <p>Controls the amount of RAM in MB dedicated to document
+                buffers. When used together max_buffered_docs a flush occurs
+                for whichever event happens first.</p>
+
+                <p>Generally for faster indexing performance it's best to
+                flush by RAM usage instead of document count and use as large
+                a RAM buffer as you can.</p>
+              </td><td>16 MB</td></tr><tr><td>
+                <span class="property">hibernate.search.​[default|&lt;indexname&gt;].​indexwriter.term_index_interval</span>
+              </td><td>
+                <p>Expert: Set the interval between indexed terms.</p>
+
+                <p>Large values cause less memory to be used by
+                IndexReader, but slow random-access to terms. Small values
+                cause more memory to be used by an IndexReader, and speed
+                random-access to terms. See Lucene documentation for more
+                details.</p>
+              </td><td>128</td></tr><tr><td>
+                <span class="property">hibernate.search.​[default|&lt;indexname&gt;].​indexwriter.use_compound_file</span>
+              </td><td>The advantage of using the compound file format is that
+              less file descriptors are used. The disadvantage is that
+              indexing takes more time and temporary disk space. You can set
+              this parameter to <code class="literal">false</code> in an attempt to
+              improve the indexing time, but you could run out of file
+              descriptors if <code class="literal">mergeFactor</code> is also
+              large.<p>Boolean parameter, use "<code class="literal">true</code>" or
+              "<code class="literal">false</code>". The default value for this option is
+              <code class="literal">true</code>.</p></td><td>true</td></tr><tr><td>
+                <span class="property">hibernate.search.​enable_dirty_check</span>
+              </td><td>
+                <p>Not all entity changes require an update of the Lucene
+                index. If all of the updated entity properties (dirty
+                properties) are not indexed Hibernate Search will skip the
+                re-indexing work.</p>
+
+                <p>Disable this option if you use custom
+                <code class="literal">FieldBridge</code>s which need to be invoked at
+                each update event (even though the property for which the
+                field bridge is configured has not changed).</p>
+
+                <p>This optimization will not be applied on classes using a
+                <code class="literal">@ClassBridge</code> or a
+                <code class="literal">@DynamicBoost</code>.</p>
+
+                <p>Boolean parameter, use "<code class="literal">true</code>" or
+                "<code class="literal">false</code>". The default value for this option
+                is <code class="literal">true</code>.</p>
+              </td><td>true</td></tr></tbody></table></div></div><br class="table-break"/><div xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="tip"><h2>Tip</h2><p>When your architecture permits it, always keep
+        <code class="literal">hibernate.search.default.exclusive_index_use=true</code>
+        as it greatly improves efficiency in index writing. This is the
+        default since Hibernate Search version 4.</p></div><div xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="tip"><h2>Tip</h2><p>To tune the indexing speed it might be useful to time the object
+        loading from database in isolation from the writes to the index. To
+        achieve this set the <code class="literal">blackhole</code> as worker backend
+        and start your indexing routines. This backend does not disable
+        Hibernate Search: it will still generate the needed changesets to the
+        index, but will discard them instead of flushing them to the index. In
+        contrast to setting the
+        <code class="literal">hibernate.search.indexing_strategy</code> to
+        <code class="literal">manual</code>, using <code class="literal">blackhole</code> will
+        possibly load more data from the database. because associated entities
+        are re-indexed as well.</p><pre class="programlisting">hibernate.search.[default|&lt;indexname&gt;].worker.backend blackhole</pre><p>The recommended approach is to focus first on optimizing the
+        object loading, and then use the timings you achieve as a baseline to
+        tune the indexing process.</p></div><div xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="warning"><h2>Warning</h2><p>The <code class="literal">blackhole</code> backend is not meant to be used
+        in production, only as a tool to identify indexing bottlenecks.</p></div><div class="section" lang="en-US"><div class="titlepage"><div><div><h4 class="title"><a id="lucene-segment-size"/>3.7.1.1. Control segment size</h4></div></div></div><p>The options <code class="literal">merge_max_size</code>,
+        <code class="literal">merge_max_optimize_size</code>,
+        <code class="literal">merge_calibrate_by_deletes</code> give you control on the
+        maximum size of the segments being created, but you need to understand
+        how they affect file sizes. If you need to hard limit the size,
+        consider that merging a segment is about adding it together with
+        another existing segment to form a larger one, so you might want to
+        set the <code class="literal">max_size</code> for merge operations to less than
+        half of your hard limit. Also segments might initially be generated
+        larger than your expected size at first creation time: before they are
+        ever merged. A segment is never created much larger than
+        <code class="literal">ram_buffer_size</code>, but the threshold is checked as an
+        estimate.</p><p>Example:</p><pre class="programlisting">//to be fairly confident no files grow above 15MB, use:
+hibernate.search.default.indexwriter.ram_buffer_size = 10
+hibernate.search.default.indexwriter.merge_max_optimize_size = 7
+hibernate.search.default.indexwriter.merge_max_size = 7</pre></div><div xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="tip"><h2>Tip</h2><p>When using the Infinispan Directory to cluster indexes make sure
+        that your segments are smaller than the <code class="literal">chunk_size</code>
+        so that you avoid fragmenting segments in the grid. Note that the
+        <code class="literal">chunk_size</code> of the Infinispan Directory is expressed
+        in bytes, while the index tuning options are in MB.</p></div></div><div class="section" lang="en-US"><div class="titlepage"><div><div><h3 class="title"><a id="search-configuration-directory-lockfactories"/>3.7.2. LockFactory configuration</h3></div></div></div><p>Lucene <code class="classname">Directory</code>s have default locking
+      strategies which work generally good enough for most cases, but it's
+      possible to specify for each index managed by Hibernate Search a
+      specific <code class="classname">LockingFactory</code> you want to use. This is
+      generally not needed but could be useful.</p><p>Some of these locking strategies require a filesystem level lock
+      and may be used even on RAM based indexes, this combination is valid but
+      in this case the <code class="literal">indexBase</code> configuration option
+      usually needed only for filesystem based
+      <code class="classname">Directory</code> instances must be specified to point to
+      a filesystem location where to store the lock marker files.</p><p>To select a locking factory, set the
+      <code class="literal">hibernate.search.&lt;index&gt;.locking_strategy</code>
+      option to one of <code class="literal">simple</code>, <code class="literal">native</code>,
+      <code class="literal">single</code> or <code class="literal">none</code>. Alternatively set
+      it to the fully qualified name of an implementation of
+      <code class="literal">org.hibernate.search.store.LockFactoryProvider</code>.</p><div class="table"><a id="search-configuration-directory-lockfactories-table"/><p class="title"><b>Table 3.8. List of available LockFactory implementations</b></p><div class="table-contents"><table summary="List of available LockFactory implementations" border="1"><colgroup><col/><col/><col/></colgroup><thead><tr><th align="center">name</th><th align="center">Class</th><th align="center">Description</th></tr></thead><tbody><tr><td><span class="property">simple</span></td><td>org.apache.lucene.store.​SimpleFSLockFactory</td><td><p>Safe implementation based on Java's File API, it
+              marks the usage of the index by creating a marker file.</p>
+              <p>If for some reason you had to kill your application, you
+              will need to remove this file before restarting
+              it.</p></td></tr><tr><td><span class="property">native</span></td><td>org.apache.lucene.store.​NativeFSLockFactory</td><td><p>As does <code class="literal">simple</code> this also marks
+              the usage of the index by creating a marker file, but this one
+              is using native OS file locks so that even if the JVM is
+              terminated the locks will be cleaned up.</p> <p>This
+              implementation has known problems on NFS, avoid it on network
+              shares.</p> <p><code class="literal">native</code> is the default
+              implementation for the <code class="literal">filesystem</code>,
+              <code class="literal">filesystem-master</code> and
+              <code class="literal">filesystem-slave</code> directory
+              providers.</p></td></tr><tr><td><span class="property">single</span></td><td>org.apache.lucene.store.​SingleInstanceLockFactory</td><td><p>This LockFactory doesn't use a file marker but is a
+              Java object lock held in memory; therefore it's possible to use
+              it only when you are sure the index is not going to be shared by
+              any other process.</p> <p>This is the default
+              implementation for the <code class="literal">ram</code> directory
+              provider.</p></td></tr><tr><td><span class="property">none</span></td><td>org.apache.lucene.store.​NoLockFactory</td><td><p>All changes to this index are not coordinated by
+              any lock; test your application carefully and make sure you know
+              what it means.</p></td></tr></tbody></table></div></div><br class="table-break"/><p>Configuration example:</p><pre class="programlisting">hibernate.search.default.locking_strategy = simple
+hibernate.search.Animals.locking_strategy = native
+hibernate.search.Books.locking_strategy = org.custom.components.MyLockingFactory</pre><p>The Infinispan Directory uses a custom implementation; it's still
+      possible to override it but make sure you understand how that will work,
+      especially with clustered indexes.</p></div><div class="section" lang="en-US"><div class="titlepage"><div><div><h3 class="title"><a id="d0e2627"/>3.7.3. Index format compatibility</h3></div></div></div><p>While Hibernate Search strives to offer a backwards compatible API
+      making it easy to port your application to newer versions, it still
+      delegates to Apache Lucene to handle the index writing and searching.
+      This creates a dependency to the Lucene index format. The Lucene
+      developers of course attempt to keep a stable index format, but
+      sometimes a change in the format can not be avoided. In those cases you
+      either have to reindex all your data or use an index upgrade tool.
+      Sometimes Lucene is also able to read the old format so you don't need
+      to take specific actions (besides making backup of your index).</p><p>While an index format incompatibility is a rare event, it can
+      happen more often that Lucene's <code class="classname">Analyzer</code>
+      implementations might slightly change its behaviour. This can lead to a
+      poor recall score, possibly missing many hits from the results.</p><p>Hibernate Search exposes a configuration property
+      <code class="literal">hibernate.search.lucene_version</code> which instructs the
+      analyzers and other Lucene classes to conform to their behaviour as
+      defined in an (older) specific version of Lucene. See also
+      <code class="classname">org.apache.lucene.util.Version</code> contained in the
+      <code class="filename">lucene-core.jar</code>. Depending on the specific version
+      of Lucene you're using you might have different options available. When
+      this option is not specified, Hibernate Search will instruct Lucene to
+      use the default version, which is usually the best option for new
+      projects. Still it's recommended to define the version you're using
+      explicitly in the configuration so that when you happen to upgrade
+      Lucene the analyzers will not change behaviour. You can then choose to
+      update this value at a later time, when you for example have the chance
+      to rebuild the index from scratch.</p><div class="example"><a id="d0e2648"/><p class="title"><b>Example 3.12. Force Analyzers to be compatible with a Lucene 3.0 created
+        index</b></p><div class="example-contents"><pre class="programlisting">hibernate.search.lucene_version = LUCENE_30</pre></div></div><br class="example-break"/><p>This option is global for the configured
+      <code class="classname">SearchFactory</code> and affects all Lucene APIs having
+      such a parameter, as this should be applied consistently. So if you are
+      also making use of Lucene bypassing Hibernate Search, make sure to apply
+      the same value too.</p></div></div><div class="section" lang="en-US"><div class="titlepage"><div><div><h2 class="title"><a id="d0e2658"/>3.8. Metadata API</h2></div></div></div><p>After looking at all these different configuration options, it is
+    time to have a look at an API which allows you to prorgammatically access
+    parts of the configuration. Via the metadata API you can determine the
+    indexed types and also how they are mapped (see <a href="search-mapping.html" title="Chapter 4. Mapping entities to the index structure">Chapter 4, <i xmlns:xlink="http://www.w3.org/1999/xlink">Mapping entities to the index structure</i></a>) to the index structure. The entry point into
+    this API is the <code class="classname">SearchFactory</code>. It offers two
+    methods, namely <code class="methodname">getIndexedTypes()</code> and
+    <code class="methodname">getIndexedTypeDescriptor(Class&lt;?&gt;)</code>. The
+    former returns a set of all indexed type, where as the latter allows to
+    retrieve a so called <code class="classname">IndexedTypeDescriptor</code>for a
+    gven type. This descriptor allows you determine whether the type is
+    indexed at all and, if so, whether the index is for example sharded or not
+    (see <a href="search-lucene-native.html#advanced-features-sharding" title="10.4. Sharding indexes">Section 10.4, “Sharding indexes”</a>). It also
+    allows you to determine the static boost of the type (see <a href="search-mapping.html#section-boost-annotation" title="4.2.1. Static index time boosting">Section 4.2.1, “Static index time boosting”</a>) as well as its dynamic boost
+    strategy (see <a href="search-mapping.html#section-dynamic-boost">Section 4.2.2, “Dynamic index time boosting”</a>). Most importantly,
+    however, you get information about the indexed properties and generated
+    Lucene <code class="classname">Document</code> fields. This is exposed via
+    <code class="classname">PropertyDescriptor</code>s respectively
+    <code class="classname">FieldDescriptor</code>s. The easiest way to get to know
+    the API is to explore it via the IDE or its javadocs.</p><div xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="note"><h2>Note</h2><p>All descriptor instances of the metadata API are read only. They
+        do not allow to change any runtime configuration.</p></div></div><div class="section" lang="en-US"><div class="titlepage"><div><div><h2 class="title"><a id="search-configuration-deploy-on-AS7"/>3.9. Hibernate Search as JBoss AS module</h2></div></div></div><p>Provided you're deploying on JBoss AS 7.2.x or JBoss EAP 6.1, there
+    is an additional way to add the search dependencies to your
+    application.</p><p>In JBoss AS 7 class loading is based on modules that have to define
+    explicit dependencies on other modules. Modules allow to share the same
+    artifacts across multiple applications getting you smaller and quicker
+    deployments.</p><p>More details about modules are described in <a xmlns:xlink="http://www.w3.org/1999/xlink" href="https://docs.jboss.org/author/display/AS72/Class+Loading+in+AS7">Class
+    Loading in AS7</a>.</p><p>You can download the pre-packaged Hibernate Search modules
+    from:</p><div class="itemizedlist"><ul><li><p><a xmlns:xlink="http://www.w3.org/1999/xlink" href="https://downloads.sourceforge.net/project/hibernate/hibernate-search/4.4.1.Final/hibernate-search-modules-4.4.1.Final-jbossas-72-dist.zip">Sourceforge</a></p></li><li><p>Maven: <a xmlns:xlink="http://www.w3.org/1999/xlink" href="https://repository.jboss.org/nexus/index.html#nexus-search;gav~org.hibernate~hibernate-search-modules~~~">org.hibernate:hibernate-search-modules-4.4.1.Final-jbossas-72-dist:zip</a></p></li></ul></div><p>Unpack the modules in your JBoss AS <code class="literal">modules</code>
+    directory: this will create modules for Hibernate Search, Apache Lucene
+    and some useful Solr libraries. The Hibernate Search modules are:</p><div class="itemizedlist"><ul><li><p><span class="emphasis"><em>org.hibernate.search.orm:main</em></span>, for users of
+        Hibernate Search with Hibernate; this will transitively include
+        Hibernate ORM.</p></li><li><p><span class="emphasis"><em>org.hibernate.search.engine:main</em></span>, for
+        projects depending on the internal indexing engine that don't require
+        other dependencies to Hibernate.</p></li></ul></div><p>There are two ways to include the dependencies in your
+    project:</p><div class="variablelist"><dl><dt><span class="term">Using the manifest</span></dt><dd><p>Add this entry to the MANIFEST.MF in your archive:</p><pre class="programlisting">Dependencies: org.hibernate.search.orm services</pre></dd><dt><span class="term">Using jboss-deployment-structure.xml</span></dt><dd><p>This is a proprietary JBoss AS descriptor, add a
+          WEB-INF/jboss-deployment-structure.xml in your archive with
+          content:</p><pre xmlns="" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="XML"><!-- XML : generated by JHighlight v1.0 (http://jhighlight.dev.java.net) -->
+<span class="xml_tag_symbols">&lt;</span><span class="xml_tag_name">jboss-deployment-structure</span><span class="xml_tag_symbols">&gt;</span><span class="xml_plain"></span><br />
+<span class="xml_plain">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="xml_tag_symbols">&lt;</span><span class="xml_tag_name">deployment</span><span class="xml_tag_symbols">&gt;</span><span class="xml_plain"></span><br />
+<span class="xml_plain">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="xml_tag_symbols">&lt;</span><span class="xml_tag_name">dependencies</span><span class="xml_tag_symbols">&gt;</span><span class="xml_plain"></span><br />
+<span class="xml_plain">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="xml_tag_symbols">&lt;</span><span class="xml_tag_name">module</span><span class="xml_plain">&nbsp;</span><span class="xml_attribute_name">name</span><span class="xml_tag_symbols">=</span><span class="xml_attribute_value">&quot;org.hibernate.search.orm&quot;</span><span class="xml_plain">&nbsp;</span><span class="xml_attribute_name">services</span><span class="xml_tag_symbols">=</span><span class="xml_attribute_value">&quot;export&quot;</span><span class="xml_plain">&nbsp;</span><span class="xml_tag_symbols">/&gt;</span><span class="xml_plain"></span><br />
+<span class="xml_plain">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="xml_tag_symbols">&lt;/</span><span class="xml_tag_name">dependencies</span><span class="xml_tag_symbols">&gt;</span><span class="xml_plain"></span><br />
+<span class="xml_plain">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="xml_tag_symbols">&lt;/</span><span class="xml_tag_name">deployment</span><span class="xml_tag_symbols">&gt;</span><span class="xml_plain"></span><br />
+<span class="xml_plain">&nbsp;&nbsp;</span><span class="xml_tag_symbols">&lt;/</span><span class="xml_tag_name">jboss-deployment-structure</span><span class="xml_tag_symbols">&gt;</span><span class="xml_plain"></span><br />
+<span class="xml_plain">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span><br />
+</pre><p>More information about the descriptor can be found in the
+          <a xmlns:xlink="http://www.w3.org/1999/xlink" href="https://docs.jboss.org/author/display/AS72/Class+Loading+in+AS7">JBoss
+          AS 7 documentation</a>.</p></dd></dl></div><div xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="tip"><h2>Tip</h2><p>Modular classloading is a feature of JBoss EAP as well, but if you are using
+      JBoss EAP, you're reading the wrong version of the user guide! JBoss EAP subscriptions
+      include official support for Hibernate Search (as part of the WFK) and come with
+      a different edition of this guide specifically tailored for EAP users.</p></div></div></div><HR xmlns=""/><a xmlns="" href=""/><ul class="docnav"><li class="previous"><a accesskey="p" href="search-architecture.html"><strong>Prev</strong>Chapter 2. Architecture</a></li><li class="up"><a accesskey="u" href="#"><strong>Top of page</strong></a></li><li class="home"><a accesskey="h" href="index.html"><strong>Front page</strong></a></li><li class="next"><a accesskey="n" href="search-mapping.html"><strong>Next</strong>Chapter 4. Mapping entities to the index structure</a></li></ul></body></html>

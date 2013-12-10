@@ -1,0 +1,510 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml"><head><title>Chapter 12. Criteria</title><link rel="stylesheet" type="text/css" href="css/hibernate.css"/><meta name="generator" content="DocBook XSL Stylesheets V1.76.1"/><link rel="home" href="index.html" title="Hibernate Developer Guide"/><link rel="up" href="index.html" title="Hibernate Developer Guide"/><link rel="prev" href="ch11.html" title="Chapter 11. HQL and JPQL"/><link rel="next" href="ch13.html" title="Chapter 13. Native SQL Queries"/><meta xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" http-equiv="Content-Type" content="text/html; charset=UTF-8"/></head><body><p xmlns:d="http://docbook.org/ns/docbook" id="title"><a href="http://www.hibernate.org" class="site_href"><strong>Hibernate.org</strong></a><a href="http://hibernate.org/Documentation/DocumentationOverview" class="doc_href"><strong>Community Documentation</strong></a></p><ul xmlns:d="http://docbook.org/ns/docbook" class="docnav"><li class="previous"><a accesskey="p" href="ch11.html"><strong>Prev</strong></a></li><li class="next"><a accesskey="n" href="ch13.html"><strong>Next</strong></a></li></ul><div class="chapter" title="Chapter 12. Criteria"><div class="titlepage"><div><div><h2 class="title"><a id="d5e3364"/>Chapter 12. Criteria</h2></div></div></div><div class="toc"><p><strong>Table of Contents</strong></p><dl><dt><span class="section"><a href="ch12.html#querycriteria-typedquery">12.1. Typed criteria queries</a></span></dt><dd><dl><dt><span class="section"><a href="ch12.html#querycriteria-typedquery-entity">12.1.1. Selecting an entity</a></span></dt><dt><span class="section"><a href="ch12.html#querycriteria-typedquery-expression">12.1.2. Selecting an expression</a></span></dt><dt><span class="section"><a href="ch12.html#querycriteria-typedquery-multiselect">12.1.3. Selecting multiple values</a></span></dt><dt><span class="section"><a href="ch12.html#querycriteria-typedquery-construct">12.1.4. Selecting a wrapper</a></span></dt></dl></dd><dt><span class="section"><a href="ch12.html#querycriteria-tuple">12.2. Tuple criteria queries</a></span></dt><dt><span class="section"><a href="ch12.html#querycriteria-from">12.3. FROM clause</a></span></dt><dd><dl><dt><span class="section"><a href="ch12.html#querycriteria-from-root">12.3.1. Roots</a></span></dt><dt><span class="section"><a href="ch12.html#querycriteria-from-join">12.3.2. Joins</a></span></dt><dt><span class="section"><a href="ch12.html#querycriteria-from-fetch">12.3.3. Fetches</a></span></dt></dl></dd><dt><span class="section"><a href="ch12.html#querycriteria-path">12.4. Path expressions</a></span></dt><dt><span class="section"><a href="ch12.html#querycriteria-param">12.5. Using parameters</a></span></dt></dl></div>
+
+    
+
+    <p>
+        Criteria queries offer a type-safe alternative to HQL, JPQL and native-sql queries.
+    </p>
+
+    <div xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="important" style="margin-left: 0.5in; margin-right: 0.5in;"><h2>Important</h2>
+        <p>
+            Hibernate offers an older, legacy <code class="interfacename">org.hibernate.Criteria</code> API which should be
+            considered deprecated.  No feature development will target those APIs.  Eventually, Hibernate-specific
+            criteria features will be ported as extensions to the JPA
+            <code class="interfacename">javax.persistence.criteria.CriteriaQuery</code>.  For details on the
+            <code class="interfacename">org.hibernate.Criteria</code> API, see <a class="xref" href="">???</a>.
+        </p>
+        <p>
+            This chapter will focus on the JPA APIs for declaring type-safe criteria queries.
+        </p>
+    </div>
+
+
+    <p>
+        Criteria queries are a programmatic, type-safe way to express a query.  They are type-safe in terms of
+        using interfaces and classes to represent various structural parts of a query such as the query itself,
+        or the select clause, or an order-by, etc.  They can also be type-safe in terms of referencing attributes
+        as we will see in a bit. Users of the older Hibernate <code class="interfacename">org.hibernate.Criteria</code>
+        query API will recognize the general approach, though we believe the JPA API to be superior
+        as it represents a clean look at the lessons learned from that API.
+    </p>
+
+    <p>
+        Criteria queries are essentially an object graph, where each part of the graph represents an increasing
+        (as we navigate down this graph) more atomic part of query. The first step in performing a criteria query
+        is building this graph. The <code class="interfacename">javax.persistence.criteria.CriteriaBuilder</code>
+        interface is the first thing with which you need to become acquainted to begin using criteria queries. Its
+        role is that of a factory for all the individual pieces of the criteria. You obtain a
+        <code class="interfacename">javax.persistence.criteria.CriteriaBuilder</code> instance by calling the
+        <code class="methodname">getCriteriaBuilder</code> method of either
+        <code class="interfacename">javax.persistence.EntityManagerFactory</code> or
+        <code class="interfacename">javax.persistence.EntityManager</code>.
+    </p>
+
+    <p>
+        The next step is to obtain a <code class="interfacename">javax.persistence.criteria.CriteriaQuery</code>. This
+        is accomplished using one of the 3 methods on
+        <code class="interfacename">javax.persistence.criteria.CriteriaBuilder</code> for this purpose:
+    </p>
+
+    <pre xmlns="" xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="">&lt;T&gt; CriteriaQuery&lt;T&gt; createQuery(Class&lt;T&gt; resultClass);
+CriteriaQuery&lt;Tuple&gt; createTupleQuery();
+CriteriaQuery&lt;Object&gt; createQuery();
+</pre>
+
+    <p>
+        Each serves a different purpose depending on the expected type of the query results.
+    </p>
+
+    <div xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="note" style="margin-left: 0.5in; margin-right: 0.5in;"><h2>Note</h2>
+        <p>
+            <em class="citetitle">Chapter 6 Criteria API</em> of the JPA Specification
+            already contains a decent amount of reference material pertaining to the various parts of a
+            criteria query. So rather than duplicate all that content here, lets instead look at some of
+            the more widely anticipated usages of the API.
+        </p>
+    </div>
+
+    <div class="section" title="12.1. Typed criteria queries"><div class="titlepage"><div><div><h2 class="title"><a id="querycriteria-typedquery"/>12.1. Typed criteria queries</h2></div></div></div>
+        
+
+        <p>
+            The type of the criteria query (aka the &lt;T&gt;) indicates the expected types in the query
+            result.  This might be an entity, an Integer, or any other object.
+        </p>
+
+        <div class="section" title="12.1.1. Selecting an entity"><div class="titlepage"><div><div><h3 class="title"><a id="querycriteria-typedquery-entity"/>12.1.1. Selecting an entity</h3></div></div></div>
+            
+
+            <p>
+                This is probably the most common form of query.  The application wants to select entity instances.
+            </p>
+
+            <div class="example"><a id="ex-criteria-typedquery-entity"/><p class="title"><strong>Example 12.1. Selecting the root entity</strong></p><div class="example-contents">
+                
+                <pre xmlns="" xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="">CriteriaQuery&lt;Person&gt; criteria = builder.createQuery( Person.class );
+Root&lt;Person&gt; personRoot = criteria.from( Person.class );
+criteria.select( personRoot );
+criteria.where( builder.equal( personRoot.get( Person_.eyeColor ), "brown" ) );
+
+List&lt;Person&gt; people = em.createQuery( criteria ).getResultList();
+for ( Person person : people ) {
+    ...
+}</pre>
+            </div></div><br class="example-break"/>
+
+            <p>
+                The example uses <code class="methodname">createQuery</code> passing in the <code class="classname">Person</code>
+                class reference as the results of the query will be Person objects.
+            </p>
+
+            <div xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="note" style="margin-left: 0.5in; margin-right: 0.5in;"><h2>Note</h2>
+                <p>
+                    The call to the <code class="methodname">CriteriaQuery.select</code> method in this example is
+                    unnecessary because <span class="emphasis"><em>personRoot</em></span> will be the implied selection since we
+                    have only a single query root. It was done here only for completeness of an example.
+                </p>
+                <p>
+                    The <span class="emphasis"><em>Person_.eyeColor</em></span> reference is an example of the static form of JPA
+                    metamodel reference.  We will use that form exclusively in this chapter.  See
+                    the documentation for the Hibernate JPA Metamodel Generator for additional details on
+                    the JPA static metamodel.
+                </p>
+            </div>
+        </div>
+
+        <div class="section" title="12.1.2. Selecting an expression"><div class="titlepage"><div><div><h3 class="title"><a id="querycriteria-typedquery-expression"/>12.1.2. Selecting an expression</h3></div></div></div>
+            
+
+            <p>
+                The simplest form of selecting an expression is selecting a particular attribute from an entity.
+                But this expression might also represent an aggregation, a mathematical operation, etc.
+            </p>
+
+            <div class="example"><a id="ex-criteria-typedquery-attribute"/><p class="title"><strong>Example 12.2. Selecting an attribute</strong></p><div class="example-contents">
+                
+                <pre xmlns="" xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="">CriteriaQuery&lt;Integer&gt; criteria = builder.createQuery( Integer.class );
+Root&lt;Person&gt; personRoot = criteria.from( Person.class );
+criteria.select( personRoot.get( Person_.age ) );
+criteria.where( builder.equal( personRoot.get( Person_.eyeColor ), "brown" ) );
+
+List&lt;Integer&gt; ages = em.createQuery( criteria ).getResultList();
+for ( Integer age : ages ) {
+	...
+}</pre>
+            </div></div><br class="example-break"/>
+
+            <p>
+                In this example, the query is typed as <code class="classname">java.lang.Integer</code> because that
+                is the anticipated type of the results (the type of the <code class="methodname">Person#age</code> attribute
+                is <code class="classname">java.lang.Integer</code>).  Because a query might contain multiple references to
+                the Person entity, attribute references always need to be qualified.  This is accomplished by the
+                <code class="methodname">Root#get</code> method call.
+            </p>
+        </div>
+
+
+        <div class="section" title="12.1.3. Selecting multiple values"><div class="titlepage"><div><div><h3 class="title"><a id="querycriteria-typedquery-multiselect"/>12.1.3. Selecting multiple values</h3></div></div></div>
+            
+
+            <p>
+                There are actually a few different ways to select multiple values using criteria queries. We
+                will explore 2 options here, but an alternative recommended approach is to use tuples as described in
+                <a class="xref" href="ch12.html#querycriteria-tuple" title="12.2. Tuple criteria queries">Section 12.2, “Tuple criteria queries”</a>.  Or consider a wrapper query; see
+                <a class="xref" href="ch12.html#querycriteria-typedquery-construct" title="12.1.4. Selecting a wrapper">Section 12.1.4, “Selecting a wrapper”</a> for details.
+            </p>
+
+            <div class="example"><a id="ex-criteria-typedquery-array"/><p class="title"><strong>Example 12.3. Selecting an array</strong></p><div class="example-contents">
+                
+                <pre xmlns="" xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="">CriteriaQuery&lt;Object[]&gt; criteria = builder.createQuery( Object[].class );
+Root&lt;Person&gt; personRoot = criteria.from( Person.class );
+Path&lt;Long&gt; idPath = personRoot.get( Person_.id );
+Path&lt;Integer&gt; agePath = personRoot.get( Person_.age );
+criteria.select( builder.array( idPath, agePath ) );
+criteria.where( builder.equal( personRoot.get( Person_.eyeColor ), "brown" ) );
+
+List&lt;Object[]&gt; valueArray = em.createQuery( criteria ).getResultList();
+for ( Object[] values : valueArray ) {
+	final Long id = (Long) values[0];
+	final Integer age = (Integer) values[1];
+	...
+}</pre>
+            </div></div><br class="example-break"/>
+
+            <p>
+                Technically this is classified as a typed query, but you can see from handling the results that
+                this is sort of misleading.  Anyway, the expected result type here is an array.
+            </p>
+
+            <p>
+                The example then uses the <code class="methodname">array</code> method of
+                <code class="interfacename">javax.persistence.criteria.CriteriaBuilder</code> which explicitly
+                combines individual selections into a
+                <code class="interfacename">javax.persistence.criteria.CompoundSelection</code>.
+            </p>
+
+            <div class="example"><a id="ex-criteria-typedquery-array2"/><p class="title"><strong>Example 12.4. Selecting an array (2)</strong></p><div class="example-contents">
+                
+                <pre xmlns="" xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="">CriteriaQuery&lt;Object[]&gt; criteria = builder.createQuery( Object[].class );
+Root&lt;Person&gt; personRoot = criteria.from( Person.class );
+Path&lt;Long&gt; idPath = personRoot.get( Person_.id );
+Path&lt;Integer&gt; agePath = personRoot.get( Person_.age );
+criteria.multiselect( idPath, agePath );
+criteria.where( builder.equal( personRoot.get( Person_.eyeColor ), "brown" ) );
+
+List&lt;Object[]&gt; valueArray = em.createQuery( criteria ).getResultList();
+for ( Object[] values : valueArray ) {
+    final Long id = (Long) values[0];
+    final Integer age = (Integer) values[1];
+    ...
+}</pre>
+            </div></div><br class="example-break"/>
+
+            <p>
+                Just as we saw in <a class="xref" href="ch12.html#ex-criteria-typedquery-array" title="Example 12.3. Selecting an array">Example 12.3, “Selecting an array”</a> we have a typed criteria
+                query returning an Object array.  Both queries are functionally equivalent.  This second example
+                uses the <code class="methodname">multiselect</code> method which behaves slightly differently based on
+                the type given when the criteria query was first built, but in this case it says to select and
+                return an <span class="emphasis"><em>Object[]</em></span>.
+            </p>
+        </div>
+
+        <div class="section" title="12.1.4. Selecting a wrapper"><div class="titlepage"><div><div><h3 class="title"><a id="querycriteria-typedquery-construct"/>12.1.4. Selecting a wrapper</h3></div></div></div>
+            
+
+            <p>Another alternative to <a class="xref" href="ch12.html#querycriteria-typedquery-multiselect" title="12.1.3. Selecting multiple values">Section 12.1.3, “Selecting multiple values”</a> is to instead
+                select an object that will <span class="quote">“<span class="quote">wrap</span>”</span> the multiple values. Going back to the example
+                query there, rather than returning an array of <span class="emphasis"><em>[Person#id, Person#age]</em></span>
+                instead declare a class that holds these values and instead return that.
+            </p>
+
+            <div class="example"><a id="ex-criteria-typedquery-construct"/><p class="title"><strong>Example 12.5. Selecting an wrapper</strong></p><div class="example-contents">
+                
+                <pre xmlns="" xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="">public class PersonWrapper {
+	private final Long id;
+	private final Integer age;
+	public PersonWrapper(Long id, Integer age) {
+		this.id = id;
+		this.age = age;
+	}
+	...
+}
+
+...
+
+CriteriaQuery&lt;PersonWrapper&gt; criteria = builder.createQuery( PersonWrapper.class );
+Root&lt;Person&gt; personRoot = criteria.from( Person.class );
+criteria.select(
+		builder.construct(
+			PersonWrapper.class,
+			personRoot.get( Person_.id ),
+			personRoot.get( Person_.age )
+		)
+);
+criteria.where( builder.equal( personRoot.get( Person_.eyeColor ), "brown" ) );
+
+List&lt;PersonWrapper&gt; people = em.createQuery( criteria ).getResultList();
+for ( PersonWrapper person : people ) {
+    ...
+}</pre>
+            </div></div><br class="example-break"/>
+
+            <p>
+                First we see the simple definition of the wrapper object we will be using to wrap our result
+                values. Specifically notice the constructor and its argument types.  Since we will be returning
+                <code class="classname">PersonWrapper</code> objects, we use <code class="classname">PersonWrapper</code> as the
+                type of our criteria query.
+            </p>
+
+            <p>
+                This example illustrates the use of the
+                <code class="interfacename">javax.persistence.criteria.CriteriaBuilder</code> method
+                <code class="methodname">construct</code> which is used to build a wrapper expression.  For every row in the
+                result we are saying we would like a <span class="emphasis"><em>PersonWrapper</em></span> instantiated with
+                the remaining arguments by the matching constructor. This wrapper expression is then passed as
+                the select.
+            </p>
+        </div>
+    </div>
+
+    <div class="section" title="12.2. Tuple criteria queries"><div class="titlepage"><div><div><h2 class="title"><a id="querycriteria-tuple"/>12.2. Tuple criteria queries</h2></div></div></div>
+        
+
+        <p>
+            A better approach to <a class="xref" href="ch12.html#querycriteria-typedquery-multiselect" title="12.1.3. Selecting multiple values">Section 12.1.3, “Selecting multiple values”</a> is to use either a
+            wrapper (which we just saw in <a class="xref" href="ch12.html#querycriteria-typedquery-construct" title="12.1.4. Selecting a wrapper">Section 12.1.4, “Selecting a wrapper”</a>) or using the
+            <code class="interfacename">javax.persistence.Tuple</code> contract.
+        </p>
+
+        <div class="example"><a id="ex-criteria-typedquery-tuple"/><p class="title"><strong>Example 12.6. Selecting a tuple</strong></p><div class="example-contents">
+            
+            <pre xmlns="" xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="">CriteriaQuery&lt;Tuple&gt; criteria = builder.createTupleQuery();
+Root&lt;Person&gt; personRoot = criteria.from( Person.class );
+Path&lt;Long&gt; idPath = personRoot.get( Person_.id );
+Path&lt;Integer&gt; agePath = personRoot.get( Person_.age );
+criteria.multiselect( idPath, agePath );
+criteria.where( builder.equal( personRoot.get( Person_.eyeColor ), "brown" ) );
+
+List&lt;Tuple&gt; tuples = em.createQuery( criteria ).getResultList();
+for ( Tuple tuple : valueArray ) {
+    assert tuple.get( 0 ) == tuple.get( idPath );
+	assert tuple.get( 1 ) == tuple.get( agePath );
+	...
+}</pre>
+        </div></div><br class="example-break"/>
+
+        <p>
+            This example illustrates accessing the query results through the
+            <code class="interfacename">javax.persistence.Tuple</code> interface.  The example uses the explicit
+            <code class="methodname">createTupleQuery</code> of
+            <code class="interfacename">javax.persistence.criteria.CriteriaBuilder</code>.  An alternate approach
+            is to use <code class="methodname">createQuery</code> passing <code class="literal">Tuple.class</code>.
+        </p>
+
+        <p>
+            Again we see the use of the <code class="methodname">multiselect</code> method, just like in
+            <a class="xref" href="ch12.html#ex-criteria-typedquery-array2" title="Example 12.4. Selecting an array (2)">Example 12.4, “Selecting an array (2)”</a>. The difference here is that the type of the
+            <code class="interfacename">javax.persistence.criteria.CriteriaQuery</code> was defined as
+            <code class="interfacename">javax.persistence.Tuple</code> so the compound selections in this case are
+            interpreted to be the tuple elements.
+        </p>
+
+        <p>
+            The <code class="interfacename">javax.persistence.Tuple</code> contract provides 3 forms of access to
+            the underlying elements:
+        </p>
+
+        <div class="variablelist"><dl><dt><span class="term">typed</span></dt><dd>
+                    <p>
+                        The <a class="xref" href="ch12.html#ex-criteria-typedquery-tuple" title="Example 12.6. Selecting a tuple">Example 12.6, “Selecting a tuple”</a> example illustrates this form of access
+                        in the <code class="literal">tuple.get( idPath )</code> and <code class="literal">tuple.get( agePath )</code> calls.
+                        This allows typed access to the underlying tuple values based on the
+                        <code class="interfacename">javax.persistence.TupleElement</code> expressions used to build
+                        the criteria.
+                    </p>
+                </dd><dt><span class="term">positional</span></dt><dd>
+                    <p>
+                        Allows access to the underlying tuple values based on the position.  The simple
+                        <span class="emphasis"><em>Object get(int position)</em></span> form is very similar to the access
+                        illustrated in <a class="xref" href="ch12.html#ex-criteria-typedquery-array" title="Example 12.3. Selecting an array">Example 12.3, “Selecting an array”</a> and
+                        <a class="xref" href="ch12.html#ex-criteria-typedquery-array2" title="Example 12.4. Selecting an array (2)">Example 12.4, “Selecting an array (2)”</a>.  The
+                        <span class="emphasis"><em>&lt;X&gt; X get(int position, Class&lt;X&gt; type</em></span> form
+                        allows typed positional access, but based on the explicitly supplied type which the tuple
+                        value must be type-assignable to.
+                    </p>
+                </dd><dt><span class="term">aliased</span></dt><dd>
+                    <p>
+                        Allows access to the underlying tuple values based an (optionally) assigned alias.  The
+                        example query did not apply an alias.  An alias would be applied via the
+                        <code class="methodname">alias</code> method on
+                        <code class="interfacename">javax.persistence.criteria.Selection</code>.  Just like
+                        <code class="literal">positional</code> access, there is both a typed
+                        (<span class="emphasis"><em>Object get(String alias)</em></span>) and an untyped
+                        (<span class="emphasis"><em>&lt;X&gt; X get(String alias, Class&lt;X&gt; type</em></span> form.
+                    </p>
+                </dd></dl></div>
+    </div>
+
+    <div class="section" title="12.3. FROM clause"><div class="titlepage"><div><div><h2 class="title"><a id="querycriteria-from"/>12.3. FROM clause</h2></div></div></div>
+        
+
+        <div class="blockquote"><table border="0" width="100%" cellspacing="0" cellpadding="0" class="blockquote" summary="Block quote"><tr><td width="10%" valign="top"> </td><td width="80%" valign="top"><p>
+                A CriteriaQuery object defines a query over one or more entity, embeddable, or basic abstract
+                schema types. The root objects of the query are entities, from which the other types are reached
+                by navigation.
+            </p></td><td width="10%" valign="top"> </td></tr><tr><td width="10%" valign="top"> </td><td colspan="2" align="right" valign="top">--<span class="attribution"><em class="citetitle">JPA Specification</em>, section 6.5.2 Query Roots, pg 262</span></td></tr></table></div>
+
+        <div xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="note" style="margin-left: 0.5in; margin-right: 0.5in;"><h2>Note</h2>
+            <p>
+                All the individual parts of the FROM clause (roots, joins, paths) implement the
+                <code class="interfacename">javax.persistence.criteria.From</code> interface.
+            </p>
+        </div>
+
+        <div class="section" title="12.3.1. Roots"><div class="titlepage"><div><div><h3 class="title"><a id="querycriteria-from-root"/>12.3.1. Roots</h3></div></div></div>
+            
+
+            <p>
+                Roots define the basis from which all joins, paths and attributes are available in the query.
+                A root is always an entity type.  Roots are defined and added to the criteria by the overloaded
+                <code class="methodname">from</code> methods on
+                <code class="interfacename">javax.persistence.criteria.CriteriaQuery</code>:
+            </p>
+
+            <pre xmlns="" xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="">&lt;X&gt; Root&lt;X&gt; from(Class&lt;X&gt;);
+
+&lt;X&gt; Root&lt;X&gt; from(EntityType&lt;X&gt;)</pre>
+
+            <div class="example"><a id="d5e3518"/><p class="title"><strong>Example 12.7. Adding a root</strong></p><div class="example-contents">
+                
+                <pre xmlns="" xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="">CriteriaQuery&lt;Person&gt; personCriteria = builder.createQuery( Person.class );
+// create and add the root
+person.from( Person.class );</pre>
+            </div></div><br class="example-break"/>
+
+            <p>
+                Criteria queries may define multiple roots, the effect of which is to create a cartesian
+                product between the newly added root and the others. Here is an example matching all single
+                men and all single women:
+            </p>
+
+            <div class="example"><a id="d5e3522"/><p class="title"><strong>Example 12.8. Adding multiple roots</strong></p><div class="example-contents">
+                
+                <pre xmlns="" xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="">CriteriaQuery query = builder.createQuery();
+Root&lt;Person&gt; men = query.from( Person.class );
+Root&lt;Person&gt; women = query.from( Person.class );
+Predicate menRestriction = builder.and(
+		builder.equal( men.get( Person_.gender ), Gender.MALE ),
+		builder.equal( men.get( Person_.relationshipStatus ), RelationshipStatus.SINGLE )
+);
+Predicate womenRestriction = builder.and(
+		builder.equal( women.get( Person_.gender ), Gender.FEMALE ),
+		builder.equal( women.get( Person_.relationshipStatus ), RelationshipStatus.SINGLE )
+);
+query.where( builder.and( menRestriction, womenRestriction ) );</pre>
+            </div></div><br class="example-break"/>
+        </div>
+
+        <div class="section" title="12.3.2. Joins"><div class="titlepage"><div><div><h3 class="title"><a id="querycriteria-from-join"/>12.3.2. Joins</h3></div></div></div>
+            
+
+            <p>
+                Joins allow navigation from other <code class="interfacename">javax.persistence.criteria.From</code>
+                to either association or embedded attributes.  Joins are created by the numerous overloaded
+                <code class="methodname">join</code> methods of the
+                <code class="interfacename">javax.persistence.criteria.From</code> interface
+            </p>
+
+            <div class="example"><a id="criteria-join-singular"/><p class="title"><strong>Example 12.9. Example with Embedded and ManyToOne</strong></p><div class="example-contents">
+                
+                <pre xmlns="" xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="">CriteriaQuery&lt;Person&gt; personCriteria = builder.createQuery( Person.class );
+Root&lt;Person&gt; personRoot = person.from( Person.class );
+// Person.address is an embedded attribute
+Join&lt;Person,Address&gt; personAddress = personRoot.join( Person_.address );
+// Address.country is a ManyToOne
+Join&lt;Address,Country&gt; addressCountry = personAddress.join( Address_.country );</pre>
+            </div></div><br class="example-break"/>
+
+            <div class="example"><a id="criteria-join-plural"/><p class="title"><strong>Example 12.10. Example with Collections</strong></p><div class="example-contents">
+                
+                <pre xmlns="" xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="">CriteriaQuery&lt;Person&gt; personCriteria = builder.createQuery( Person.class );
+Root&lt;Person&gt; personRoot = person.from( Person.class );
+Join&lt;Person,Order&gt; orders = personRoot.join( Person_.orders );
+Join&lt;Order,LineItem&gt; orderLines = orders.join( Order_.lineItems );</pre>
+            </div></div><br class="example-break"/>
+        </div>
+
+        <div class="section" title="12.3.3. Fetches"><div class="titlepage"><div><div><h3 class="title"><a id="querycriteria-from-fetch"/>12.3.3. Fetches</h3></div></div></div>
+            
+
+            <p>
+                Just like in HQL and JPQL, criteria queries can specify that associated data be fetched along
+                with the owner.  Fetches are created by the numerous overloaded <code class="methodname">fetch</code>
+                methods of the <code class="interfacename">javax.persistence.criteria.From</code> interface.
+            </p>
+
+            <div class="example"><a id="criteria-fetch-singular"/><p class="title"><strong>Example 12.11. Example with Embedded and ManyToOne</strong></p><div class="example-contents">
+                
+                <pre xmlns="" xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="">CriteriaQuery&lt;Person&gt; personCriteria = builder.createQuery( Person.class );
+Root&lt;Person&gt; personRoot = person.from( Person.class );
+// Person.address is an embedded attribute
+Fetch&lt;Person,Address&gt; personAddress = personRoot.fetch( Person_.address );
+// Address.country is a ManyToOne
+Fetch&lt;Address,Country&gt; addressCountry = personAddress.fetch( Address_.country );</pre>
+            </div></div><br class="example-break"/>
+
+            <div xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="note" style="margin-left: 0.5in; margin-right: 0.5in;"><h2>Note</h2>
+                <p>
+                    Technically speaking, embedded attributes are always fetched with their owner.  However in
+                    order to define the fetching of <span class="emphasis"><em>Address#country</em></span> we needed a
+                    <code class="interfacename">javax.persistence.criteria.Fetch</code> for its parent path.
+                </p>
+            </div>
+
+            <div class="example"><a id="criteria-fetch-plural"/><p class="title"><strong>Example 12.12. Example with Collections</strong></p><div class="example-contents">
+                
+                <pre xmlns="" xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="">CriteriaQuery&amp;lt;Person&amp;gt; personCriteria = builder.createQuery( Person.class );
+Root&lt;Person&gt; personRoot = person.from( Person.class );
+Fetch&lt;Person,Order&gt; orders = personRoot.fetch( Person_.orders );
+Fetch&lt;Order,LineItem&gt; orderLines = orders.fetch( Order_.lineItems );</pre>
+            </div></div><br class="example-break"/>
+        </div>
+    </div>
+
+    <div class="section" title="12.4. Path expressions"><div class="titlepage"><div><div><h2 class="title"><a id="querycriteria-path"/>12.4. Path expressions</h2></div></div></div>
+        
+        <div xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="note" style="margin-left: 0.5in; margin-right: 0.5in;"><h2>Note</h2>
+            <p>
+                Roots, joins and fetches are themselves paths as well.
+            </p>
+        </div>
+    </div>
+
+    <div class="section" title="12.5. Using parameters"><div class="titlepage"><div><div><h2 class="title"><a id="querycriteria-param"/>12.5. Using parameters</h2></div></div></div>
+        
+
+        <div class="example"><a id="ex-querycriteria-param"/><p class="title"><strong>Example 12.13. Using parameters</strong></p><div class="example-contents">
+            
+            <pre xmlns="" xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="">CriteriaQuery&lt;Person&gt; criteria = build.createQuery( Person.class );
+Root&lt;Person&gt; personRoot = criteria.from( Person.class );
+criteria.select( personRoot );
+ParameterExpression&lt;String&gt; eyeColorParam = builder.parameter( String.class );
+criteria.where( builder.equal( personRoot.get( Person_.eyeColor ), eyeColorParam ) );
+
+TypedQuery&lt;Person&gt; query = em.createQuery( criteria );
+query.setParameter( eyeColorParam, "brown" );
+List&lt;Person&gt; people = query.getResultList();</pre>
+        </div></div><br class="example-break"/>
+
+        <p>
+            Use the <code class="methodname">parameter</code> method of
+            <code class="interfacename">javax.persistence.criteria.CriteriaBuilder</code> to obtain a parameter
+            reference.  Then use the parameter reference to bind the parameter value to the
+            <code class="interfacename">javax.persistence.Query</code>
+        </p>
+    </div>
+
+</div><hr xmlns="" xmlns:d="http://docbook.org/ns/docbook"/><a xmlns="" xmlns:d="http://docbook.org/ns/docbook" href="legalnotice.html"/><ul xmlns:d="http://docbook.org/ns/docbook" class="docnav"><li class="previous"><a accesskey="p" href="ch11.html"><strong>Prev</strong>Chapter 11. HQL and JPQL</a></li><li class="up"><a accesskey="u" href="#"><strong>Up</strong></a></li><li class="home"><a accesskey="h" href="index.html"><strong>Home</strong></a></li><li class="next"><a accesskey="n" href="ch13.html"><strong>Next</strong>Chapter 13. Native SQL Queries</a></li></ul></body></html>

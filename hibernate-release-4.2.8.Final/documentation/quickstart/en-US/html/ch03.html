@@ -1,0 +1,118 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml"><head><title>Chapter 3. Tutorial Using Native Hibernate APIs and Annotation Mappings</title><link rel="stylesheet" type="text/css" href="css/hibernate.css"/><meta name="generator" content="DocBook XSL Stylesheets V1.76.1"/><link rel="home" href="index.html" title="Hibernate Getting Started Guide"/><link rel="up" href="index.html" title="Hibernate Getting Started Guide"/><link rel="prev" href="ch02.html" title="Chapter 2. Tutorial Using Native Hibernate APIs and hbm.xml Mappings"/><link rel="next" href="ch04.html" title="Chapter 4. Tutorial Using the Java Persistence API (JPA)"/><meta xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" http-equiv="Content-Type" content="text/html; charset=UTF-8"/></head><body><p xmlns:d="http://docbook.org/ns/docbook" id="title"><a href="http://www.hibernate.org" class="site_href"><strong>Hibernate.org</strong></a><a href="http://hibernate.org/Documentation/DocumentationOverview" class="doc_href"><strong>Community Documentation</strong></a></p><ul xmlns:d="http://docbook.org/ns/docbook" class="docnav"><li class="previous"><a accesskey="p" href="ch02.html"><strong>Prev</strong></a></li><li class="next"><a accesskey="n" href="ch04.html"><strong>Next</strong></a></li></ul><div class="chapter" title="Chapter 3. Tutorial Using Native Hibernate APIs and Annotation Mappings"><div class="titlepage"><div><div><h2 class="title"><a id="d5e361"/>Chapter 3. Tutorial Using Native Hibernate APIs and Annotation Mappings</h2></div></div></div><div class="toc"><p><strong>Table of Contents</strong></p><dl><dt><span class="section"><a href="ch03.html#hibernate-gsg-tutorial-annotations-config">3.1. The Hibernate configuration file</a></span></dt><dt><span class="section"><a href="ch03.html#hibernate-gsg-tutorial-annotations-entity">3.2. The annotated entity Java class</a></span></dt><dt><span class="section"><a href="ch03.html#hibernate-gsg-tutorial-annotations-test">3.3. Example code</a></span></dt><dt><span class="section"><a href="ch03.html#hibernate-gsg-tutorial-annotations-further">3.4. Take it further!</a></span></dt></dl></div>
+    
+
+    <p>
+        This tutorial is located within the download bundle under <code class="filename">annotations</code>.
+    </p>
+    <div class="itemizedlist" title="Objectives"><p class="title"><strong>Objectives</strong></p><ul class="itemizedlist"><li class="listitem">
+        <p>
+          Use annotations to provide mapping information
+        </p>
+      </li><li class="listitem">
+        <p>
+          Use the <span>native</span> Hibernate APIs
+        </p>
+      </li></ul></div>
+
+
+    <div class="section" title="3.1. The Hibernate configuration file"><div class="titlepage"><div><div><h2 class="title"><a id="hibernate-gsg-tutorial-annotations-config"/>3.1. The Hibernate configuration file</h2></div></div></div>
+        
+
+        <p>
+            The contents are identical to <a class="xref" href="ch02.html#hibernate-gsg-tutorial-basic-config" title="2.1. The Hibernate configuration file">Section 2.1, “The Hibernate configuration file”</a>, with one important
+            difference.  The <code class="varname">mapping</code> element at the very end naming the annotated entity class using
+            the <code class="option">class</code> attribute.
+        </p>
+    </div>
+
+    <div class="section" title="3.2. The annotated entity Java class"><div class="titlepage"><div><div><h2 class="title"><a id="hibernate-gsg-tutorial-annotations-entity"/>3.2. The annotated entity Java class</h2></div></div></div>
+        
+        <p>
+            The entity class in this tutorial is <code class="classname">org.hibernate.tutorial.annotations.Event</code> which
+            follows JavaBean conventions.  In fact the class itself is identical to the one in <a class="xref" href="ch02.html#hibernate-gsg-tutorial-basic-entity" title="2.2. The entity Java class">Section 2.2, “The entity Java class”</a>, except that annotations are used to provide the metadata,
+            rather than a separate <code class="filename">hbm.xml</code> file.
+        </p>
+
+        <div class="example"><a id="hibernate-gsg-tutorial-annotations-entity-entity"/><p class="title"><strong>Example 3.1. Identifying the class as an entity</strong></p><div class="example-contents">
+            
+            <pre xmlns="" xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="">@Entity
+@Table( name = "EVENTS" )
+public class Event {
+    ...
+}</pre>
+        </div></div><br class="example-break"/>
+
+        <p>
+          
+          The <code class="interfacename">@javax.persistence.Entity</code> annotation is used to mark a class as an entity.
+          It functions the same as the <code class="varname">class</code> mapping element discussed in <a class="xref" href="ch02.html#hibernate-gsg-tutorial-basic-mapping" title="2.3. The mapping file">Section 2.3, “The mapping file”</a>.  Additionally the
+          <code class="interfacename">@javax.persistence.Table</code> annotation explicitly specifies the table
+          name. Without this specification, the default table name would be <span class="database">EVENT</span>).
+        </p>
+
+        <div class="example"><a id="hibernate-gsg-tutorial-annotations-entity-id"/><p class="title"><strong>Example 3.2. Identifying the identifier property</strong></p><div class="example-contents">
+          
+          <pre xmlns="" xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="">@Id
+@GeneratedValue(generator="increment")
+@GenericGenerator(name="increment", strategy = "increment")
+public Long getId() {
+    return id;
+}</pre>
+        </div></div><br class="example-break"/>
+
+        <p>
+            <code class="interfacename">@javax.persistence.Id</code> marks the property which defines the
+            entity's identifier.  <code class="interfacename">@javax.persistence.GeneratedValue</code> and
+            <code class="interfacename">@org.hibernate.annotations.GenericGenerator</code> work in tandem
+            to indicate that Hibernate should use Hibernate's <code class="literal">increment</code> generation
+            strategy for this entity's identifier values.
+        </p>
+
+        <div class="example"><a id="hibernate-gsg-tutorial-annotations-entity-properties"/><p class="title"><strong>Example 3.3. Identifying basic properties</strong></p><div class="example-contents">
+          
+          <pre xmlns="" xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="">public String getTitle() {
+    return title;
+}
+
+@Temporal(TemporalType.TIMESTAMP)
+@Column(name = "EVENT_DATE")
+public Date getDate() {
+    return date;
+}</pre>
+        </div></div><br class="example-break"/>
+
+        <p>
+            As in <a class="xref" href="ch02.html#hibernate-gsg-tutorial-basic-mapping" title="2.3. The mapping file">Section 2.3, “The mapping file”</a>, the <code class="varname">date</code> property needs
+            special handling to account for its special naming and its SQL type.
+        </p>
+    </div>
+
+    <div class="section" title="3.3. Example code"><div class="titlepage"><div><div><h2 class="title"><a id="hibernate-gsg-tutorial-annotations-test"/>3.3. Example code</h2></div></div></div>
+        
+        <p>
+            <code class="classname">org.hibernate.tutorial.annotations.AnnotationsIllustrationTest</code> is essentially the
+            same as <code class="classname">org.hibernate.tutorial.hbm.NativeApiIllustrationTest</code> discussed in
+            <a class="xref" href="ch02.html#hibernate-gsg-tutorial-basic-test" title="2.4. Example code">Section 2.4, “Example code”</a>.
+        </p>
+    </div>
+
+    <div class="section" title="3.4. Take it further!"><div class="titlepage"><div><div><h2 class="title"><a id="hibernate-gsg-tutorial-annotations-further"/>3.4. Take it further!</h2></div></div></div>
+        
+        <div class="itemizedlist" title="Practice Exercises"><p class="title"><strong>Practice Exercises</strong></p><ul class="itemizedlist"><li class="listitem">
+            <p>
+              Add an association to the <code class="classname">Event</code> entity to model a message thread. Use the
+              <em class="citetitle">Developer Guide</em> as a guide.
+            </p>
+          </li><li class="listitem">
+            <p>
+              Add a callback to receive notifications when an <code class="classname">Event</code> is created, updated or
+              deleted.  Try the same with an event listener. Use the <em class="citetitle">Developer
+              Guide</em> as a guide.
+            </p>
+          </li></ul></div>
+    </div>
+
+</div><hr xmlns="" xmlns:d="http://docbook.org/ns/docbook"/><a xmlns="" xmlns:d="http://docbook.org/ns/docbook" href="legalnotice.html"/><ul xmlns:d="http://docbook.org/ns/docbook" class="docnav"><li class="previous"><a accesskey="p" href="ch02.html"><strong>Prev</strong>Chapter 2. Tutorial Using Native Hibernate APIs a...</a></li><li class="up"><a accesskey="u" href="#"><strong>Up</strong></a></li><li class="home"><a accesskey="h" href="index.html"><strong>Home</strong></a></li><li class="next"><a accesskey="n" href="ch04.html"><strong>Next</strong>Chapter 4. Tutorial Using the Java Persistence AP...</a></li></ul></body></html>

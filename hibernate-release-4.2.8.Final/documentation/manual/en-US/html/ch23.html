@@ -1,0 +1,297 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml"><head><title>Chapter 23. Example: Parent/Child</title><link rel="stylesheet" type="text/css" href="css/hibernate.css"/><meta name="generator" content="DocBook XSL Stylesheets V1.76.1"/><link rel="home" href="index.html" title="HIBERNATE - Relational Persistence for Idiomatic Java"/><link rel="up" href="index.html" title="HIBERNATE - Relational Persistence for Idiomatic Java"/><link rel="prev" href="ch22.html" title="Chapter 22. Additional modules"/><link rel="next" href="ch24.html" title="Chapter 24. Example: Weblog Application"/><link rel="copyright" href="ln-d5e19.html" title="Legal Notice"/><meta xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" http-equiv="Content-Type" content="text/html; charset=UTF-8"/></head><body><p xmlns:d="http://docbook.org/ns/docbook" id="title"><a href="http://www.hibernate.org" class="site_href"><strong>Hibernate.org</strong></a><a href="http://hibernate.org/Documentation/DocumentationOverview" class="doc_href"><strong>Community Documentation</strong></a></p><ul xmlns:d="http://docbook.org/ns/docbook" class="docnav"><li class="previous"><a accesskey="p" href="ch22.html"><strong>Prev</strong></a></li><li class="next"><a accesskey="n" href="ch24.html"><strong>Next</strong></a></li></ul><div class="chapter" title="Chapter 23. Example: Parent/Child"><div class="titlepage"><div><div><h2 class="title"><a id="example-parentchild"/>Chapter 23. Example: Parent/Child</h2></div></div></div><div class="toc"><p><strong>Table of Contents</strong></p><dl><dt><span class="section"><a href="ch23.html#example-parentchild-collections">23.1. A note about collections</a></span></dt><dt><span class="section"><a href="ch23.html#example-parentchild-bidir">23.2. Bidirectional one-to-many</a></span></dt><dt><span class="section"><a href="ch23.html#example-parentchild-cascades">23.3. Cascading life cycle</a></span></dt><dt><span class="section"><a href="ch23.html#example-parentchild-update">23.4. Cascades and <code class="literal">unsaved-value</code></a></span></dt><dt><span class="section"><a href="ch23.html#example-parentchild-conclusion">23.5. Conclusion</a></span></dt></dl></div>
+    
+
+    <p>
+        One of the first things that new users want to do with Hibernate is to model a parent/child type 
+        relationship. There are two different approaches to this. The most convenient 
+        approach, especially for new users, is to model both <code class="literal">Parent</code> and <code class="literal">Child</code> 
+        as entity classes with a <code class="literal">&lt;one-to-many&gt;</code> association from <code class="literal">Parent</code> 
+        to <code class="literal">Child</code>. The alternative approach is to declare the <code class="literal">Child</code> as a 
+        <code class="literal">&lt;composite-element&gt;</code>. The default semantics of a one-to-many 
+        association in Hibernate are much less close to the usual semantics of a parent/child relationship than 
+        those of a composite element mapping. We will explain how to use a <span class="emphasis"><em>bidirectional one-to-many 
+        association with cascades</em></span> to model a parent/child relationship efficiently and elegantly. 
+        
+    </p>
+    
+    <div class="section" title="23.1. A note about collections"><div class="titlepage"><div><div><h2 class="title"><a id="example-parentchild-collections"/>23.1. A note about collections</h2></div></div></div>
+        
+
+        <p>
+            Hibernate collections are considered to be a logical part of their owning entity and not of the
+            contained entities. Be aware that this is a critical distinction that has the following consequences:
+        </p>
+
+        <div class="itemizedlist"><ul class="itemizedlist"><li class="listitem">
+            <p>
+                When you remove/add an object from/to a collection, the version number of the collection owner
+                is incremented.
+            </p>
+            </li><li class="listitem">
+            <p>
+                If an object that was removed from a collection is an instance of a value type (e.g. a composite
+                element), that object will cease to be persistent and its state will be completely removed from
+                the database. Likewise, adding a value type instance to the collection will cause its state to be
+                immediately persistent.
+            </p>
+            </li><li class="listitem">
+            <p>
+                Conversely, if an entity is removed from a collection (a one-to-many or many-to-many
+                association), it will not be deleted by default. This behavior is completely consistent; a
+                change to the internal state of another entity should not cause the associated entity to vanish.
+                Likewise, adding an entity to a collection does not cause that entity to become persistent, by
+                default.
+            </p>
+            </li></ul></div>
+
+        <p>
+            Adding an entity to a collection, by default, merely creates a link between
+            the two entities. Removing the entity will remove the link. This is appropriate for all sorts of cases.
+            However, it is not appropriate in the case of a parent/child relationship. In this case, the life of the
+            child is bound to the life cycle of the parent.
+        </p>
+    
+    </div>
+
+    <div class="section" title="23.2. Bidirectional one-to-many"><div class="titlepage"><div><div><h2 class="title"><a id="example-parentchild-bidir"/>23.2. Bidirectional one-to-many</h2></div></div></div>
+        
+
+        <p>
+            Suppose we start with a simple <code class="literal">&lt;one-to-many&gt;</code> association from
+            <code class="literal">Parent</code> to <code class="literal">Child</code>.
+        </p>
+
+        <pre xmlns="" xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="">&lt;set name="children"&gt;
+    &lt;key column="parent_id"/&gt;
+    &lt;one-to-many class="Child"/&gt;
+&lt;/set&gt;</pre>
+    
+        <p>
+            If we were to execute the following code:
+        </p>
+
+        <pre xmlns="" xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="">Parent p = .....;
+Child c = new Child();
+p.getChildren().add(c);
+session.save(c);
+session.flush();</pre>
+    
+        <p>
+            Hibernate would issue two SQL statements:
+        </p>
+
+        <div class="itemizedlist"><ul class="itemizedlist"><li class="listitem">
+            <p>an <code class="literal">INSERT</code> to create the record for <code class="literal">c</code></p>
+        </li><li class="listitem">
+            <p>
+                an <code class="literal">UPDATE</code> to create the link from <code class="literal">p</code> to
+                <code class="literal">c</code>
+            </p>
+        </li></ul></div>
+    
+        <p>
+            This is not only inefficient, but also violates any <code class="literal">NOT NULL</code> constraint on the
+            <code class="literal">parent_id</code> column. You can fix the nullability constraint violation by specifying
+            <code class="literal">not-null="true"</code> in the collection mapping:
+        </p>
+
+        <pre xmlns="" xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="">&lt;set name="children"&gt;
+    &lt;key column="parent_id" not-null="true"/&gt;
+    &lt;one-to-many class="Child"/&gt;
+&lt;/set&gt;</pre>
+    
+        <p>
+        	However, this is not the recommended solution.
+       	</p>
+       	<p>
+            The underlying cause of this behavior is that the link (the foreign key <code class="literal">parent_id</code>) 
+            from <code class="literal">p</code> to <code class="literal">c</code> is not considered part of the state of the 
+            <code class="literal">Child</code> object and is therefore not created in the <code class="literal">INSERT</code>. The 
+            solution is to make the link part of the <code class="literal">Child</code> mapping.
+        </p>
+
+        <pre xmlns="" xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="">&lt;many-to-one name="parent" column="parent_id" not-null="true"/&gt;</pre>
+
+        <p>
+            You also need to add the <code class="literal">parent</code> property to the <code class="literal">Child</code> class.
+        </p>
+
+        <p>
+            Now that the <code class="literal">Child</code> entity is managing the state of the link, we tell the collection 
+            not to update the link. We use the <code class="literal">inverse</code> attribute to do this:
+        </p>
+
+        <pre xmlns="" xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="">&lt;set name="children" inverse="true"&gt;
+    &lt;key column="parent_id"/&gt;
+    &lt;one-to-many class="Child"/&gt;
+&lt;/set&gt;</pre>
+
+        <p>
+            The following code would be used to add a new <code class="literal">Child</code>:
+        </p>
+
+        <pre xmlns="" xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="">Parent p = (Parent) session.load(Parent.class, pid);
+Child c = new Child();
+c.setParent(p);
+p.getChildren().add(c);
+session.save(c);
+session.flush();</pre>
+
+        <p>
+            Only one SQL <code class="literal">INSERT</code> would now be issued.
+        </p>
+
+        <p>
+            You could also create an <code class="literal">addChild()</code> method of
+            <code class="literal">Parent</code>.
+        </p>
+
+        <pre xmlns="" xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="">public void addChild(Child c) {
+    c.setParent(this);
+    children.add(c);
+}</pre>
+
+        <p>
+            The code to add a <code class="literal">Child</code> looks like this:
+        </p>
+
+        <pre xmlns="" xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="">Parent p = (Parent) session.load(Parent.class, pid);
+Child c = new Child();
+p.addChild(c);
+session.save(c);
+session.flush();</pre>
+
+     </div>
+     
+     <div class="section" title="23.3. Cascading life cycle"><div class="titlepage"><div><div><h2 class="title"><a id="example-parentchild-cascades"/>23.3. Cascading life cycle</h2></div></div></div>
+         
+     
+         <p>
+             You can address the frustrations of the explicit call to <code class="literal">save()</code> by
+             using cascades.
+         </p>
+
+        <pre xmlns="" xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="">&lt;set name="children" inverse="true" cascade="all"&gt;
+    &lt;key column="parent_id"/&gt;
+    &lt;one-to-many class="Child"/&gt;
+&lt;/set&gt;</pre>
+     
+         <p>
+             This simplifies the code above to:
+         </p>
+
+        <pre xmlns="" xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="">Parent p = (Parent) session.load(Parent.class, pid);
+Child c = new Child();
+p.addChild(c);
+session.flush();</pre>
+     
+         <p>
+             Similarly, we do not need to iterate over the children when saving or deleting a <code class="literal">Parent</code>.
+             The following removes <code class="literal">p</code> and all its children from the database.
+         </p>
+
+         <pre xmlns="" xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="">Parent p = (Parent) session.load(Parent.class, pid);
+session.delete(p);
+session.flush();</pre>
+     
+         <p>
+             However, the following code:
+         </p>
+
+         <pre xmlns="" xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="">Parent p = (Parent) session.load(Parent.class, pid);
+Child c = (Child) p.getChildren().iterator().next();
+p.getChildren().remove(c);
+c.setParent(null);
+session.flush();</pre>
+     
+         <p>
+             will not remove <code class="literal">c</code> from the database. In this case, it will only remove the link to <code class="literal">p</code>
+             and cause a <code class="literal">NOT NULL</code> constraint violation. You need to explicitly
+             <code class="literal">delete()</code> the <code class="literal">Child</code>.
+         </p>
+
+         <pre xmlns="" xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="">Parent p = (Parent) session.load(Parent.class, pid);
+Child c = (Child) p.getChildren().iterator().next();
+p.getChildren().remove(c);
+session.delete(c);
+session.flush();</pre>
+
+         <p>
+             In our case, a <code class="literal">Child</code> cannot exist without its parent. So if we remove
+             a <code class="literal">Child</code> from the collection, we do want it to be deleted. To do this, we must
+             use <code class="literal">cascade="all-delete-orphan"</code>.
+         </p>
+
+        <pre xmlns="" xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="">&lt;set name="children" inverse="true" cascade="all-delete-orphan"&gt;
+    &lt;key column="parent_id"/&gt;
+    &lt;one-to-many class="Child"/&gt;
+&lt;/set&gt;</pre>
+
+         <p>
+             Even though the collection mapping specifies <code class="literal">inverse="true"</code>, cascades are 
+             still processed by iterating the collection elements. If you need an object be saved, 
+             deleted or updated by cascade, you must add it to the collection. It is not enough to simply call
+             <code class="literal">setParent()</code>.
+         </p>
+               
+     </div>
+     
+     <div class="section" title="23.4. Cascades and unsaved-value"><div class="titlepage"><div><div><h2 class="title"><a id="example-parentchild-update"/>23.4. Cascades and <code class="literal">unsaved-value</code></h2></div></div></div>
+         
+     
+         <p>
+             Suppose we loaded up a <code class="literal">Parent</code> in one <code class="literal">Session</code>, made some changes 
+             in a UI action and wanted to persist these changes in a new session by calling <code class="literal">update()</code>. 
+             The <code class="literal">Parent</code> will contain a collection of children and, since the cascading update is enabled, 
+             Hibernate needs to know which children are newly instantiated and which represent existing rows in the 
+             database. We will also assume that both <code class="literal">Parent</code> and <code class="literal">Child</code> have generated
+             identifier properties of type <code class="literal">Long</code>. Hibernate will use the identifier and 
+             version/timestamp property value to determine which of the children are new. (See
+             <a class="xref" href="ch11.html#objectstate-saveorupdate" title="11.7. Automatic state detection">Section 11.7, “Automatic state detection”</a>.) <span class="emphasis"><em>In Hibernate, it is no longer necessary to specify
+             an <code class="literal">unsaved-value</code> explicitly.</em></span>
+         </p>
+
+         <p>
+             The following code will update <code class="literal">parent</code> and <code class="literal">child</code> and insert 
+             <code class="literal">newChild</code>:
+         </p>
+
+         <pre xmlns="" xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="">//parent and child were both loaded in a previous session
+parent.addChild(child);
+Child newChild = new Child();
+parent.addChild(newChild);
+session.update(parent);
+session.flush();</pre>
+     
+         <p>
+             This may be suitable for the case of a generated identifier, but what about assigned identifiers
+             and composite identifiers? This is more difficult, since Hibernate cannot use the identifier property to
+             distinguish between a newly instantiated object, with an identifier assigned by the user, and an 
+             object loaded in a previous session. In this case, Hibernate will either use the timestamp or version 
+             property, or will actually query the second-level cache or, worst case, the database, to see if the 
+             row exists.
+         </p>
+
+     </div>
+
+     <div class="section" title="23.5. Conclusion"><div class="titlepage"><div><div><h2 class="title"><a id="example-parentchild-conclusion"/>23.5. Conclusion</h2></div></div></div>
+         
+
+         <p>
+             The sections we have just covered can be a bit confusing. However, in practice, 
+             it all works out nicely. Most Hibernate applications use the parent/child pattern in many places.
+         </p>
+
+         <p>
+             We mentioned an alternative in the first paragraph. None of the above issues exist in the case of
+             <code class="literal">&lt;composite-element&gt;</code> mappings, which have exactly the semantics of a parent/child
+             relationship. Unfortunately, there are two big limitations with composite element classes: composite elements 
+             cannot own collections and they should not be the child of any entity other than the unique parent.
+         </p>
+     
+     </div>
+     
+</div><hr xmlns="" xmlns:d="http://docbook.org/ns/docbook"/><a xmlns="" xmlns:d="http://docbook.org/ns/docbook" href="legalnotice.html"/><ul xmlns:d="http://docbook.org/ns/docbook" class="docnav"><li class="previous"><a accesskey="p" href="ch22.html"><strong>Prev</strong>Chapter 22. Additional modules</a></li><li class="up"><a accesskey="u" href="#"><strong>Up</strong></a></li><li class="home"><a accesskey="h" href="index.html"><strong>Home</strong></a></li><li class="next"><a accesskey="n" href="ch24.html"><strong>Next</strong>Chapter 24. Example: Weblog Application</a></li></ul></body></html>

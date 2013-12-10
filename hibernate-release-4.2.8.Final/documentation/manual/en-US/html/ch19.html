@@ -1,0 +1,189 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml"><head><title>Chapter 19. Filtering data</title><link rel="stylesheet" type="text/css" href="css/hibernate.css"/><meta name="generator" content="DocBook XSL Stylesheets V1.76.1"/><link rel="home" href="index.html" title="HIBERNATE - Relational Persistence for Idiomatic Java"/><link rel="up" href="index.html" title="HIBERNATE - Relational Persistence for Idiomatic Java"/><link rel="prev" href="ch18.html" title="Chapter 18. Native SQL"/><link rel="next" href="ch20.html" title="Chapter 20. Improving performance"/><link rel="copyright" href="ln-d5e19.html" title="Legal Notice"/><meta xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" http-equiv="Content-Type" content="text/html; charset=UTF-8"/></head><body><p xmlns:d="http://docbook.org/ns/docbook" id="title"><a href="http://www.hibernate.org" class="site_href"><strong>Hibernate.org</strong></a><a href="http://hibernate.org/Documentation/DocumentationOverview" class="doc_href"><strong>Community Documentation</strong></a></p><ul xmlns:d="http://docbook.org/ns/docbook" class="docnav"><li class="previous"><a accesskey="p" href="ch18.html"><strong>Prev</strong></a></li><li class="next"><a accesskey="n" href="ch20.html"><strong>Next</strong></a></li></ul><div class="chapter" title="Chapter 19. Filtering data"><div class="titlepage"><div><div><h2 class="title"><a id="filters"/>Chapter 19. Filtering data</h2></div></div></div><div class="toc"><p><strong>Table of Contents</strong></p><dl><dt><span class="section"><a href="ch19.html#objectstate-filters">19.1. Hibernate filters</a></span></dt></dl></div>
+  
+
+  <p>Hibernate provides an innovative new approach to handling data with
+  "visibility" rules. A <span class="emphasis"><em>Hibernate filter</em></span> is a global,
+  named, parameterized filter that can be enabled or disabled for a particular
+  Hibernate session.</p>
+
+  <div class="section" title="19.1. Hibernate filters"><div class="titlepage"><div><div><h2 class="title"><a id="objectstate-filters"/>19.1. Hibernate filters</h2></div></div></div>
+    
+
+    <p>Hibernate has the ability to pre-define filter criteria and attach
+    those filters at both a class level and a collection level. A filter
+    criteria allows you to define a restriction clause similar to the existing
+    "where" attribute available on the class and various collection elements.
+    These filter conditions, however, can be parameterized. The application
+    can then decide at runtime whether certain filters should be enabled and
+    what their parameter values should be. Filters can be used like database
+    views, but they are parameterized inside the application.</p>
+
+    <p>Using annotatons filters are defined via
+    <code class="literal">@org.hibernate.annotations.FilterDef</code> or
+    <code class="literal">@org.hibernate.annotations.FilterDefs</code>. A filter
+    definition has a <code class="methodname">name()</code> and an array of
+    parameters(). A parameter will allow you to adjust the behavior of the
+    filter at runtime. Each parameter is defined by a
+    <code class="literal">@ParamDef</code> which has a name and a type. You can also
+    define a <code class="methodname">defaultCondition()</code> parameter for a given
+    <code class="literal">@FilterDef</code> to set the default condition to use when
+    none are defined in each individual <code class="literal">@Filter</code>.
+    <code class="literal">@FilterDef</code>(s) can be defined at the class or package
+    level. </p>
+
+    <p>We now need to define the SQL filter clause applied to either the
+    entity load or the collection load. <code class="literal">@Filter</code> is used and
+    placed either on the entity or the collection element. The connection
+    between <code class="classname">@FilterName</code> and
+    <code class="classname">@Filter</code> is a matching name.</p>
+
+    <div class="example"><a id="d5e8634"/><p class="title"><strong>Example 19.1. @FilterDef and @Filter annotations</strong></p><div class="example-contents">
+      
+
+      <pre xmlns="" xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="JAVA"><!-- <br/> --><span class="java_plain">@</span><!-- <br/> --><span class="java_type">Entity</span>
+<!--  --><br/><span class="java_plain">@</span><span class="java_type">FilterDef</span><span class="java_separator">(</span><span class="java_plain">name</span><span class="java_operator">=</span><span class="java_literal">&quot;minLength&quot;</span><span class="java_separator">,</span><span class="java_plain">&nbsp;parameters</span><span class="java_operator">=</span><span class="java_plain">@</span><span class="java_type">ParamDef</span><span class="java_separator">(</span><span class="java_plain">&nbsp;name</span><span class="java_operator">=</span><span class="java_literal">&quot;minLength&quot;</span><span class="java_separator">,</span><span class="java_plain">&nbsp;type</span><span class="java_operator">=</span><span class="java_literal">&quot;integer&quot;</span><span class="java_plain">&nbsp;</span><span class="java_separator">)</span><span class="java_plain">&nbsp;</span><span class="java_separator">)</span>
+<!--  --><br/><span class="java_plain">@</span><span class="java_type">Filters</span><span class="java_separator">(</span><span class="java_plain">&nbsp;</span><span class="java_separator">{</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;&nbsp;&nbsp;@</span><span class="java_type">Filter</span><span class="java_separator">(</span><span class="java_plain">name</span><span class="java_operator">=</span><span class="java_literal">&quot;betweenLength&quot;</span><span class="java_separator">,</span><span class="java_plain">&nbsp;condition</span><span class="java_operator">=</span><span class="java_literal">&quot;:minLength&nbsp;&lt;=&nbsp;length&nbsp;and&nbsp;:maxLength&nbsp;&gt;=&nbsp;length&quot;</span><span class="java_separator">),</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;&nbsp;&nbsp;@</span><span class="java_type">Filter</span><span class="java_separator">(</span><span class="java_plain">name</span><span class="java_operator">=</span><span class="java_literal">&quot;minLength&quot;</span><span class="java_separator">,</span><span class="java_plain">&nbsp;condition</span><span class="java_operator">=</span><span class="java_literal">&quot;:minLength&nbsp;&lt;=&nbsp;length&quot;</span><span class="java_separator">)</span>
+<!--  --><br/><span class="java_separator">}</span><span class="java_plain">&nbsp;</span><span class="java_separator">)</span>
+<!--  --><br/><span class="java_keyword">public</span><span class="java_plain">&nbsp;</span><span class="java_keyword">class</span><span class="java_plain">&nbsp;</span><span class="java_type">Forest</span><span class="java_plain">&nbsp;</span><span class="java_separator">{</span><span class="java_plain">&nbsp;</span><span class="java_separator">...</span><span class="java_plain">&nbsp;</span><span class="java_separator">}</span></pre>
+    </div></div><br class="example-break"/>
+
+    <p>When the collection use an association table as a relational
+    representation, you might want to apply the filter condition to the
+    association table itself or to the target entity table. To apply the
+    constraint on the target entity, use the regular
+    <code class="literal">@Filter</code> annotation. However, if you want to target the
+    association table, use the <code class="literal">@FilterJoinTable</code>
+    annotation.</p>
+
+    <div class="example"><a id="d5e8640"/><p class="title"><strong>Example 19.2. Using <code class="classname">@FilterJoinTable</code> for filterting on
+      the association table</strong></p><div class="example-contents">
+      
+
+      <pre xmlns="" xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="JAVA"><!-- <br/> --><span class="java_plain">&nbsp;&nbsp;&nbsp;&nbsp;@</span><!-- <br/> --><span class="java_type">OneToMany</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;&nbsp;&nbsp;@</span><span class="java_type">JoinTable</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="java_operator">//</span><span class="java_plain">filter&nbsp;on&nbsp;the&nbsp;target&nbsp;entity&nbsp;table</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;&nbsp;&nbsp;@</span><span class="java_type">Filter</span><span class="java_separator">(</span><span class="java_plain">name</span><span class="java_operator">=</span><span class="java_literal">&quot;betweenLength&quot;</span><span class="java_separator">,</span><span class="java_plain">&nbsp;condition</span><span class="java_operator">=</span><span class="java_literal">&quot;:minLength&nbsp;&lt;=&nbsp;length&nbsp;and&nbsp;:maxLength&nbsp;&gt;=&nbsp;length&quot;</span><span class="java_separator">)</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="java_operator">//</span><span class="java_plain">filter&nbsp;on&nbsp;the&nbsp;association&nbsp;table</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;&nbsp;&nbsp;@</span><span class="java_type">FilterJoinTable</span><span class="java_separator">(</span><span class="java_plain">name</span><span class="java_operator">=</span><span class="java_literal">&quot;security&quot;</span><span class="java_separator">,</span><span class="java_plain">&nbsp;condition</span><span class="java_operator">=</span><span class="java_literal">&quot;:userlevel&nbsp;&gt;=&nbsp;requredLevel&quot;</span><span class="java_separator">)</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="java_keyword">public</span><span class="java_plain">&nbsp;</span><span class="java_type">Set</span><span class="java_operator">&lt;</span><span class="java_type">Forest</span><span class="java_operator">&gt;</span><span class="java_plain">&nbsp;getForests</span><span class="java_separator">()</span><span class="java_plain">&nbsp;</span><span class="java_separator">{</span><span class="java_plain">&nbsp;</span><span class="java_separator">...</span><span class="java_plain">&nbsp;</span><span class="java_separator">}</span></pre>
+    </div></div><br class="example-break"/>
+
+    <p>Using Hibernate mapping files for defining filters the situtation is
+    very similar. The filters must first be defined and then attached to the
+    appropriate mapping elements. To define a filter, use the
+    <code class="literal">&lt;filter-def/&gt;</code> element within a
+    <code class="literal">&lt;hibernate-mapping/&gt;</code> element:</p>
+
+    <div class="example"><a id="d5e8647"/><p class="title"><strong>Example 19.3. Defining a filter definition via
+      <code class="literal">&lt;filter-def&gt;</code></strong></p><div class="example-contents">
+      
+
+      <pre xmlns="" xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="">&lt;filter-def name="myFilter"&gt;
+    &lt;filter-param name="myFilterParam" type="string"/&gt;
+&lt;/filter-def&gt;</pre>
+    </div></div><br class="example-break"/>
+
+    <p>This filter can then be attached to a class or collection (or, to
+    both or multiples of each at the same time):</p>
+
+    <div class="example"><a id="d5e8652"/><p class="title"><strong>Example 19.4. Attaching a filter to a class or collection using
+      <code class="literal">&lt;filter&gt;</code></strong></p><div class="example-contents">
+      
+
+      <pre xmlns="" xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="">&lt;class name="myClass" ...&gt;
+    ...
+    &lt;filter name="myFilter" condition=":myFilterParam = MY_FILTERED_COLUMN"/&gt;
+
+    &lt;set ...&gt;
+        &lt;filter name="myFilter" condition=":myFilterParam = MY_FILTERED_COLUMN"/&gt;
+    &lt;/set&gt;  
+&lt;/class&gt;</pre>
+    </div></div><br class="example-break"/>
+
+    <p>The methods on <code class="literal">Session</code> are:
+    <code class="literal">enableFilter(String filterName)</code>,
+    <code class="literal">getEnabledFilter(String filterName)</code>, and
+    <code class="literal">disableFilter(String filterName)</code>. By default, filters
+    are <span class="emphasis"><em>not</em></span> enabled for a given session. Filters must be
+    enabled through use of the <code class="literal">Session.enableFilter()</code>
+    method, which returns an instance of the <code class="literal">Filter</code>
+    interface. If you used the simple filter defined above, it would look like
+    this:</p>
+
+    <pre xmlns="" xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="">session.enableFilter("myFilter").setParameter("myFilterParam", "some-value");</pre>
+
+    <p>Methods on the org.hibernate.Filter interface do allow the
+    method-chaining common to much of Hibernate.</p>
+
+    <p>The following is a full example, using temporal data with an
+    effective record date pattern:</p>
+
+    <pre xmlns="" xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="">&lt;filter-def name="effectiveDate"&gt;
+    &lt;filter-param name="asOfDate" type="date"/&gt;
+&lt;/filter-def&gt;
+
+&lt;class name="Employee" ...&gt;
+...
+    &lt;many-to-one name="department" column="dept_id" class="Department"/&gt;
+    &lt;property name="effectiveStartDate" type="date" column="eff_start_dt"/&gt;
+    &lt;property name="effectiveEndDate" type="date" column="eff_end_dt"/&gt;
+...
+    &lt;!--
+        Note that this assumes non-terminal records have an eff_end_dt set to
+        a max db date for simplicity-sake
+    --&gt;
+    &lt;filter name="effectiveDate"
+            condition=":asOfDate BETWEEN eff_start_dt and eff_end_dt"/&gt;
+&lt;/class&gt;
+
+&lt;class name="Department" ...&gt;
+...
+    &lt;set name="employees" lazy="true"&gt;
+        &lt;key column="dept_id"/&gt;
+        &lt;one-to-many class="Employee"/&gt;
+        &lt;filter name="effectiveDate"
+                condition=":asOfDate BETWEEN eff_start_dt and eff_end_dt"/&gt;
+    &lt;/set&gt;
+&lt;/class&gt;</pre>
+
+    <p>In order to ensure that you are provided with currently effective
+    records, enable the filter on the session prior to retrieving employee
+    data:</p>
+
+    <pre xmlns="" xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="">Session session = ...;
+session.enableFilter("effectiveDate").setParameter("asOfDate", new Date());
+List results = session.createQuery("from Employee as e where e.salary &gt; :targetSalary")
+         .setLong("targetSalary", new Long(1000000))
+         .list();
+</pre>
+
+    <p>Even though a salary constraint was mentioned explicitly on the
+    results in the above HQL, because of the enabled filter, the query will
+    return only currently active employees who have a salary greater than one
+    million dollars.</p>
+
+    <p>If you want to use filters with outer joining, either through HQL or
+    load fetching, be careful of the direction of the condition expression. It
+    is safest to set this up for left outer joining. Place the parameter first
+    followed by the column name(s) after the operator.</p>
+
+    <p>After being defined, a filter might be attached to multiple entities
+    and/or collections each with its own condition. This can be problematic
+    when the conditions are the same each time. Using
+    <code class="literal">&lt;filter-def/&gt;</code> allows you to definine a default
+    condition, either as an attribute or CDATA:</p>
+
+    <pre xmlns="" xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="">&lt;filter-def name="myFilter" condition="abc &gt; xyz"&gt;...&lt;/filter-def&gt;
+&lt;filter-def name="myOtherFilter"&gt;abc=xyz&lt;/filter-def&gt;</pre>
+
+    <p>This default condition will be used whenever the filter is attached
+    to something without specifying a condition. This means you can give a
+    specific condition as part of the attachment of the filter that overrides
+    the default condition in that particular case.</p>
+  </div>
+</div><hr xmlns="" xmlns:d="http://docbook.org/ns/docbook"/><a xmlns="" xmlns:d="http://docbook.org/ns/docbook" href="legalnotice.html"/><ul xmlns:d="http://docbook.org/ns/docbook" class="docnav"><li class="previous"><a accesskey="p" href="ch18.html"><strong>Prev</strong>Chapter 18. Native SQL</a></li><li class="up"><a accesskey="u" href="#"><strong>Up</strong></a></li><li class="home"><a accesskey="h" href="index.html"><strong>Home</strong></a></li><li class="next"><a accesskey="n" href="ch20.html"><strong>Next</strong>Chapter 20. Improving performance</a></li></ul></body></html>

@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml"><head><title>Appendix A. Configuration properties</title><link rel="stylesheet" type="text/css" href="css/hibernate.css"/><meta name="generator" content="DocBook XSL Stylesheets V1.76.1"/><link rel="home" href="index.html" title="Hibernate Developer Guide"/><link rel="up" href="index.html" title="Hibernate Developer Guide"/><link rel="prev" href="ch17.html" title="Chapter 17. OSGi"/><link rel="next" href="apb.html" title="Appendix B. Legacy Hibernate Criteria Queries"/><meta xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" http-equiv="Content-Type" content="text/html; charset=UTF-8"/></head><body><p xmlns:d="http://docbook.org/ns/docbook" id="title"><a href="http://www.hibernate.org" class="site_href"><strong>Hibernate.org</strong></a><a href="http://hibernate.org/Documentation/DocumentationOverview" class="doc_href"><strong>Community Documentation</strong></a></p><ul xmlns:d="http://docbook.org/ns/docbook" class="docnav"><li class="previous"><a accesskey="p" href="ch17.html"><strong>Prev</strong></a></li><li class="next"><a accesskey="n" href="apb.html"><strong>Next</strong></a></li></ul><div class="appendix" title="Appendix A. Configuration properties"><div class="titlepage"><div><div><h2 class="title"><a id="d5e4945"/>Appendix A. Configuration properties</h2></div></div></div><div class="toc"><p><strong>Table of Contents</strong></p><dl><dt><span class="section"><a href="apa.html#d5e4947">A.1. General Configuration</a></span></dt><dt><span class="section"><a href="apa.html#d5e5053">A.2. Database configuration</a></span></dt><dt><span class="section"><a href="apa.html#d5e5276">A.3. Connection pool properties</a></span></dt></dl></div>
+
+  
+  <div class="section" title="A.1. General Configuration"><div class="titlepage"><div><div><h2 class="title"><a id="d5e4947"/>A.1. General Configuration</h2></div></div></div>
+    
+    <div class="informaltable">
+      <table border="1"><colgroup><col width="100px"/><col width="120px"/><col width="250px"/></colgroup><tbody><tr><td>hibernate.dialect</td><td>A fully-qualified classname</td><td>
+              <p>
+                The classname of a Hibernate <code class="classname">org.hibernate.dialect.Dialect</code> from which Hibernate
+                can generate SQL optimized for a particular relational database.
+              </p>
+              <p>
+                In most cases Hibernate can choose the correct <code class="classname">org.hibernate.dialect.Dialect</code>
+                implementation based on the JDBC metadata returned by the JDBC driver.
+              </p>
+            </td></tr><tr><td>hibernate.show_sql</td><td><p><code class="literal">true</code> or <code class="literal">false</code></p></td><td>Write all SQL statements to the console. This is an alternative to setting the log category
+            <span class="property">org.hibernate.SQL</span> to debug.</td></tr><tr><td>hibernate.format_sql</td><td><p><code class="literal">true</code> or <code class="literal">false</code></p></td><td>Pretty-print the SQL in the log and console.</td></tr><tr><td>hibernate.default_schema</td><td>A schema name</td><td>Qualify unqualified table names with the given schema or tablespace in generated SQL.</td></tr><tr><td>hibernate.default_catalog</td><td>A catalog name</td><td>Qualifies unqualified table names with the given catalog in generated SQL.</td></tr><tr><td>hibernate.session_factory_name</td><td>A JNDI name</td><td>The <code class="classname">org.hibernate.SessionFactory</code> is automatically bound to this name in JNDI
+            after it is created.</td></tr><tr><td>hibernate.max_fetch_depth</td><td>A value between <code class="literal">0</code> and <code class="literal">3</code></td><td>Sets a maximum depth for the outer join fetch tree for single-ended associations. A single-ended
+            assocation is a one-to-one or many-to-one assocation. A value of <code class="literal">0</code> disables default outer
+            join fetching.</td></tr><tr><td>hibernate.default_batch_fetch_size</td><td><p><code class="literal">4</code>,<code class="literal">8</code>, or <code class="literal">16</code></p></td><td>Default size for Hibernate batch fetching of associations.</td></tr><tr><td>hibernate.default_entity_mode</td><td><p><code class="literal">dynamic-map</code> or <code class="literal">pojo</code></p></td><td>Default mode for entity representation for all sessions opened from this
+            <code class="classname">SessionFactory</code>, defaults to <code class="literal">pojo</code>.</td></tr><tr><td>hibernate.order_updates</td><td><p><code class="literal">true</code> or <code class="literal">false</code></p></td><td>Forces Hibernate to order SQL updates by the primary key value of the items being updated. This
+            reduces the likelihood of transaction deadlocks in highly-concurrent systems.</td></tr><tr><td>hibernate.order_by.default_null_ordering</td><td><p><code class="literal">none</code>, <code class="literal">first</code> or <code class="literal">last</code></p></td><td>Defines precedence of null values in <code class="literal">ORDER BY</code> clause. Defaults to
+            <code class="literal">none</code> which varies between RDBMS implementation.</td></tr><tr><td>hibernate.generate_statistics</td><td><p><code class="literal">true</code> or <code class="literal">false</code></p></td><td>Causes Hibernate to collect statistics for performance tuning.</td></tr><tr><td>hibernate.use_identifier_rollback</td><td><p><code class="literal">true</code> or <code class="literal">false</code></p></td><td>If true, generated identifier properties are reset to default values when objects are
+            deleted.</td></tr><tr><td>hibernate.use_sql_comments</td><td><p><code class="literal">true</code> or <code class="literal">false</code></p></td><td>If true, Hibernate generates comments inside the SQL, for easier debugging.</td></tr></tbody></table>
+    </div>
+  </div>
+  <div class="section" title="A.2. Database configuration"><div class="titlepage"><div><div><h2 class="title"><a id="d5e5053"/>A.2. Database configuration</h2></div></div></div>
+    
+    <div class="table"><a id="d5e5055"/><p class="title"><strong>Table A.1. JDBC properties</strong></p><div class="table-contents">
+      
+      <table summary="JDBC properties" border="1"><colgroup><col/><col/><col/></colgroup><thead><tr><th>Property</th><th>Example</th><th>Purpose</th></tr></thead><tbody><tr><td>hibernate.jdbc.fetch_size</td><td><code class="literal">0</code> or an integer</td><td>A non-zero value determines the JDBC fetch size, by calling
+            <code class="methodname">Statement.setFetchSize()</code>.</td></tr><tr><td>hibernate.jdbc.batch_size</td><td><p>A value between <code class="literal">5</code> and <code class="literal">30</code></p></td><td>A non-zero value causes Hibernate to use JDBC2 batch updates.</td></tr><tr><td>hibernate.jdbc.batch_versioned_data</td><td><p><code class="literal">true</code> or <code class="literal">false</code></p></td><td><p>Set this property to <code class="literal">true</code> if your JDBC driver returns correct row counts
+            from <code class="methodname">executeBatch()</code>. This option is usually safe, but is disabled by default. If
+            enabled, Hibernate uses batched DML for automatically versioned data.</p></td></tr><tr><td>hibernate.jdbc.factory_class</td><td>The fully-qualified class name of the factory</td><td><p>Select a custom <code class="classname">org.hibernate.jdbc.Batcher</code>. Irrelevant for most
+            applications.</p></td></tr><tr><td>hibernate.jdbc.use_scrollable_resultset</td><td><p><code class="literal">true</code> or <code class="literal">false</code></p></td><td>Enables Hibernate to use JDBC2 scrollable resultsets. This property is only relevant for
+            user-supplied JDBC connections. Otherwise, Hibernate uses connection metadata.</td></tr><tr><td>hibernate.jdbc.use_streams_for_binary</td><td><p><code class="literal">true</code> or <code class="literal">false</code></p></td><td><p>Use streams when writing or reading <span class="type">binary</span> or <span class="type">serializable</span> types to
+            or from JDBC. This is a system-level property.</p></td></tr><tr><td>hibernate.jdbc.use_get_generated_keys</td><td><p><code class="literal">true</code> or <code class="literal">false</code></p></td><td><p>Allows Hibernate to use JDBC3 <code class="classname">PreparedStatement.getGeneratedKeys()</code> to
+            retrieve natively-generated keys after insert. You need the JDBC3+ driver and JRE1.4+. Disable this property
+            if your driver has problems with the Hibernate identifier generators. By default, it tries to detect the
+            driver capabilities from connection metadata.</p></td></tr></tbody></table>
+    </div></div><br class="table-break"/>
+    <div class="table"><a id="d5e5119"/><p class="title"><strong>Table A.2. Cache Properties</strong></p><div class="table-contents">
+      
+      <table summary="Cache Properties" border="1"><colgroup><col width="100px"/><col width="100px"/><col width="240px"/></colgroup><thead><tr><th>Property</th><th>Example</th><th>Purpose</th></tr></thead><tbody><tr><td>hibernate.cache.provider_class</td><td>Fully-qualified classname</td><td>The classname of a custom CacheProvider.</td></tr><tr><td>hibernate.cache.use_minimal_puts</td><td><p><code class="literal">true</code> or <code class="literal">false</code></p></td><td>Optimizes second-level cache operation to minimize writes, at the cost of more frequent reads. This
+            is most useful for clustered caches and is enabled by default for clustered cache implementations.</td></tr><tr><td>hibernate.cache.use_query_cache</td><td><p><code class="literal">true</code> or <code class="literal">false</code></p></td><td>Enables the query cache. You still need to set individual queries to be cachable.</td></tr><tr><td>hibernate.cache.use_second_level_cache</td><td><p><code class="literal">true</code> or
+            <code class="literal">false</code></p></td><td>Completely disable the second level cache, which is enabled
+            by default for classes which specify a &lt;cache&gt; mapping.</td></tr><tr><td>hibernate.cache.query_cache_factory</td><td>Fully-qualified classname</td><td>A custom <code class="interfacename">QueryCache</code> interface. The default is the built-in
+            <code class="interfacename">StandardQueryCache</code>.</td></tr><tr><td>hibernate.cache.region_prefix</td><td>A string</td><td>A prefix for second-level cache region names.</td></tr><tr><td>hibernate.cache.use_structured_entries</td><td><p><code class="literal">true</code> or <code class="literal">false</code></p></td><td>Forces Hibernate to store data in the second-level cache in a more human-readable format.</td></tr><tr><td>hibernate.cache.use_reference_entries</td><td><p><code class="literal">true</code> or <code class="literal">false</code></p></td><td>Optimizes second-level cache operation to store immutable entities  (aka "reference")  which do
+                    not have associations into cache directly, this case, lots of disasseble and deep copy operations
+                can be avoid.
+                    Default value of this property is <code class="literal">false</code>.
+                </td></tr></tbody></table>
+    </div></div><br class="table-break"/>
+    <div class="table"><a id="d5e5181"/><p class="title"><strong>Table A.3. Transactions properties</strong></p><div class="table-contents">
+      
+      <table summary="Transactions properties" border="1"><colgroup><col width="100px"/><col width="100px"/><col width="240px"/></colgroup><thead><tr><th>Property</th><th>Example</th><th>Purpose</th></tr></thead><tbody><tr><td>hibernate.transaction.factory_class</td><td>A fully-qualified classname</td><td>The classname of a <code class="classname">TransactionFactory</code> to use with Hibernate Transaction API. The
+            default is <code class="classname">JDBCTransactionFactory</code>).</td></tr><tr><td>jta.UserTransaction</td><td>A JNDI name</td><td><p>The <code class="classname">JTATransactionFactory</code> needs a JNDI name to obtain the JTA
+            UserTransaction from the application server.</p></td></tr><tr><td>hibernate.transaction.manager_lookup_class</td><td>A fully-qualified classname</td><td><p>The classname of a <code class="classname">TransactionManagerLookup</code>, which is used in
+            conjunction with JVM-level or the hilo generator in a JTA environment.</p></td></tr><tr><td>hibernate.transaction.flush_before_completion</td><td><p><code class="literal">true</code> or <code class="literal">false</code></p></td><td>Causes the session be flushed during the <span>before completion</span> phase of the
+            transaction. If possible, use built-in and automatic session context management instead.</td></tr><tr><td>hibernate.transaction.auto_close_session</td><td><p><code class="literal">true</code> or <code class="literal">false</code></p></td><td>Causes the session to be closed during the <span>after completion</span> phase of the
+            transaction. If possible, use built-in and automatic session context management instead.</td></tr></tbody></table>
+    </div></div><br class="table-break"/>
+    <div xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="note" style="margin-left: 0.5in; margin-right: 0.5in;"><h2>Note</h2>
+      <p>
+        Each of the properties in the following table are prefixed by <code class="literal">hibernate.</code>. It has been removed
+        in the table to conserve space.
+      </p>
+    </div>
+    <div class="table"><a id="d5e5230"/><p class="title"><strong>Table A.4. Miscellaneous properties</strong></p><div class="table-contents">
+      
+      <table summary="Miscellaneous properties" border="1"><colgroup><col/><col/><col/></colgroup><thead><tr><th>Property</th><th>Example</th><th>Purpose</th></tr></thead><tbody><tr><td>current_session_context_class</td><td><p>One of <code class="literal">jta</code>, <code class="literal">thread</code>, <code class="literal">managed</code>, or
+            <code class="literal">custom.Class</code></p></td><td><p>Supply a custom strategy for the scoping of the <code class="classname">Current</code>
+            Session.</p></td></tr><tr><td>factory_class</td><td><p><code class="literal">org.hibernate.hql.internal.ast.ASTQueryTranslatorFactory</code> or
+            <code class="literal">org.hibernate.hql.internal.classic.ClassicQueryTranslatorFactory</code></p></td><td>Chooses the HQL parser implementation.</td></tr><tr><td>query.substitutions</td><td><p><code class="literal">hqlLiteral=SQL_LITERAL</code> or <code class="literal">hqlFunction=SQLFUNC</code>
+            </p></td><td>Map from tokens in Hibernate queries to SQL tokens, such as function or literal names.</td></tr><tr><td>hbm2ddl.auto</td><td><p><code class="literal">validate</code>, <code class="literal">update</code>, <code class="literal">create</code>,
+            <code class="literal">create-drop</code></p></td><td>Validates or exports schema DDL to the database when the <code class="classname">SessionFactory</code> is
+            created. With <span class="command"><strong>create-drop</strong></span>, the database schema is dropped when the
+            <code class="classname">SessionFactory</code> is closed explicitly.</td></tr></tbody></table>
+    </div></div><br class="table-break"/>
+  </div>
+  <div class="section" title="A.3. Connection pool properties"><div class="titlepage"><div><div><h2 class="title"><a id="d5e5276"/>A.3. Connection pool properties</h2></div></div></div>
+    
+    <div class="itemizedlist" title="c3p0 connection pool properties"><p class="title"><strong>c3p0 connection pool properties</strong></p><ul class="itemizedlist"><li class="listitem"><p>hibernate.c3p0.min_size</p></li><li class="listitem"><p>hibernate.c3p0.max_size</p></li><li class="listitem"><p>hibernate.c3p0.timeout</p></li><li class="listitem"><p>hibernate.c3p0.max_statements</p></li></ul></div>
+    <div class="table"><a id="d5e5288"/><p class="title"><strong>Table A.5. Proxool connection pool properties</strong></p><div class="table-contents">
+      
+      <table summary="Proxool connection pool properties" border="1"><colgroup><col width="100px"/><col width="340px"/></colgroup><thead><tr><th>Property</th><th>Description</th></tr></thead><tbody><tr><td>hibernate.proxool.xml</td><td>Configure Proxool provider using an XML file (.xml is appended automatically)</td></tr><tr><td>hibernate.proxool.properties</td><td>Configure the Proxool provider using a properties file (.properties is appended
+            automatically)</td></tr><tr><td>hibernate.proxool.existing_pool</td><td>Whether to configure the Proxool provider from an existing pool</td></tr><tr><td>hibernate.proxool.pool_alias</td><td>Proxool pool alias to use. Required.</td></tr></tbody></table>
+    </div></div><br class="table-break"/>
+    <div xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="note" style="margin-left: 0.5in; margin-right: 0.5in;"><h2>Note</h2>
+      <p>
+        For information on specific configuration of Proxool, refer to the Proxool documentation available from
+          <a class="ulink" href="http://proxool.sourceforge.net/">http://proxool.sourceforge.net/</a>.
+      </p>
+    </div>
+  </div>
+</div><hr xmlns="" xmlns:d="http://docbook.org/ns/docbook"/><a xmlns="" xmlns:d="http://docbook.org/ns/docbook" href="legalnotice.html"/><ul xmlns:d="http://docbook.org/ns/docbook" class="docnav"><li class="previous"><a accesskey="p" href="ch17.html"><strong>Prev</strong>Chapter 17. OSGi</a></li><li class="up"><a accesskey="u" href="#"><strong>Up</strong></a></li><li class="home"><a accesskey="h" href="index.html"><strong>Home</strong></a></li><li class="next"><a accesskey="n" href="apb.html"><strong>Next</strong>Appendix B. Legacy Hibernate Criteria Queries</a></li></ul></body></html>

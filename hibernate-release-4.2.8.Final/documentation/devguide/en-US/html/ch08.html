@@ -1,0 +1,155 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml"><head><title>Chapter 8. Data categorizations</title><link rel="stylesheet" type="text/css" href="css/hibernate.css"/><meta name="generator" content="DocBook XSL Stylesheets V1.76.1"/><link rel="home" href="index.html" title="Hibernate Developer Guide"/><link rel="up" href="index.html" title="Hibernate Developer Guide"/><link rel="prev" href="ch07.html" title="Chapter 7. Services"/><link rel="next" href="ch09.html" title="Chapter 9. Mapping entities"/><meta xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" http-equiv="Content-Type" content="text/html; charset=UTF-8"/></head><body><p xmlns:d="http://docbook.org/ns/docbook" id="title"><a href="http://www.hibernate.org" class="site_href"><strong>Hibernate.org</strong></a><a href="http://hibernate.org/Documentation/DocumentationOverview" class="doc_href"><strong>Community Documentation</strong></a></p><ul xmlns:d="http://docbook.org/ns/docbook" class="docnav"><li class="previous"><a accesskey="p" href="ch07.html"><strong>Prev</strong></a></li><li class="next"><a accesskey="n" href="ch09.html"><strong>Next</strong></a></li></ul><div class="chapter" title="Chapter 8. Data categorizations"><div class="titlepage"><div><div><h2 class="title"><a id="d5e2253"/>Chapter 8. Data categorizations</h2></div></div></div><div class="toc"><p><strong>Table of Contents</strong></p><dl><dt><span class="section"><a href="ch08.html#value-types">8.1. Value types</a></span></dt><dd><dl><dt><span class="section"><a href="ch08.html#value-basic-types">8.1.1. Basic types</a></span></dt><dt><span class="section"><a href="ch08.html#value-national-character-types">8.1.2. National Character Types</a></span></dt><dt><span class="section"><a href="ch08.html#value-composite-types">8.1.3. Composite types</a></span></dt><dt><span class="section"><a href="ch08.html#value-collection-types">8.1.4. Collection types</a></span></dt></dl></dd><dt><span class="section"><a href="ch08.html#entity-types">8.2. Entity Types</a></span></dt><dt><span class="section"><a href="ch08.html#d5e2562">8.3. Implications of different data categorizations</a></span></dt></dl></div>
+
+  
+  <p>
+    Hibernate understands both the Java and JDBC representations of application data. The ability to read and write
+    object data to a database is called <em class="firstterm">marshalling</em>, and is the function of a Hibernate
+    <code class="classname">type</code>. A <code class="classname">type</code> is an implementation of the
+    <code class="interfacename">org.hibernate.type.Type</code> interface. A Hibernate <code class="classname">type</code> describes
+    various aspects of behavior of the Java type such as how to check for equality and how to clone values.
+  </p>
+  <div xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="note" style="margin-left: 0.5in; margin-right: 0.5in;"><h2>Usage of the word <em class="wordasword">type</em></h2>
+    
+    <p>
+      A Hibernate <code class="classname">type</code> is neither a Java type nor a SQL datatype. It provides information about
+      both of these.
+    </p>
+    <p>
+      When you encounter the term <em class="firstterm">type</em> in regards to Hibernate, it may refer to the Java type,
+      the JDBC type, or the Hibernate type, depending on context.
+    </p>
+  </div>
+  <p>
+    Hibernate categorizes types into two high-level groups: <a class="xref" href="ch08.html#value-types" title="8.1. Value types">Section 8.1, “Value types”</a>
+      and <a class="xref" href="ch08.html#entity-types" title="8.2. Entity Types">Section 8.2, “Entity Types”</a>.
+  </p>
+  
+  <div class="section" title="8.1. Value types"><div class="titlepage"><div><div><h2 class="title"><a id="value-types"/>8.1. Value types</h2></div></div></div>
+    
+    <p>
+      A <em class="firstterm">value type</em> does not define its own lifecycle. It is, in effect, owned by an <a class="xref" href="ch08.html#entity-types" title="8.2. Entity Types">Section 8.2, “Entity Types”</a>, which defines its
+      lifecycle. Value types are further classified into three sub-categories.
+    </p>
+    <div class="itemizedlist"><ul class="itemizedlist"><li class="listitem"><p><a class="xref" href="ch08.html#value-basic-types" title="8.1.1. Basic types">Section 8.1.1, “Basic types”</a></p></li><li class="listitem"><p><a class="xref" href="ch08.html#value-national-character-types" title="8.1.2. National Character Types">Section 8.1.2, “National Character Types”</a></p></li><li class="listitem"><p><a class="xref" href="ch08.html#value-composite-types" title="8.1.3. Composite types">Section 8.1.3, “Composite types”</a></p></li><li class="listitem"><p><a class="xref" href="ch08.html#value-collection-types" title="8.1.4. Collection types">Section 8.1.4, “Collection types”</a></p></li></ul></div>
+
+    <div class="section" title="8.1.1. Basic types"><div class="titlepage"><div><div><h3 class="title"><a id="value-basic-types"/>8.1.1. Basic types</h3></div></div></div>
+      
+      <p>
+        Basic value types usually map a single database value, or column, to a single, non-aggregated Java
+        type. Hibernate provides a number of built-in basic types, which follow the natural mappings recommended in the
+        JDBC specifications. You can override these mappings and provide and use alternative mappings. These topics are
+        discussed further on.
+      </p>
+      <div class="table"><a id="d5e2292"/><p class="title"><strong>Table 8.1. Basic Type Mappings</strong></p><div class="table-contents">
+        
+        <table summary="Basic Type Mappings" border="1"><colgroup><col/><col/><col/><col/></colgroup><thead><tr><th>Hibernate type</th><th>Database type</th><th>JDBC type</th><th>Type registry</th></tr></thead><tbody><tr><td>org.hibernate.type.StringType</td><td>string</td><td>VARCHAR</td><td>string, java.lang.String</td></tr><tr><td>org.hibernate.type.MaterializedClob</td><td>string</td><td>CLOB</td><td>materialized_clob</td></tr><tr><td>org.hibernate.type.TextType</td><td>string</td><td>LONGVARCHAR</td><td>text</td></tr><tr><td>org.hibernate.type.CharacterType</td><td>char, java.lang.Character</td><td>CHAR</td><td>char, java.lang.Character</td></tr><tr><td>org.hibernate.type.BooleanType</td><td>boolean</td><td>BIT</td><td>boolean, java.lang.Boolean</td></tr><tr><td>org.hibernate.type.NumericBooleanType</td><td>boolean</td><td>INTEGER, 0 is false, 1 is true</td><td>numeric_boolean</td></tr><tr><td>org.hibernate.type.YesNoType</td><td>boolean</td><td>CHAR, 'N'/'n' is false, 'Y'/'y' is true. The uppercase value is written to the database.</td><td>yes_no</td></tr><tr><td>org.hibernate.type.TrueFalseType</td><td>boolean</td><td>CHAR, 'F'/'f' is false, 'T'/'t' is true. The uppercase value is written to the database.</td><td>true_false</td></tr><tr><td>org.hibernate.type.ByteType</td><td>byte, java.lang.Byte</td><td>TINYINT</td><td>byte, java.lang.Byte</td></tr><tr><td>org.hibernate.type.ShortType</td><td>short, java.lang.Short</td><td>SMALLINT</td><td>short, java.lang.Short</td></tr><tr><td>org.hibernate.type.IntegerTypes</td><td>int, java.lang.Integer</td><td>INTEGER</td><td>int, java.lang.Integer</td></tr><tr><td>org.hibernate.type.LongType</td><td>long, java.lang.Long</td><td>BIGINT</td><td>long, java.lang.Long</td></tr><tr><td>org.hibernate.type.FloatType</td><td>float, java.lang.Float</td><td>FLOAT</td><td>float, java.lang.Float</td></tr><tr><td>org.hibernate.type.DoubleType</td><td>double, java.lang.Double</td><td>DOUBLE</td><td>double, java.lang.Double</td></tr><tr><td>org.hibernate.type.BigIntegerType</td><td>java.math.BigInteger</td><td>NUMERIC</td><td>big_integer</td></tr><tr><td>org.hibernate.type.BigDecimalType</td><td>java.math.BigDecimal</td><td>NUMERIC</td><td>big_decimal, java.math.bigDecimal</td></tr><tr><td>org.hibernate.type.TimestampType</td><td>java.sql.Timestamp</td><td>TIMESTAMP</td><td>timestamp, java.sql.Timestamp</td></tr><tr><td>org.hibernate.type.TimeType</td><td>java.sql.Time</td><td>TIME</td><td>time, java.sql.Time</td></tr><tr><td>org.hibernate.type.DateType</td><td>java.sql.Date</td><td>DATE</td><td>date, java.sql.Date</td></tr><tr><td>org.hibernate.type.CalendarType</td><td>java.util.Calendar</td><td>TIMESTAMP</td><td>calendar, java.util.Calendar</td></tr><tr><td>org.hibernate.type.CalendarDateType</td><td>java.util.Calendar</td><td>DATE</td><td>calendar_date</td></tr><tr><td>org.hibernate.type.CurrencyType</td><td>java.util.Currency</td><td>VARCHAR</td><td>currency, java.util.Currency</td></tr><tr><td>org.hibernate.type.LocaleType</td><td>java.util.Locale</td><td>VARCHAR</td><td>locale, java.utility.locale</td></tr><tr><td>org.hibernate.type.TimeZoneType</td><td>java.util.TimeZone</td><td>VARCHAR, using the TimeZone ID</td><td>timezone, java.util.TimeZone</td></tr><tr><td>org.hibernate.type.UrlType</td><td>java.net.URL</td><td>VARCHAR</td><td>url, java.net.URL</td></tr><tr><td>org.hibernate.type.ClassType</td><td>java.lang.Class</td><td>VARCHAR, using the class name</td><td>class, java.lang.Class</td></tr><tr><td>org.hibernate.type.BlobType</td><td>java.sql.Blob</td><td>BLOB</td><td>blog, java.sql.Blob</td></tr><tr><td>org.hibernate.type.ClobType</td><td>java.sql.Clob</td><td>CLOB</td><td>clob, java.sql.Clob</td></tr><tr><td>org.hibernate.type.BinaryType</td><td>primitive byte[]</td><td>VARBINARY</td><td>binary, byte[]</td></tr><tr><td>org.hibernate.type.MaterializedBlobType</td><td>primitive byte[]</td><td>BLOB</td><td>materized_blob</td></tr><tr><td>org.hibernate.type.ImageType</td><td>primitive byte[]</td><td>LONGVARBINARY</td><td>image</td></tr><tr><td>org.hibernate.type.BinaryType</td><td>java.lang.Byte[]</td><td>VARBINARY</td><td>wrapper-binary</td></tr><tr><td>org.hibernate.type.CharArrayType</td><td>char[]</td><td>VARCHAR</td><td>characters, char[]</td></tr><tr><td>org.hibernate.type.CharacterArrayType</td><td>java.lang.Character[]</td><td>VARCHAR</td><td>wrapper-characters, Character[], java.lang.Character[]</td></tr><tr><td>org.hibernate.type.UUIDBinaryType</td><td>java.util.UUID</td><td>BINARY</td><td>uuid-binary, java.util.UUID</td></tr><tr><td>org.hibernate.type.UUIDCharType</td><td>java.util.UUID</td><td>CHAR, can also read VARCHAR</td><td>uuid-char</td></tr><tr><td>org.hibernate.type.PostgresUUIDType</td><td>java.util.UUID</td><td>PostgreSQL UUID, through Types#OTHER, which complies to the PostgreSQL JDBC driver
+              definition</td><td>pg-uuid</td></tr><tr><td>org.hibernate.type.SerializableType</td><td>implementors of java.lang.Serializable</td><td>VARBINARY</td><td> Unlike the other value types, multiple instances of this type are registered. It is registered
+              once under java.io.Serializable, and registered under the specific java.io.Serializable implementation
+              class names.</td></tr></tbody></table>
+      </div></div><br class="table-break"/>
+    </div>
+    <div class="section" title="8.1.2. National Character Types"><div class="titlepage"><div><div><h3 class="title"><a id="value-national-character-types"/>8.1.2. National Character Types</h3></div></div></div>
+        
+        <p>
+            National Character types, which is a new feature since JDBC 4.0 API, now available in hibernate type system.
+            National Language Support enables you retrieve data or insert data into a database in any character
+            set that the underlying database supports.
+        </p>
+
+        <p>
+            Depending on your environment, you might want to set the configuration option <span class="property">hibernate.use_nationalized_character_data</span>
+            to true and having all string or clob based attributes having this national character support automatically.
+            There is nothing else to be changed, and you don't have to use any hibernate specific mapping, so it is portable
+            ( though the national character support feature is not required and may not work on other JPA provider impl ).
+        </p>
+
+        <p>
+            The other way of using this feature is having the <code class="classname">@Nationalized</code> annotation on the attribute
+            that should be nationalized. This only works on string based attributes, including string, char, char array and clob.
+
+            </p><pre xmlns="" xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="">
+                @Entity( name="NationalizedEntity")
+                public static class NationalizedEntity {
+                    @Id
+                    private Integer id;
+
+                    @Nationalized
+                    private String nvarcharAtt;
+
+                    @Lob
+                    @Nationalized
+                    private String materializedNclobAtt;
+
+                    @Lob
+                    @Nationalized
+                    private NClob nclobAtt;
+
+                    @Nationalized
+                    private Character ncharacterAtt;
+
+                    @Nationalized
+                    private Character[] ncharArrAtt;
+
+                    @Type(type = "ntext")
+                    private String nlongvarcharcharAtt;
+                }</pre><p>
+        </p>
+
+        <div class="table"><a id="d5e2500"/><p class="title"><strong>Table 8.2. National Character Type Mappings</strong></p><div class="table-contents">
+            
+            <table summary="National Character Type Mappings" border="1"><colgroup><col/><col/><col/><col/></colgroup><thead><tr><th>Hibernate type</th><th>Database type</th><th>JDBC type</th><th>Type registry</th></tr></thead><tbody><tr><td>org.hibernate.type.StringNVarcharType</td><td>string</td><td>NVARCHAR</td><td>nstring</td></tr><tr><td>org.hibernate.type.NTextType</td><td>string</td><td>LONGNVARCHAR</td><td>materialized_clob</td></tr><tr><td>org.hibernate.type.NClobType</td><td>java.sql.NClob</td><td>NCLOB</td><td>nclob</td></tr><tr><td>org.hibernate.type.MaterializedNClobType</td><td>string</td><td>NCLOB</td><td>materialized_nclob</td></tr><tr><td>org.hibernate.type.PrimitiveCharacterArrayNClobType</td><td>char[]</td><td>NCHAR</td><td>char[]</td></tr><tr><td>org.hibernate.type.CharacterNCharType</td><td>java.lang.Character</td><td>NCHAR</td><td>ncharacter</td></tr><tr><td>org.hibernate.type.CharacterArrayNClobType</td><td>java.lang.Character[]</td><td>NCLOB</td><td>Character[], java.lang.Character[]</td></tr></tbody></table>
+        </div></div><br class="table-break"/>
+    </div>
+    <div class="section" title="8.1.3. Composite types"><div class="titlepage"><div><div><h3 class="title"><a id="value-composite-types"/>8.1.3. Composite types</h3></div></div></div>
+      
+      <p>
+        <em class="firstterm">Composite types</em>, or <em class="firstterm">embedded types</em>, as they are called by the Java
+        Persistence API, have traditionally been called <em class="firstterm">components</em> in Hibernate. All of these
+        terms mean the same thing.
+      </p>
+      <p>
+        Components represent aggregations of values into a single Java type. An example is an
+        <code class="classname">Address</code> class, which aggregates street, city, state, and postal code.  A composite type
+        behaves in a similar way to an entity. They are each classes written specifically for an application. They may
+        both include references to other application-specific classes, as well as to collections and simple JDK
+        types. The only distinguishing factors are that a component does not have its own lifecycle or define an
+        identifier.
+      </p>
+      
+    </div>
+    
+    <div class="section" title="8.1.4. Collection types"><div class="titlepage"><div><div><h3 class="title"><a id="value-collection-types"/>8.1.4. Collection types</h3></div></div></div>
+      
+      <p>
+        A <em class="firstterm">collection</em> type refers to the data type itself, not its contents.
+      </p>
+      <p>
+        A Collection denotes a one-to-one or one-to-many relationship between tables of a database.
+      </p>
+      <p>
+        Refer to the chapter on Collections for more information on collections.
+      </p>
+    </div>
+  </div>
+  <div class="section" title="8.2. Entity Types"><div class="titlepage"><div><div><h2 class="title"><a id="entity-types"/>8.2. Entity Types</h2></div></div></div>
+    
+    <p>
+      Entities are application-specific classes which correlate to rows in a table, using a unique identifier. Because
+      of the requirement for a unique identifier, ntities exist independently and define their own lifecycle. As an
+      example, deleting a Membership should not delete the User or the Group. For more information, see the chapter on
+      Persistent Classes.
+    </p>
+  </div>
+  
+  <div class="section" title="8.3. Implications of different data categorizations"><div class="titlepage"><div><div><h2 class="title"><a id="d5e2562"/>8.3. Implications of different data categorizations</h2></div></div></div>
+    
+    <p>
+      NEEDS TO BE WRITTEN
+    </p>
+    
+  </div>
+
+</div><hr xmlns="" xmlns:d="http://docbook.org/ns/docbook"/><a xmlns="" xmlns:d="http://docbook.org/ns/docbook" href="legalnotice.html"/><ul xmlns:d="http://docbook.org/ns/docbook" class="docnav"><li class="previous"><a accesskey="p" href="ch07.html"><strong>Prev</strong>Chapter 7. Services</a></li><li class="up"><a accesskey="u" href="#"><strong>Up</strong></a></li><li class="home"><a accesskey="h" href="index.html"><strong>Home</strong></a></li><li class="next"><a accesskey="n" href="ch09.html"><strong>Next</strong>Chapter 9. Mapping entities</a></li></ul></body></html>

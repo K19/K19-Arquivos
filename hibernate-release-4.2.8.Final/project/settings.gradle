@@ -1,0 +1,23 @@
+include 'hibernate-core'
+include 'hibernate-testing'
+include 'hibernate-entitymanager'
+include 'hibernate-envers'
+
+include 'hibernate-osgi'
+
+include 'hibernate-c3p0'
+include 'hibernate-proxool'
+
+include 'hibernate-ehcache'
+include 'hibernate-infinispan'
+include 'hibernate-gradle-plugin'
+include 'enhance-maven-plugin'
+include 'documentation'
+include 'release'
+
+
+rootProject.children.each { project ->
+    project.buildFileName = "${project.name}.gradle"
+    assert project.projectDir.isDirectory()
+    assert project.buildFile.isFile()
+}

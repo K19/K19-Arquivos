@@ -1,0 +1,844 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml"><head><title>Chapter 6. Types</title><link rel="stylesheet" type="text/css" href="css/hibernate.css"/><meta name="generator" content="DocBook XSL Stylesheets V1.76.1"/><link rel="home" href="index.html" title="HIBERNATE - Relational Persistence for Idiomatic Java"/><link rel="up" href="index.html" title="HIBERNATE - Relational Persistence for Idiomatic Java"/><link rel="prev" href="ch05.html" title="Chapter 5. Basic O/R Mapping"/><link rel="next" href="ch07.html" title="Chapter 7. Collection mapping"/><link rel="copyright" href="ln-d5e19.html" title="Legal Notice"/><meta xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" http-equiv="Content-Type" content="text/html; charset=UTF-8"/></head><body><p xmlns:d="http://docbook.org/ns/docbook" id="title"><a href="http://www.hibernate.org" class="site_href"><strong>Hibernate.org</strong></a><a href="http://hibernate.org/Documentation/DocumentationOverview" class="doc_href"><strong>Community Documentation</strong></a></p><ul xmlns:d="http://docbook.org/ns/docbook" class="docnav"><li class="previous"><a accesskey="p" href="ch05.html"><strong>Prev</strong></a></li><li class="next"><a accesskey="n" href="ch07.html"><strong>Next</strong></a></li></ul><div class="chapter" title="Chapter 6. Types"><div class="titlepage"><div><div><h2 class="title"><a id="types"/>Chapter 6. Types</h2></div></div></div><div class="toc"><p><strong>Table of Contents</strong></p><dl><dt><span class="section"><a href="ch06.html#types-value">6.1. Value types</a></span></dt><dd><dl><dt><span class="section"><a href="ch06.html#types-value-basic">6.1.1. Basic value types</a></span></dt><dt><span class="section"><a href="ch06.html#types-value-composite">6.1.2. Composite types</a></span></dt><dt><span class="section"><a href="ch06.html#types-value-collection">6.1.3. Collection types</a></span></dt></dl></dd><dt><span class="section"><a href="ch06.html#types-entity">6.2. Entity types</a></span></dt><dt><span class="section"><a href="ch06.html#types-category-significance">6.3. Significance of type categories</a></span></dt><dt><span class="section"><a href="ch06.html#types-custom">6.4. Custom types</a></span></dt><dd><dl><dt><span class="section"><a href="ch06.html#types-custom-type">6.4.1. Custom types using <code class="interfacename">org.hibernate.type.Type</code></a></span></dt><dt><span class="section"><a href="ch06.html#types-custom-ut">6.4.2. Custom types using <code class="interfacename">org.hibernate.usertype.UserType</code></a></span></dt><dt><span class="section"><a href="ch06.html#types-custom-cut">6.4.3. Custom types using <code class="interfacename">org.hibernate.usertype.CompositeUserType</code></a></span></dt></dl></dd><dt><span class="section"><a href="ch06.html#types-registry">6.5. Type registry</a></span></dt></dl></div>
+    
+
+    <p>
+        As an Object/Relational Mapping solution, Hibernate deals with both the Java and JDBC representations of
+        application data.  An online catalog application, for example, most likely has <code class="classname">Product</code>
+        object with a number of attributes such as a <code class="literal">sku</code>, <code class="literal">name</code>, etc.  For these
+        individual attributes, Hibernate must be able to read the values out of the database and write them back.  This
+        'marshalling' is the function of a <span class="emphasis"><em>Hibernate type</em></span>, which is an implementation of the
+        <code class="interfacename">org.hibernate.type.Type</code> interface.  In addition, a
+        <span class="emphasis"><em>Hibernate type</em></span> describes various aspects of behavior of the Java type such as "how is
+        equality checked?" or "how are values cloned?".
+    </p>
+
+    <div xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="important" style="margin-left: 0.5in; margin-right: 0.5in;"><h2>Important</h2>
+        <p>
+            A Hibernate type is neither a Java type nor a SQL datatype; it provides a information about both.
+        </p>
+        <p>
+            When you encounter the term <span class="emphasis"><em>type</em></span> in regards to Hibernate be aware that usage might
+            refer to the Java type, the SQL/JDBC type or the Hibernate type.
+        </p>
+    </div>
+
+    <p>
+        Hibernate categorizes types into two high-level groups: value types (see <a class="xref" href="ch06.html#types-value" title="6.1. Value types">Section 6.1, “Value types”</a>) and
+        entity types (see <a class="xref" href="ch06.html#types-entity" title="6.2. Entity types">Section 6.2, “Entity types”</a>).
+    </p>
+
+    <div class="section" title="6.1. Value types"><div class="titlepage"><div><div><h2 class="title"><a id="types-value"/>6.1. Value types</h2></div></div></div>
+        
+
+        <p>
+            The main distinguishing characteristic of a value type is the fact that they do not define their own
+            lifecycle.  We say that they are "owned" by something else (specifically an entity, as we will see later)
+            which defines their lifecycle.  Value types are further classified into 3 sub-categories: basic types (see
+            <a class="xref" href="ch06.html#types-value-basic" title="6.1.1. Basic value types">Section 6.1.1, “Basic value types”</a>), composite types (see <a class="xref" href="ch06.html#types-value-composite" title="6.1.2. Composite types">Section 6.1.2, “Composite types”</a>)
+            amd collection types (see <a class="xref" href="ch06.html#types-value-collection" title="6.1.3. Collection types">Section 6.1.3, “Collection types”</a>).
+        </p>
+
+        <div class="section" title="6.1.1. Basic value types"><div class="titlepage"><div><div><h3 class="title"><a id="types-value-basic"/>6.1.1. Basic value types</h3></div></div></div>
+            
+            <p>
+                The norm for basic value types is that they map a single database value (column) to a single, 
+                non-aggregated Java type.  Hibernate provides a number of built-in basic types, which we will present
+                in the following sections by the Java type.  Mainly these follow the natural mappings recommended in the
+                JDBC specification.  We will later cover how to override these mapping and how to provide and use
+                alternative type mappings.
+            </p>
+            <div class="section" title="6.1.1.1. java.lang.String"><div class="titlepage"><div><div><h4 class="title"><a id="types-value-basic-string"/>6.1.1.1. java.lang.String</h4></div></div></div>
+                
+                <div class="variablelist"><dl><dt><span class="term"><code class="classname">org.hibernate.type.StringType</code></span></dt><dd>
+                            <p>
+                                Maps a string to the JDBC VARCHAR type.  This is the standard mapping for a string if 
+                                no Hibernate type is specified.
+                            </p>
+                            <p>
+                                Registered under <code class="literal">string</code> and <code class="literal">java.lang.String</code>
+                                in the type registry (see <a class="xref" href="ch06.html#types-registry" title="6.5. Type registry">Section 6.5, “Type registry”</a>).
+                            </p>
+                        </dd><dt><span class="term"><code class="classname">org.hibernate.type.MaterializedClob</code></span></dt><dd>
+                            <p>
+                                Maps a string to a JDBC CLOB type
+                            </p>
+                            <p>
+                                Registered under <code class="literal">materialized_clob</code> in the type registry (see
+                                <a class="xref" href="ch06.html#types-registry" title="6.5. Type registry">Section 6.5, “Type registry”</a>).
+                            </p>
+                        </dd><dt><span class="term"><code class="classname">org.hibernate.type.TextType</code></span></dt><dd>
+                            <p>
+                                Maps a string to a JDBC LONGVARCHAR type
+                            </p>
+                            <p>
+                                Registered under <code class="literal">text</code> in the type registry (see
+                                <a class="xref" href="ch06.html#types-registry" title="6.5. Type registry">Section 6.5, “Type registry”</a>).
+                            </p>
+                        </dd></dl></div>
+            </div>
+            <div class="section" title="6.1.1.2. java.lang.Character (or char primitive)"><div class="titlepage"><div><div><h4 class="title"><a id="types-basic-value-character"/>6.1.1.2. <code class="classname">java.lang.Character</code> (or char primitive)</h4></div></div></div>
+                
+                <div class="variablelist"><dl><dt><span class="term"><code class="classname">org.hibernate.type.CharacterType</code></span></dt><dd>
+                            <p>
+                                Maps a char or <code class="classname">java.lang.Character</code> to a JDBC CHAR
+                            </p>
+                            <p>
+                                Registered under <code class="literal">char</code> and <code class="literal">java.lang.Character</code> in the
+                                type registry (see <a class="xref" href="ch06.html#types-registry" title="6.5. Type registry">Section 6.5, “Type registry”</a>).
+                            </p>
+                        </dd></dl></div>
+            </div>
+            <div class="section" title="6.1.1.3. java.lang.Boolean (or boolean primitive)"><div class="titlepage"><div><div><h4 class="title"><a id="types-value-basic-boolean"/>6.1.1.3. <code class="classname">java.lang.Boolean</code> (or boolean primitive)</h4></div></div></div>
+                
+                <div class="variablelist"><dl><dt><span class="term"><code class="classname">org.hibernate.type.BooleanType</code></span></dt><dd>
+                            <p>
+                                Maps a boolean to a JDBC BIT type
+                            </p>
+                            <p>
+                                Registered under <code class="literal">boolean</code> and <code class="literal">java.lang.Boolean</code> in
+                                the type registry (see <a class="xref" href="ch06.html#types-registry" title="6.5. Type registry">Section 6.5, “Type registry”</a>).
+                            </p>
+                        </dd><dt><span class="term"><code class="classname">org.hibernate.type.NumericBooleanType</code></span></dt><dd>
+                            <p>
+                                Maps a boolean to a JDBC INTEGER type as 0 = false, 1 = true
+                            </p>
+                            <p>
+                                Registered under <code class="literal">numeric_boolean</code> in the type registry (see
+                                <a class="xref" href="ch06.html#types-registry" title="6.5. Type registry">Section 6.5, “Type registry”</a>).
+                            </p>
+                        </dd><dt><span class="term"><code class="classname">org.hibernate.type.YesNoType</code></span></dt><dd>
+                            <p>
+                                Maps a boolean to a JDBC CHAR type as ('N' | 'n') = false, ( 'Y' | 'y' ) = true
+                            </p>
+                            <p>
+                                Registered under <code class="literal">yes_no</code> in the type registry (see
+                                <a class="xref" href="ch06.html#types-registry" title="6.5. Type registry">Section 6.5, “Type registry”</a>).
+                            </p>
+                        </dd><dt><span class="term"><code class="classname">org.hibernate.type.TrueFalseType</code></span></dt><dd>
+                            <p>
+                                Maps a boolean to a JDBC CHAR type as ('F' | 'f') = false, ( 'T' | 't' ) = true
+                            </p>
+                            <p>
+                                Registered under <code class="literal">true_false</code> in the type registry (see
+                                <a class="xref" href="ch06.html#types-registry" title="6.5. Type registry">Section 6.5, “Type registry”</a>).
+                            </p>
+                        </dd></dl></div>
+            </div>
+            <div class="section" title="6.1.1.4. java.lang.Byte (or byte primitive)"><div class="titlepage"><div><div><h4 class="title"><a id="types-basic-value-byte"/>6.1.1.4. <code class="classname">java.lang.Byte</code> (or byte primitive)</h4></div></div></div>
+                
+                <div class="variablelist"><dl><dt><span class="term"><code class="classname">org.hibernate.type.ByteType</code></span></dt><dd>
+                            <p>
+                                Maps a byte or <code class="classname">java.lang.Byte</code> to a JDBC TINYINT
+                            </p>
+                            <p>
+                                Registered under <code class="literal">byte</code> and <code class="literal">java.lang.Byte</code> in the
+                                type registry (see <a class="xref" href="ch06.html#types-registry" title="6.5. Type registry">Section 6.5, “Type registry”</a>).
+                            </p>
+                        </dd></dl></div>
+            </div>
+            <div class="section" title="6.1.1.5. java.lang.Short (or short primitive)"><div class="titlepage"><div><div><h4 class="title"><a id="types-basic-value-short"/>6.1.1.5. <code class="classname">java.lang.Short</code> (or short primitive)</h4></div></div></div>
+                
+                <div class="variablelist"><dl><dt><span class="term"><code class="classname">org.hibernate.type.ShortType</code></span></dt><dd>
+                            <p>
+                                Maps a short or <code class="classname">java.lang.Short</code> to a JDBC SMALLINT
+                            </p>
+                            <p>
+                                Registered under <code class="literal">short</code> and <code class="literal">java.lang.Short</code> in the
+                                type registry (see <a class="xref" href="ch06.html#types-registry" title="6.5. Type registry">Section 6.5, “Type registry”</a>).
+                            </p>
+                        </dd></dl></div>
+            </div>
+            <div class="section" title="6.1.1.6. java.lang.Integer (or int primitive)"><div class="titlepage"><div><div><h4 class="title"><a id="types-basic-value-int"/>6.1.1.6. <code class="classname">java.lang.Integer</code> (or int primitive)</h4></div></div></div>
+                
+                <div class="variablelist"><dl><dt><span class="term"><code class="classname">org.hibernate.type.IntegerTypes</code></span></dt><dd>
+                            <p>
+                                Maps an int or <code class="classname">java.lang.Integer</code> to a JDBC INTEGER
+                            </p>
+                            <p>
+                                Registered under <code class="literal">int</code> and <code class="literal">java.lang.Integer</code>in the
+                                type registry (see <a class="xref" href="ch06.html#types-registry" title="6.5. Type registry">Section 6.5, “Type registry”</a>).
+                            </p>
+                        </dd></dl></div>
+            </div>
+            <div class="section" title="6.1.1.7. java.lang.Long (or long primitive)"><div class="titlepage"><div><div><h4 class="title"><a id="types-basic-value-long"/>6.1.1.7. <code class="classname">java.lang.Long</code> (or long primitive)</h4></div></div></div>
+                
+                <div class="variablelist"><dl><dt><span class="term"><code class="classname">org.hibernate.type.LongType</code></span></dt><dd>
+                            <p>
+                                Maps a long or <code class="classname">java.lang.Long</code> to a JDBC BIGINT
+                            </p>
+                            <p>
+                                Registered under <code class="literal">long</code> and <code class="literal">java.lang.Long</code> in the
+                                type registry (see <a class="xref" href="ch06.html#types-registry" title="6.5. Type registry">Section 6.5, “Type registry”</a>).
+                            </p>
+                        </dd></dl></div>
+            </div>
+            <div class="section" title="6.1.1.8. java.lang.Float (or float primitive)"><div class="titlepage"><div><div><h4 class="title"><a id="types-basic-value-float"/>6.1.1.8. <code class="classname">java.lang.Float</code> (or float primitive)</h4></div></div></div>
+                
+                <div class="variablelist"><dl><dt><span class="term"><code class="classname">org.hibernate.type.FloatType</code></span></dt><dd>
+                            <p>
+                                Maps a float or <code class="classname">java.lang.Float</code> to a JDBC FLOAT
+                            </p>
+                            <p>
+                                Registered under <code class="literal">float</code> and <code class="literal">java.lang.Float</code> in the
+                                type registry (see <a class="xref" href="ch06.html#types-registry" title="6.5. Type registry">Section 6.5, “Type registry”</a>).
+                            </p>
+                        </dd></dl></div>
+            </div>
+            <div class="section" title="6.1.1.9. java.lang.Double (or double primitive)"><div class="titlepage"><div><div><h4 class="title"><a id="types-basic-value-double"/>6.1.1.9. <code class="classname">java.lang.Double</code> (or double primitive)</h4></div></div></div>
+                
+                <div class="variablelist"><dl><dt><span class="term"><code class="classname">org.hibernate.type.DoubleType</code></span></dt><dd>
+                            <p>
+                                Maps a double or <code class="classname">java.lang.Double</code> to a JDBC DOUBLE
+                            </p>
+                            <p>
+                                Registered under <code class="literal">double</code> and <code class="literal">java.lang.Double</code> in the
+                                type registry (see <a class="xref" href="ch06.html#types-registry" title="6.5. Type registry">Section 6.5, “Type registry”</a>).
+                            </p>
+                        </dd></dl></div>
+            </div>
+            <div class="section" title="6.1.1.10. java.math.BigInteger"><div class="titlepage"><div><div><h4 class="title"><a id="types-basic-value-biginteger"/>6.1.1.10. <code class="classname">java.math.BigInteger</code></h4></div></div></div>
+                
+                <div class="variablelist"><dl><dt><span class="term"><code class="classname">org.hibernate.type.BigIntegerType</code></span></dt><dd>
+                            <p>
+                                Maps a <code class="classname">java.math.BigInteger</code> to a JDBC NUMERIC
+                            </p>
+                            <p>
+                                Registered under <code class="literal">big_integer</code> and <code class="literal">java.math.BigInteger</code> in the
+                                type registry (see <a class="xref" href="ch06.html#types-registry" title="6.5. Type registry">Section 6.5, “Type registry”</a>).
+                            </p>
+                        </dd></dl></div>
+            </div>
+            <div class="section" title="6.1.1.11. java.math.BigDecimal"><div class="titlepage"><div><div><h4 class="title"><a id="types-basic-value-bigdecimal"/>6.1.1.11. <code class="classname">java.math.BigDecimal</code></h4></div></div></div>
+                
+                <div class="variablelist"><dl><dt><span class="term"><code class="classname">org.hibernate.type.BigDecimalType</code></span></dt><dd>
+                            <p>
+                                Maps a <code class="classname">java.math.BigDecimal</code> to a JDBC NUMERIC
+                            </p>
+                            <p>
+                                Registered under <code class="literal">big_decimal</code> and <code class="literal">java.math.BigDecimal</code> in the
+                                type registry (see <a class="xref" href="ch06.html#types-registry" title="6.5. Type registry">Section 6.5, “Type registry”</a>).
+                            </p>
+                        </dd></dl></div>
+            </div>
+            <div class="section" title="6.1.1.12. java.util.Date or java.sql.Timestamp"><div class="titlepage"><div><div><h4 class="title"><a id="types-basic-value-timestamp"/>6.1.1.12. <code class="classname">java.util.Date</code> or <code class="classname">java.sql.Timestamp</code></h4></div></div></div>
+                
+                <div class="variablelist"><dl><dt><span class="term"><code class="classname">org.hibernate.type.TimestampType</code></span></dt><dd>
+                            <p>
+                                Maps a <code class="classname">java.sql.Timestamp</code> to a JDBC TIMESTAMP
+                            </p>
+                            <p>
+                                Registered under <code class="literal">timestamp</code>, <code class="literal">java.sql.Timestamp</code> and
+                                <code class="literal">java.util.Date</code> in the type registry (see <a class="xref" href="ch06.html#types-registry" title="6.5. Type registry">Section 6.5, “Type registry”</a>).
+                            </p>
+                        </dd></dl></div>
+            </div>
+            <div class="section" title="6.1.1.13. java.sql.Time"><div class="titlepage"><div><div><h4 class="title"><a id="types-basic-value-time"/>6.1.1.13. <code class="classname">java.sql.Time</code></h4></div></div></div>
+                
+                <div class="variablelist"><dl><dt><span class="term"><code class="classname">org.hibernate.type.TimeType</code></span></dt><dd>
+                            <p>
+                                Maps a <code class="classname">java.sql.Time</code> to a JDBC TIME
+                            </p>
+                            <p>
+                                Registered under <code class="literal">time</code> and <code class="literal">java.sql.Time</code> in the
+                                type registry (see <a class="xref" href="ch06.html#types-registry" title="6.5. Type registry">Section 6.5, “Type registry”</a>).
+                            </p>
+                        </dd></dl></div>
+            </div>
+            <div class="section" title="6.1.1.14. java.sql.Date"><div class="titlepage"><div><div><h4 class="title"><a id="types-basic-value-date"/>6.1.1.14. <code class="classname">java.sql.Date</code></h4></div></div></div>
+                
+                <div class="variablelist"><dl><dt><span class="term"><code class="classname">org.hibernate.type.DateType</code></span></dt><dd>
+                            <p>
+                                Maps a <code class="classname">java.sql.Date</code> to a JDBC DATE
+                            </p>
+                            <p>
+                                Registered under <code class="literal">date</code> and <code class="literal">java.sql.Date</code> in the
+                                type registry (see <a class="xref" href="ch06.html#types-registry" title="6.5. Type registry">Section 6.5, “Type registry”</a>).
+                            </p>
+                        </dd></dl></div>
+            </div>
+            <div class="section" title="6.1.1.15. java.util.Calendar"><div class="titlepage"><div><div><h4 class="title"><a id="types-basic-value-calendar"/>6.1.1.15. <code class="classname">java.util.Calendar</code></h4></div></div></div>
+                
+                <div class="variablelist"><dl><dt><span class="term"><code class="classname">org.hibernate.type.CalendarType</code></span></dt><dd>
+                            <p>
+                                Maps a <code class="classname">java.util.Calendar</code> to a JDBC TIMESTAMP
+                            </p>
+                            <p>
+                                Registered under <code class="literal">calendar</code>, <code class="literal">java.util.Calendar</code> and
+                                <code class="literal">java.util.GregorianCalendar</code> in the type registry (see
+                                <a class="xref" href="ch06.html#types-registry" title="6.5. Type registry">Section 6.5, “Type registry”</a>).
+                            </p>
+                        </dd><dt><span class="term"><code class="classname">org.hibernate.type.CalendarDateType</code></span></dt><dd>
+                            <p>
+                                Maps a <code class="classname">java.util.Calendar</code> to a JDBC DATE
+                            </p>
+                            <p>
+                                Registered under <code class="literal">calendar_date</code> in the type registry (see
+                                <a class="xref" href="ch06.html#types-registry" title="6.5. Type registry">Section 6.5, “Type registry”</a>).
+                            </p>
+                        </dd></dl></div>
+            </div>
+            <div class="section" title="6.1.1.16. java.util.Currency"><div class="titlepage"><div><div><h4 class="title"><a id="types-basic-value-currency"/>6.1.1.16. <code class="classname">java.util.Currency</code></h4></div></div></div>
+                
+                <div class="variablelist"><dl><dt><span class="term"><code class="classname">org.hibernate.type.CurrencyType</code></span></dt><dd>
+                            <p>
+                                Maps a <code class="classname">java.util.Currency</code> to a JDBC VARCHAR (using the Currency code)
+                            </p>
+                            <p>
+                                Registered under <code class="literal">currency</code> and <code class="literal">java.util.Currency</code> in the
+                                type registry (see <a class="xref" href="ch06.html#types-registry" title="6.5. Type registry">Section 6.5, “Type registry”</a>).
+                            </p>
+                        </dd></dl></div>
+            </div>
+            <div class="section" title="6.1.1.17. java.util.Locale"><div class="titlepage"><div><div><h4 class="title"><a id="types-basic-value-locale"/>6.1.1.17. <code class="classname">java.util.Locale</code></h4></div></div></div>
+                
+                <div class="variablelist"><dl><dt><span class="term"><code class="classname">org.hibernate.type.LocaleType</code></span></dt><dd>
+                            <p>
+                                Maps a <code class="classname">java.util.Locale</code> to a JDBC VARCHAR (using the Locale code)
+                            </p>
+                            <p>
+                                Registered under <code class="literal">locale</code> and <code class="literal">java.util.Locale</code> in the
+                                type registry (see <a class="xref" href="ch06.html#types-registry" title="6.5. Type registry">Section 6.5, “Type registry”</a>).
+                            </p>
+                        </dd></dl></div>
+            </div>
+            <div class="section" title="6.1.1.18. java.util.TimeZone"><div class="titlepage"><div><div><h4 class="title"><a id="types-basic-value-timezone"/>6.1.1.18. <code class="classname">java.util.TimeZone</code></h4></div></div></div>
+                
+                <div class="variablelist"><dl><dt><span class="term"><code class="classname">org.hibernate.type.TimeZoneType</code></span></dt><dd>
+                            <p>
+                                Maps a <code class="classname">java.util.TimeZone</code> to a JDBC VARCHAR (using the TimeZone ID)
+                            </p>
+                            <p>
+                                Registered under <code class="literal">timezone</code> and <code class="literal">java.util.TimeZone</code> in the
+                                type registry (see <a class="xref" href="ch06.html#types-registry" title="6.5. Type registry">Section 6.5, “Type registry”</a>).
+                            </p>
+                        </dd></dl></div>
+            </div>
+            <div class="section" title="6.1.1.19. java.net.URL"><div class="titlepage"><div><div><h4 class="title"><a id="types-basic-value-url"/>6.1.1.19. <code class="classname">java.net.URL</code></h4></div></div></div>
+                
+                <div class="variablelist"><dl><dt><span class="term"><code class="classname">org.hibernate.type.UrlType</code></span></dt><dd>
+                            <p>
+                                Maps a <code class="classname">java.net.URL</code> to a JDBC VARCHAR (using the external form)
+                            </p>
+                            <p>
+                                Registered under <code class="literal">url</code> and <code class="literal">java.net.URL</code> in the
+                                type registry (see <a class="xref" href="ch06.html#types-registry" title="6.5. Type registry">Section 6.5, “Type registry”</a>).
+                            </p>
+                        </dd></dl></div>
+            </div>
+            <div class="section" title="6.1.1.20. java.lang.Class"><div class="titlepage"><div><div><h4 class="title"><a id="types-basic-value-class"/>6.1.1.20. <code class="classname">java.lang.Class</code></h4></div></div></div>
+                
+                <div class="variablelist"><dl><dt><span class="term"><code class="classname">org.hibernate.type.ClassType</code></span></dt><dd>
+                            <p>
+                                Maps a <code class="classname">java.lang.Class</code> to a JDBC VARCHAR (using the Class name)
+                            </p>
+                            <p>
+                                Registered under <code class="literal">class</code> and <code class="literal">java.lang.Class</code> in the
+                                type registry (see <a class="xref" href="ch06.html#types-registry" title="6.5. Type registry">Section 6.5, “Type registry”</a>).
+                            </p>
+                        </dd></dl></div>
+            </div>
+            <div class="section" title="6.1.1.21. java.sql.Blob"><div class="titlepage"><div><div><h4 class="title"><a id="types-basic-value-blob"/>6.1.1.21. <code class="classname">java.sql.Blob</code></h4></div></div></div>
+                
+                <div class="variablelist"><dl><dt><span class="term"><code class="classname">org.hibernate.type.BlobType</code></span></dt><dd>
+                            <p>
+                                Maps a <code class="classname">java.sql.Blob</code> to a JDBC BLOB
+                            </p>
+                            <p>
+                                Registered under <code class="literal">blob</code> and <code class="literal">java.sql.Blob</code> in the
+                                type registry (see <a class="xref" href="ch06.html#types-registry" title="6.5. Type registry">Section 6.5, “Type registry”</a>).
+                            </p>
+                        </dd></dl></div>
+            </div>
+            <div class="section" title="6.1.1.22. java.sql.Clob"><div class="titlepage"><div><div><h4 class="title"><a id="types-basic-value-clob"/>6.1.1.22. <code class="classname">java.sql.Clob</code></h4></div></div></div>
+                
+                <div class="variablelist"><dl><dt><span class="term"><code class="classname">org.hibernate.type.ClobType</code></span></dt><dd>
+                            <p>
+                                Maps a <code class="classname">java.sql.Clob</code> to a JDBC CLOB
+                            </p>
+                            <p>
+                                Registered under <code class="literal">clob</code> and <code class="literal">java.sql.Clob</code> in the
+                                type registry (see <a class="xref" href="ch06.html#types-registry" title="6.5. Type registry">Section 6.5, “Type registry”</a>).
+                            </p>
+                        </dd></dl></div>
+            </div>
+            <div class="section" title="6.1.1.23. byte[]"><div class="titlepage"><div><div><h4 class="title"><a id="types-basic-value-binary"/>6.1.1.23. byte[]</h4></div></div></div>
+                
+                <div class="variablelist"><dl><dt><span class="term"><code class="classname">org.hibernate.type.BinaryType</code></span></dt><dd>
+                            <p>
+                                Maps a primitive byte[] to a JDBC VARBINARY
+                            </p>
+                            <p>
+                                Registered under <code class="literal">binary</code> and <code class="literal">byte[]</code> in the
+                                type registry (see <a class="xref" href="ch06.html#types-registry" title="6.5. Type registry">Section 6.5, “Type registry”</a>).
+                            </p>
+                        </dd><dt><span class="term"><code class="classname">org.hibernate.type.MaterializedBlobType</code></span></dt><dd>
+                            <p>
+                                Maps a primitive byte[] to a JDBC BLOB
+                            </p>
+                            <p>
+                                Registered under <code class="literal">materialized_blob</code> in the type registry (see
+                                <a class="xref" href="ch06.html#types-registry" title="6.5. Type registry">Section 6.5, “Type registry”</a>).
+                            </p>
+                        </dd><dt><span class="term"><code class="classname">org.hibernate.type.ImageType</code></span></dt><dd>
+                            <p>
+                                Maps a primitive byte[] to a JDBC LONGVARBINARY
+                            </p>
+                            <p>
+                                Registered under <code class="literal">image</code> in the type registry (see
+                                <a class="xref" href="ch06.html#types-registry" title="6.5. Type registry">Section 6.5, “Type registry”</a>).
+                            </p>
+                        </dd></dl></div>
+            </div>
+            <div class="section" title="6.1.1.24. Byte[]"><div class="titlepage"><div><div><h4 class="title"><a id="types-basic-value-wrapperbinary"/>6.1.1.24. Byte[]</h4></div></div></div>
+                
+                <div class="variablelist"><dl><dt><span class="term"><code class="classname">org.hibernate.type.BinaryType</code></span></dt><dd>
+                            <p>
+                                Maps a java.lang.Byte[] to a JDBC VARBINARY
+                            </p>
+                            <p>
+                                Registered under <code class="literal">wrapper-binary</code>, <code class="literal">Byte[]</code> and
+                                <code class="literal">java.lang.Byte[]</code> in the type registry (see <a class="xref" href="ch06.html#types-registry" title="6.5. Type registry">Section 6.5, “Type registry”</a>).
+                            </p>
+                        </dd></dl></div>
+            </div>
+            <div class="section" title="6.1.1.25. char[]"><div class="titlepage"><div><div><h4 class="title"><a id="types-basic-value-chararray"/>6.1.1.25. char[]</h4></div></div></div>
+                
+                <div class="variablelist"><dl><dt><span class="term"><code class="classname">org.hibernate.type.CharArrayType</code></span></dt><dd>
+                            <p>
+                                Maps a char[] to a JDBC VARCHAR
+                            </p>
+                            <p>
+                                Registered under <code class="literal">characters</code> and <code class="literal">char[]</code>
+                                in the type registry (see <a class="xref" href="ch06.html#types-registry" title="6.5. Type registry">Section 6.5, “Type registry”</a>).
+                            </p>
+                        </dd></dl></div>
+            </div>
+            <div class="section" title="6.1.1.26. Character[]"><div class="titlepage"><div><div><h4 class="title"><a id="types-basic-value-characterarray"/>6.1.1.26. Character[]</h4></div></div></div>
+                
+                <div class="variablelist"><dl><dt><span class="term"><code class="classname">org.hibernate.type.CharacterArrayType</code></span></dt><dd>
+                            <p>
+                                Maps a java.lang.Character[] to a JDBC VARCHAR
+                            </p>
+                            <p>
+                                Registered under <code class="literal">wrapper-characters</code>, <code class="literal">Character[]</code>
+                                and <code class="literal">java.lang.Character[]</code> in the type registry (see <a class="xref" href="ch06.html#types-registry" title="6.5. Type registry">Section 6.5, “Type registry”</a>).
+                            </p>
+                        </dd></dl></div>
+            </div>
+            <div class="section" title="6.1.1.27. java.util.UUID"><div class="titlepage"><div><div><h4 class="title"><a id="types-basic-value-uuid"/>6.1.1.27. <code class="classname">java.util.UUID</code></h4></div></div></div>
+                
+                <div class="variablelist"><dl><dt><span class="term"><code class="classname">org.hibernate.type.UUIDBinaryType</code></span></dt><dd>
+                            <p>
+                                Maps a java.util.UUID to a JDBC BINARY
+                            </p>
+                            <p>
+                                Registered under <code class="literal">uuid-binary</code> and <code class="literal">java.util.UUID</code>
+                                in the type registry (see <a class="xref" href="ch06.html#types-registry" title="6.5. Type registry">Section 6.5, “Type registry”</a>).
+                            </p>
+                        </dd><dt><span class="term"><code class="classname">org.hibernate.type.UUIDCharType</code></span></dt><dd>
+                            <p>
+                                Maps a java.util.UUID to a JDBC CHAR (though VARCHAR is fine too for existing schemas)
+                            </p>
+                            <p>
+                                Registered under <code class="literal">uuid-char</code> in the type registry (see
+                                <a class="xref" href="ch06.html#types-registry" title="6.5. Type registry">Section 6.5, “Type registry”</a>).
+                            </p>
+                        </dd><dt><span class="term"><code class="classname">org.hibernate.type.PostgresUUIDType</code></span></dt><dd>
+                            <p>
+                                Maps a java.util.UUID to the PostgreSQL UUID data type (through
+                                <code class="literal">Types#OTHER</code> which is how the PostgreSQL JDBC driver defines it).
+                            </p>
+                            <p>
+                                Registered under <code class="literal">pg-uuid</code> in the type registry (see
+                                <a class="xref" href="ch06.html#types-registry" title="6.5. Type registry">Section 6.5, “Type registry”</a>).
+                            </p>
+                        </dd></dl></div>
+            </div>
+            <div class="section" title="6.1.1.28. java.io.Serializable"><div class="titlepage"><div><div><h4 class="title"><a id="types-basic-value-serializable"/>6.1.1.28. <code class="interfacename">java.io.Serializable</code></h4></div></div></div>
+                
+                <div class="variablelist"><dl><dt><span class="term"><code class="classname">org.hibernate.type.SerializableType</code></span></dt><dd>
+                            <p>
+                                Maps implementors of java.lang.Serializable to a JDBC VARBINARY
+                            </p>
+                            <p>
+                                Unlike the other value types, there are multiple instances of this type.  It
+                                gets registered once under <code class="interfacename">java.io.Serializable</code>.
+                                Additionally it gets registered under the specific
+                                <code class="interfacename">java.io.Serializable</code> implementation class names.
+                            </p>
+                        </dd></dl></div>
+            </div>
+        </div>
+
+        <div class="section" title="6.1.2. Composite types"><div class="titlepage"><div><div><h3 class="title"><a id="types-value-composite"/>6.1.2. Composite types</h3></div></div></div>
+            
+            <div xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="note" style="margin-left: 0.5in; margin-right: 0.5in;"><h2>Note</h2>
+                <p>
+                    The Java Persistence API calls these embedded types, while Hibernate traditionally called them
+                    components.  Just be aware that both terms are used and mean the same thing in the scope of
+                    discussing Hibernate.
+                </p>
+            </div>
+            <p>
+                Components represent aggregations of values into a single Java type.  For example, you might have
+                an Address class that aggregates street, city, state, etc information or a Name class that
+                aggregates the parts of a person's Name.  In many ways a component looks exactly like an entity.  They
+                are both (generally speaking) classes written specifically for the application.  They both might have
+                references to other application-specific classes, as well as to collections and simple JDK types.  As
+                discussed before, the only distinguishing factory is the fact that a component does not own its own
+                lifecycle nor does it define an identifier.
+            </p>
+        </div>
+
+        <div class="section" title="6.1.3. Collection types"><div class="titlepage"><div><div><h3 class="title"><a id="types-value-collection"/>6.1.3. Collection types</h3></div></div></div>
+            
+            <div xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="important" style="margin-left: 0.5in; margin-right: 0.5in;"><h2>Important</h2>
+                <p>
+                    It is critical understand that we mean the collection itself, not its contents.
+                    The contents of the collection can in turn be basic, component or entity types (though not
+                    collections), but the collection itself is owned.
+                </p>
+            </div>
+            <p>
+                Collections are covered in <a class="xref" href="ch07.html" title="Chapter 7. Collection mapping">Chapter 7, <em>Collection mapping</em></a>.
+            </p>
+        </div>
+
+    </div>
+
+    <div class="section" title="6.2. Entity types"><div class="titlepage"><div><div><h2 class="title"><a id="types-entity"/>6.2. Entity types</h2></div></div></div>
+        
+        <p>
+            The definition of entities is covered in detail in <a class="xref" href="ch04.html" title="Chapter 4. Persistent Classes">Chapter 4, <em>Persistent Classes</em></a>.  For the purpose of
+            this discussion, it is enough to say that entities are (generally application-specific) classes which
+            correlate to rows in a table.  Specifically they correlate to the row by means of a unique identifier.
+            Because of this unique identifier, entities exist independently and define their own lifecycle.  As an example,
+            when we delete a <code class="classname">Membership</code>, both the <code class="classname">User</code> and
+            <code class="classname">Group</code> entities remain.
+            </p><div xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="note" style="margin-left: 0.5in; margin-right: 0.5in;"><h2>Note</h2>
+                <p>
+                    This notion of entity independence can be modified by the application developer using the concept of
+                    cascades.  Cascades allow certain operations to continue (or "cascade") across an association from
+                    one entity to another.  Cascades are covered in detail in <a class="xref" href="ch08.html" title="Chapter 8. Association Mappings">Chapter 8, <em>Association Mappings</em></a>.
+                </p>
+            </div><p>
+        </p>
+    </div>
+
+    <div class="section" title="6.3. Significance of type categories"><div class="titlepage"><div><div><h2 class="title"><a id="types-category-significance"/>6.3. Significance of type categories</h2></div></div></div>
+        
+        <p>
+            Why do we spend so much time categorizing the various types of types?  What is the significance of the
+            distinction?
+        </p>
+        <p>
+            The main categorization was between entity types and value types.  To review we said that entities, by
+            nature of their unique identifier, exist independently of other objects whereas values do not.  An
+            application cannot "delete" a Product sku; instead, the sku is removed when the Product itself is
+            deleted (obviously you can <span class="emphasis"><em>update</em></span> the sku of that Product to null to make it
+            "go away", but even there the access is done through the Product).
+        </p>
+        <p>
+            Nor can you define an association <span class="emphasis"><em>to</em></span> that Product sku.  You <span class="emphasis"><em>can</em></span>
+            define an association to Product <span class="emphasis"><em>based on</em></span> its sku, assuming sku is unique, but that
+            is totally different.
+        </p>
+        <p>
+            TBC...
+        </p>
+    </div>
+
+    <div class="section" title="6.4. Custom types"><div class="titlepage"><div><div><h2 class="title"><a id="types-custom"/>6.4. Custom types</h2></div></div></div>
+        
+        <p>
+            Hibernate makes it relatively easy for developers to create their own <span class="emphasis"><em>value</em></span> types.  For
+            example, you might want to persist properties of type <code class="classname">java.lang.BigInteger</code> to
+            <code class="literal">VARCHAR</code> columns.  Custom types are not limited to mapping values to a single table
+            column.  So, for example, you might want to concatenate together <code class="literal">FIRST_NAME</code>,
+            <code class="literal">INITIAL</code> and <code class="literal">SURNAME</code> columns into a <code class="classname">java.lang.String</code>.
+        </p>
+
+        <p>
+            There are 3 approaches to developing a custom Hibernate type.  As a means of illustrating the different
+            approaches, lets consider a use case where we need to compose a <code class="classname">java.math.BigDecimal</code>
+            and <code class="classname">java.util.Currency</code> together into a custom <code class="classname">Money</code> class.
+        </p>
+
+        <div class="section" title="6.4.1. Custom types using org.hibernate.type.Type"><div class="titlepage"><div><div><h3 class="title"><a id="types-custom-type"/>6.4.1. Custom types using <code class="interfacename">org.hibernate.type.Type</code></h3></div></div></div>
+            
+            <p>
+                The first approach is to directly implement the <code class="interfacename">org.hibernate.type.Type</code>
+                interface (or one of its derivatives).  Probably, you will be more interested in the more specific
+                <code class="interfacename">org.hibernate.type.BasicType</code> contract which would allow registration of
+                the type (see <a class="xref" href="ch06.html#types-registry" title="6.5. Type registry">Section 6.5, “Type registry”</a>).  The benefit of this registration is that whenever
+                the metadata for a particular property does not specify the Hibernate type to use, Hibernate will
+                consult the registry for the exposed property type.  In our example, the property type would be
+                <code class="classname">Money</code>, which is the key we would use to register our type in the registry:
+            </p>
+
+            <div class="example"><a id="types-custom-type-ex-definition"/><p class="title"><strong>Example 6.1. Defining and registering the custom Type</strong></p><div class="example-contents">
+                
+                <pre xmlns="" xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="">public class MoneyType implements BasicType {
+    public String[] getRegistrationKeys() {
+        return new String[] { Money.class.getName() };
+    }
+
+	public int[] sqlTypes(Mapping mapping) {
+	    // We will simply use delegation to the standard basic types for BigDecimal and Currency for many of the
+	    // Type methods...
+	    return new int[] {
+	             BigDecimalType.INSTANCE.sqlType(),
+	             CurrencyType.INSTANCE.sqlType(),
+	    };
+	    // we could also have honored any registry overrides via...
+	    //return new int[] {
+	    //         mappings.getTypeResolver().basic( BigDecimal.class.getName() ).sqlTypes( mappings )[0],
+	    //         mappings.getTypeResolver().basic( Currency.class.getName() ).sqlTypes( mappings )[0]
+	    //};
+	}
+
+    public Class getReturnedClass() {
+        return Money.class;
+    }
+
+    public Object nullSafeGet(ResultSet rs, String[] names, SessionImplementor session, Object owner) throws SQLException {
+        assert names.length == 2;
+        BigDecimal amount = BigDecimalType.INSTANCE.get( names[0] ); // already handles null check
+        Currency currency = CurrencyType.INSTANCE.get( names[1] ); // already handles null check
+        return amount == null &amp;&amp; currency == null
+                ? null
+                : new Money( amount, currency );
+    }
+
+    public void nullSafeSet(PreparedStatement st, Object value, int index, boolean[] settable, SessionImplementor session)
+            throws SQLException {
+        if ( value == null ) {
+            BigDecimalType.INSTANCE.set( st, null, index );
+            CurrencyType.INSTANCE.set( st, null, index+1 );
+        }
+        else {
+            final Money money = (Money) value;
+            BigDecimalType.INSTANCE.set( st, money.getAmount(), index );
+            CurrencyType.INSTANCE.set( st, money.getCurrency(), index+1 );
+        }
+    }
+
+    ...
+}
+
+Configuration cfg = new Configuration();
+cfg.registerTypeOverride( new MoneyType() );
+cfg...;
+</pre>
+            </div></div><br class="example-break"/>
+            <div xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="important" style="margin-left: 0.5in; margin-right: 0.5in;"><h2>Important</h2>
+                <p>
+                    It is important that we registered the type <span class="emphasis"><em>before</em></span> adding mappings.
+                </p>
+            </div>
+        </div>
+
+        <div class="section" title="6.4.2. Custom types using org.hibernate.usertype.UserType"><div class="titlepage"><div><div><h3 class="title"><a id="types-custom-ut"/>6.4.2. Custom types using <code class="interfacename">org.hibernate.usertype.UserType</code></h3></div></div></div>
+            
+            <div xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="note" style="margin-left: 0.5in; margin-right: 0.5in;"><h2>Note</h2>
+                <p>
+                    Both <code class="interfacename">org.hibernate.usertype.UserType</code> and
+                    <code class="interfacename">org.hibernate.usertype.CompositeUserType</code> were originally
+                    added to isolate user code from internal changes to the <code class="interfacename">org.hibernate.type.Type</code>
+                    interfaces.
+                </p>
+            </div>
+            <p>
+                The second approach is the use the <code class="interfacename">org.hibernate.usertype.UserType</code>
+                interface, which presents a somewhat simplified view of the <code class="interfacename">org.hibernate.type.Type</code>
+                interface.  Using a <code class="interfacename">org.hibernate.usertype.UserType</code>, our
+                <code class="classname">Money</code> custom type would look as follows:
+            </p>
+            <div class="example"><a id="types-custom-ut-ex-definition"/><p class="title"><strong>Example 6.2. Defining the custom UserType</strong></p><div class="example-contents">
+                
+                <pre xmlns="" xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="">public class MoneyType implements UserType {
+    public int[] sqlTypes() {
+        return new int[] {
+                BigDecimalType.INSTANCE.sqlType(),
+                CurrencyType.INSTANCE.sqlType(),
+        };
+    }
+
+    public Class getReturnedClass() {
+        return Money.class;
+    }
+
+    public Object nullSafeGet(ResultSet rs, String[] names, Object owner) throws SQLException {
+        assert names.length == 2;
+        BigDecimal amount = BigDecimalType.INSTANCE.get( names[0] ); // already handles null check
+        Currency currency = CurrencyType.INSTANCE.get( names[1] ); // already handles null check
+        return amount == null &amp;&amp; currency == null
+                ? null
+                : new Money( amount, currency );
+    }
+
+    public void nullSafeSet(PreparedStatement st, Object value, int index) throws SQLException {
+        if ( value == null ) {
+            BigDecimalType.INSTANCE.set( st, null, index );
+            CurrencyType.INSTANCE.set( st, null, index+1 );
+        }
+        else {
+            final Money money = (Money) value;
+            BigDecimalType.INSTANCE.set( st, money.getAmount(), index );
+            CurrencyType.INSTANCE.set( st, money.getCurrency(), index+1 );
+        }
+    }
+
+    ...
+}</pre>
+            </div></div><br class="example-break"/>
+            <p>
+                There is not much difference between the <code class="interfacename">org.hibernate.type.Type</code> example
+                and the <code class="interfacename">org.hibernate.usertype.UserType</code> example, but that is only because
+                of the snippets shown.  If you choose the <code class="interfacename">org.hibernate.type.Type</code> approach
+                there are quite a few more methods you would need to implement as compared to the
+                <code class="interfacename">org.hibernate.usertype.UserType</code>.
+            </p>
+        </div>
+
+        <div class="section" title="6.4.3. Custom types using org.hibernate.usertype.CompositeUserType"><div class="titlepage"><div><div><h3 class="title"><a id="types-custom-cut"/>6.4.3. Custom types using <code class="interfacename">org.hibernate.usertype.CompositeUserType</code></h3></div></div></div>
+            
+            <p>
+                The third and final approach is the use the <code class="interfacename">org.hibernate.usertype.CompositeUserType</code>
+                interface, which differs from <code class="interfacename">org.hibernate.usertype.UserType</code> in that it
+                gives us the ability to provide Hibernate the information to handle the composition within the
+                <code class="classname">Money</code> class (specifically the 2 attributes).  This would give us the capability,
+                for example, to reference the <code class="literal">amount</code> attribute in an HQL query.  Using a
+                <code class="interfacename">org.hibernate.usertype.CompositeUserType</code>, our
+                <code class="classname">Money</code> custom type would look as follows:
+            </p>
+
+            <div class="example"><a id="types-custom-cut-ex-definition"/><p class="title"><strong>Example 6.3. Defining the custom CompositeUserType</strong></p><div class="example-contents">
+                
+                <pre xmlns="" xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="">public class MoneyType implements CompositeUserType {
+    public String[] getPropertyNames() {
+        // ORDER IS IMPORTANT!  it must match the order the columns are defined in the property mapping
+        return new String[] { "amount", "currency" };
+    }
+
+    public Type[] getPropertyTypes() {
+        return new Type[] { BigDecimalType.INSTANCE, CurrencyType.INSTANCE };
+    }
+
+    public Class getReturnedClass() {
+        return Money.class;
+    }
+
+    public Object getPropertyValue(Object component, int propertyIndex) {
+        if ( component == null ) {
+            return null;
+        }
+
+        final Money money = (Money) component;
+        switch ( propertyIndex ) {
+            case 0: {
+                return money.getAmount();
+            }
+            case 1: {
+                return money.getCurrency();
+            }
+            default: {
+                throw new HibernateException( "Invalid property index [" + propertyIndex + "]" );
+            }
+        }
+    }
+
+	public void setPropertyValue(Object component, int propertyIndex, Object value) throws HibernateException {
+        if ( component == null ) {
+            return;
+        }
+
+        final Money money = (Money) component;
+        switch ( propertyIndex ) {
+            case 0: {
+                money.setAmount( (BigDecimal) value );
+                break;
+            }
+            case 1: {
+                money.setCurrency( (Currency) value );
+                break;
+            }
+            default: {
+                throw new HibernateException( "Invalid property index [" + propertyIndex + "]" );
+            }
+        }
+	}
+
+    public Object nullSafeGet(ResultSet rs, String[] names, SessionImplementor session, Object owner) throws SQLException {
+        assert names.length == 2;
+        BigDecimal amount = BigDecimalType.INSTANCE.get( names[0] ); // already handles null check
+        Currency currency = CurrencyType.INSTANCE.get( names[1] ); // already handles null check
+        return amount == null &amp;&amp; currency == null
+                ? null
+                : new Money( amount, currency );
+    }
+
+    public void nullSafeSet(PreparedStatement st, Object value, int index, SessionImplementor session) throws SQLException {
+        if ( value == null ) {
+            BigDecimalType.INSTANCE.set( st, null, index );
+            CurrencyType.INSTANCE.set( st, null, index+1 );
+        }
+        else {
+            final Money money = (Money) value;
+            BigDecimalType.INSTANCE.set( st, money.getAmount(), index );
+            CurrencyType.INSTANCE.set( st, money.getCurrency(), index+1 );
+        }
+    }
+
+    ...
+}</pre>
+            </div></div><br class="example-break"/>
+        </div>
+
+    </div>
+
+    <div class="section" title="6.5. Type registry"><div class="titlepage"><div><div><h2 class="title"><a id="types-registry"/>6.5. Type registry</h2></div></div></div>
+        
+        <p>
+            Internally Hibernate uses a registry of basic types (see <a class="xref" href="ch06.html#types-value-basic" title="6.1.1. Basic value types">Section 6.1.1, “Basic value types”</a>) when
+            it needs to resolve the specific <code class="interfacename">org.hibernate.type.Type</code> to use in certain
+            situations.  It also provides a way for applications to add extra basic type registrations as well as
+            override the standard basic type registrations.
+        </p>
+        <p>
+            To register a new type or to override an existing type registration, applications would make use of the
+            <code class="methodname">registerTypeOverride</code> method of the <code class="classname">org.hibernate.cfg.Configuration</code>
+            class when bootstrapping Hibernate.  For example, lets say you want Hibernate to use your custom
+            <code class="classname">SuperDuperStringType</code>; during bootstrap you would call:
+        </p>
+        <div class="example"><a id="type-registry-override-ex"/><p class="title"><strong>Example 6.4. Overriding the standard <code class="classname">StringType</code></strong></p><div class="example-contents">
+            
+            <pre xmlns="" xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="">Configuration cfg = ...;
+cfg.registerTypeOverride( new SuperDuperStringType() );</pre>
+        </div></div><br class="example-break"/>
+        <p>
+            The argument to <code class="methodname">registerTypeOverride</code> is a <code class="interfacename">org.hibernate.type.BasicType</code>
+            which is a specialization of the <code class="interfacename">org.hibernate.type.Type</code> we saw before.  It
+            adds a single method:
+        </p>
+        <div class="example"><a id="d5e5044"/><p class="title"><strong>Example 6.5. Snippet from BasicType.java</strong></p><div class="example-contents">
+            
+            <pre xmlns="" xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="">
+    /**
+	 * Get the names under which this type should be registered in the type registry.
+	 *
+	 * @return The keys under which to register this type.
+	 */
+	public String[] getRegistrationKeys();
+            </pre>
+        </div></div><br class="example-break"/>
+        <p>
+            One approach is to use inheritance (<code class="classname">SuperDuperStringType</code> extends 
+            <code class="classname">org.hibernate.type.StringType</code>); another is to use delegation.
+        </p>
+    </div>
+
+</div><hr xmlns="" xmlns:d="http://docbook.org/ns/docbook"/><a xmlns="" xmlns:d="http://docbook.org/ns/docbook" href="legalnotice.html"/><ul xmlns:d="http://docbook.org/ns/docbook" class="docnav"><li class="previous"><a accesskey="p" href="ch05.html"><strong>Prev</strong>Chapter 5. Basic O/R Mapping</a></li><li class="up"><a accesskey="u" href="#"><strong>Up</strong></a></li><li class="home"><a accesskey="h" href="index.html"><strong>Home</strong></a></li><li class="next"><a accesskey="n" href="ch07.html"><strong>Next</strong>Chapter 7. Collection mapping</a></li></ul></body></html>

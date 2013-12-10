@@ -1,0 +1,625 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml"><head><title>Chapter 8. Association Mappings</title><link rel="stylesheet" type="text/css" href="css/hibernate.css"/><meta name="generator" content="DocBook XSL Stylesheets V1.76.1"/><link rel="home" href="index.html" title="HIBERNATE - Relational Persistence for Idiomatic Java"/><link rel="up" href="index.html" title="HIBERNATE - Relational Persistence for Idiomatic Java"/><link rel="prev" href="ch07.html" title="Chapter 7. Collection mapping"/><link rel="next" href="ch09.html" title="Chapter 9. Component Mapping"/><link rel="copyright" href="ln-d5e19.html" title="Legal Notice"/><meta xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" http-equiv="Content-Type" content="text/html; charset=UTF-8"/></head><body><p xmlns:d="http://docbook.org/ns/docbook" id="title"><a href="http://www.hibernate.org" class="site_href"><strong>Hibernate.org</strong></a><a href="http://hibernate.org/Documentation/DocumentationOverview" class="doc_href"><strong>Community Documentation</strong></a></p><ul xmlns:d="http://docbook.org/ns/docbook" class="docnav"><li class="previous"><a accesskey="p" href="ch07.html"><strong>Prev</strong></a></li><li class="next"><a accesskey="n" href="ch09.html"><strong>Next</strong></a></li></ul><div class="chapter" title="Chapter 8. Association Mappings"><div class="titlepage"><div><div><h2 class="title"><a id="associations"/>Chapter 8. Association Mappings</h2></div></div></div><div class="toc"><p><strong>Table of Contents</strong></p><dl><dt><span class="section"><a href="ch08.html#assoc-intro">8.1. Introduction</a></span></dt><dt><span class="section"><a href="ch08.html#assoc-unidirectional">8.2. Unidirectional associations</a></span></dt><dd><dl><dt><span class="section"><a href="ch08.html#assoc-unidirectional-m21">8.2.1. Many-to-one</a></span></dt><dt><span class="section"><a href="ch08.html#assoc-unidirectional-121">8.2.2. One-to-one</a></span></dt><dt><span class="section"><a href="ch08.html#assoc-unidirectional-12m">8.2.3. One-to-many</a></span></dt></dl></dd><dt><span class="section"><a href="ch08.html#assoc-unidirectional-join">8.3. Unidirectional associations with join tables</a></span></dt><dd><dl><dt><span class="section"><a href="ch08.html#assoc-unidirectional-join-12m">8.3.1. One-to-many</a></span></dt><dt><span class="section"><a href="ch08.html#assoc-unidirectional-join-m21">8.3.2. Many-to-one</a></span></dt><dt><span class="section"><a href="ch08.html#assoc-unidirectional-join-121">8.3.3. One-to-one</a></span></dt><dt><span class="section"><a href="ch08.html#assoc-unidirectional-join-m2m">8.3.4. Many-to-many</a></span></dt></dl></dd><dt><span class="section"><a href="ch08.html#assoc-bidirectional">8.4. Bidirectional associations</a></span></dt><dd><dl><dt><span class="section"><a href="ch08.html#assoc-bidirectional-m21">8.4.1. one-to-many / many-to-one</a></span></dt><dt><span class="section"><a href="ch08.html#assoc-bidirectional-121">8.4.2. One-to-one</a></span></dt></dl></dd><dt><span class="section"><a href="ch08.html#assoc-bidirectional-join">8.5. Bidirectional associations with join tables</a></span></dt><dd><dl><dt><span class="section"><a href="ch08.html#assoc-bidirectional-join-12m">8.5.1. one-to-many / many-to-one</a></span></dt><dt><span class="section"><a href="ch08.html#assoc-bidirectional-join-121">8.5.2. one to one</a></span></dt><dt><span class="section"><a href="ch08.html#assoc-bidirectional-join-m2m">8.5.3. Many-to-many</a></span></dt></dl></dd><dt><span class="section"><a href="ch08.html#assoc-complex">8.6. More complex association mappings</a></span></dt></dl></div>
+
+    
+
+    <div class="section" title="8.1. Introduction"><div class="titlepage"><div><div><h2 class="title"><a id="assoc-intro"/>8.1. Introduction</h2></div></div></div>
+        
+        
+        <p>
+            Association mappings are often the most difficult thing to implement correctly. In
+            this section we examine some canonical cases one by one, starting
+            with unidirectional mappings and then bidirectional cases.
+            We will use <code class="literal">Person</code> and <code class="literal">Address</code> in all
+            the examples.
+        </p>
+        
+        <p>
+        	Associations will be classified by multiplicity and whether or not they map to an intervening
+        	join table.
+        </p>
+        
+        <p>
+        	Nullable foreign keys are not considered to be good practice in traditional data
+        	modelling, so our examples do not use nullable foreign keys. This is not a
+        	requirement of Hibernate, and the mappings will work if you drop the
+        	nullability constraints.
+        </p>
+        
+    </div>
+
+    <div class="section" title="8.2. Unidirectional associations"><div class="titlepage"><div><div><h2 class="title"><a id="assoc-unidirectional"/>8.2. Unidirectional associations</h2></div></div></div>
+        
+        
+        <div class="section" title="8.2.1. Many-to-one"><div class="titlepage"><div><div><h3 class="title"><a id="assoc-unidirectional-m21"/>8.2.1. Many-to-one</h3></div></div></div>
+        
+        
+        <p>
+            A <span class="emphasis"><em>unidirectional many-to-one association</em></span> is the most 
+            common kind of unidirectional association.
+        </p>
+        
+        <pre xmlns="" xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="">&lt;class name="Person"&gt;
+    &lt;id name="id" column="personId"&gt;
+        &lt;generator class="native"/&gt;
+    &lt;/id&gt;
+    &lt;many-to-one name="address" 
+        column="addressId"
+        not-null="true"/&gt;
+&lt;/class&gt;
+
+&lt;class name="Address"&gt;
+    &lt;id name="id" column="addressId"&gt;
+        &lt;generator class="native"/&gt;
+    &lt;/id&gt;
+&lt;/class&gt;</pre>
+        <pre xmlns="" xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="">
+create table Person ( personId bigint not null primary key, addressId bigint not null )
+create table Address ( addressId bigint not null primary key )
+        </pre>
+        
+        </div>
+
+        <div class="section" title="8.2.2. One-to-one"><div class="titlepage"><div><div><h3 class="title"><a id="assoc-unidirectional-121"/>8.2.2. One-to-one</h3></div></div></div>
+        
+        
+        <p>
+            A <span class="emphasis"><em>unidirectional one-to-one association on a foreign key</em></span>
+            is almost identical. The only difference is the column unique constraint.
+        </p>
+        
+       <pre xmlns="" xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="">&lt;class name="Person"&gt;
+    &lt;id name="id" column="personId"&gt;
+        &lt;generator class="native"/&gt;
+    &lt;/id&gt;
+    &lt;many-to-one name="address" 
+        column="addressId" 
+        unique="true"
+        not-null="true"/&gt;
+&lt;/class&gt;
+
+&lt;class name="Address"&gt;
+    &lt;id name="id" column="addressId"&gt;
+        &lt;generator class="native"/&gt;
+    &lt;/id&gt;
+&lt;/class&gt;</pre>
+        <pre xmlns="" xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="">
+create table Person ( personId bigint not null primary key, addressId bigint not null unique )
+create table Address ( addressId bigint not null primary key )
+        </pre>
+        
+        <p>
+            A <span class="emphasis"><em>unidirectional one-to-one association on a primary key</em></span>
+            usually uses a special id generator In this example, however, we have reversed the direction
+            of the association:
+        </p>
+        
+       <pre xmlns="" xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="">&lt;class name="Person"&gt;
+    &lt;id name="id" column="personId"&gt;
+        &lt;generator class="native"/&gt;
+    &lt;/id&gt;
+&lt;/class&gt;
+
+&lt;class name="Address"&gt;
+    &lt;id name="id" column="personId"&gt;
+        &lt;generator class="foreign"&gt;
+            &lt;param name="property"&gt;person&lt;/param&gt;
+        &lt;/generator&gt;
+    &lt;/id&gt;
+    &lt;one-to-one name="person" constrained="true"/&gt;
+&lt;/class&gt;</pre>
+        <pre xmlns="" xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="">
+create table Person ( personId bigint not null primary key )
+create table Address ( personId bigint not null primary key )
+        </pre>
+        
+        </div>
+        
+        <div class="section" title="8.2.3. One-to-many"><div class="titlepage"><div><div><h3 class="title"><a id="assoc-unidirectional-12m"/>8.2.3. One-to-many</h3></div></div></div>
+        
+        
+        <p>
+            A <span class="emphasis"><em>unidirectional one-to-many association on a foreign key</em></span> 
+            is an unusual case, and is not recommended.
+        </p>
+        
+        <pre xmlns="" xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="">&lt;class name="Person"&gt;
+    &lt;id name="id" column="personId"&gt;
+        &lt;generator class="native"/&gt;
+    &lt;/id&gt;
+    &lt;set name="addresses"&gt;
+        &lt;key column="personId" 
+            not-null="true"/&gt;
+        &lt;one-to-many class="Address"/&gt;
+    &lt;/set&gt;
+&lt;/class&gt;
+
+&lt;class name="Address"&gt;
+    &lt;id name="id" column="addressId"&gt;
+        &lt;generator class="native"/&gt;
+    &lt;/id&gt;
+&lt;/class&gt;</pre>
+        <pre xmlns="" xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="">
+create table Person ( personId bigint not null primary key )
+create table Address ( addressId bigint not null primary key, personId bigint not null )
+        </pre>
+        
+        <p>
+          You should instead use a join table for this kind of association.
+        </p>
+        
+        </div>
+    
+    </div>
+
+    <div class="section" title="8.3. Unidirectional associations with join tables"><div class="titlepage"><div><div><h2 class="title"><a id="assoc-unidirectional-join"/>8.3. Unidirectional associations with join tables</h2></div></div></div>
+        
+        
+        <div class="section" title="8.3.1. One-to-many"><div class="titlepage"><div><div><h3 class="title"><a id="assoc-unidirectional-join-12m"/>8.3.1. One-to-many</h3></div></div></div>
+        
+        
+        <p>
+            A <span class="emphasis"><em>unidirectional one-to-many association on a join table</em></span> 
+            is the preferred option. Specifying <code class="literal">unique="true"</code>,
+            changes the multiplicity from many-to-many to one-to-many.
+        </p>
+        
+        <pre xmlns="" xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="">&lt;class name="Person"&gt;
+    &lt;id name="id" column="personId"&gt;
+        &lt;generator class="native"/&gt;
+    &lt;/id&gt;
+    &lt;set name="addresses" table="PersonAddress"&gt;
+        &lt;key column="personId"/&gt;
+        &lt;many-to-many column="addressId"
+            unique="true"
+            class="Address"/&gt;
+    &lt;/set&gt;
+&lt;/class&gt;
+
+&lt;class name="Address"&gt;
+    &lt;id name="id" column="addressId"&gt;
+        &lt;generator class="native"/&gt;
+    &lt;/id&gt;
+&lt;/class&gt;</pre>
+        <pre xmlns="" xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="">
+create table Person ( personId bigint not null primary key )
+create table PersonAddress ( personId bigint not null, addressId bigint not null primary key )
+create table Address ( addressId bigint not null primary key )
+        </pre>
+        
+        </div>
+
+        <div class="section" title="8.3.2. Many-to-one"><div class="titlepage"><div><div><h3 class="title"><a id="assoc-unidirectional-join-m21"/>8.3.2. Many-to-one</h3></div></div></div>
+        
+        
+        <p>
+            A <span class="emphasis"><em>unidirectional many-to-one association on a join table</em></span> 
+            is common when the association is optional. For example:
+        </p>
+        
+        <pre xmlns="" xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="">&lt;class name="Person"&gt;
+    &lt;id name="id" column="personId"&gt;
+        &lt;generator class="native"/&gt;
+    &lt;/id&gt;
+    &lt;join table="PersonAddress" 
+        optional="true"&gt;
+        &lt;key column="personId" unique="true"/&gt;
+        &lt;many-to-one name="address"
+            column="addressId" 
+            not-null="true"/&gt;
+    &lt;/join&gt;
+&lt;/class&gt;
+
+&lt;class name="Address"&gt;
+    &lt;id name="id" column="addressId"&gt;
+        &lt;generator class="native"/&gt;
+    &lt;/id&gt;
+&lt;/class&gt;</pre>
+        <pre xmlns="" xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="">
+create table Person ( personId bigint not null primary key )
+create table PersonAddress ( personId bigint not null primary key, addressId bigint not null )
+create table Address ( addressId bigint not null primary key )
+        </pre>
+        
+        </div>
+
+        <div class="section" title="8.3.3. One-to-one"><div class="titlepage"><div><div><h3 class="title"><a id="assoc-unidirectional-join-121"/>8.3.3. One-to-one</h3></div></div></div>
+        
+        
+        <p>
+            A <span class="emphasis"><em>unidirectional one-to-one association on a join table</em></span> is possible, 
+   	but extremely unusual.
+        </p>
+        
+        <pre xmlns="" xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="">&lt;class name="Person"&gt;
+    &lt;id name="id" column="personId"&gt;
+        &lt;generator class="native"/&gt;
+    &lt;/id&gt;
+    &lt;join table="PersonAddress" 
+        optional="true"&gt;
+        &lt;key column="personId" 
+            unique="true"/&gt;
+        &lt;many-to-one name="address"
+            column="addressId" 
+            not-null="true"
+            unique="true"/&gt;
+    &lt;/join&gt;
+&lt;/class&gt;
+
+&lt;class name="Address"&gt;
+    &lt;id name="id" column="addressId"&gt;
+        &lt;generator class="native"/&gt;
+    &lt;/id&gt;
+&lt;/class&gt;</pre>
+        <pre xmlns="" xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="">
+create table Person ( personId bigint not null primary key )
+create table PersonAddress ( personId bigint not null primary key, addressId bigint not null unique )
+create table Address ( addressId bigint not null primary key )
+        </pre>
+        
+        </div>
+
+        <div class="section" title="8.3.4. Many-to-many"><div class="titlepage"><div><div><h3 class="title"><a id="assoc-unidirectional-join-m2m"/>8.3.4. Many-to-many</h3></div></div></div>
+        
+        
+        <p>
+            Finally, here is an example of a <span class="emphasis"><em>unidirectional many-to-many association</em></span>.
+        </p>
+        
+        <pre xmlns="" xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="">&lt;class name="Person"&gt;
+    &lt;id name="id" column="personId"&gt;
+        &lt;generator class="native"/&gt;
+    &lt;/id&gt;
+    &lt;set name="addresses" table="PersonAddress"&gt;
+        &lt;key column="personId"/&gt;
+        &lt;many-to-many column="addressId"
+            class="Address"/&gt;
+    &lt;/set&gt;
+&lt;/class&gt;
+
+&lt;class name="Address"&gt;
+    &lt;id name="id" column="addressId"&gt;
+        &lt;generator class="native"/&gt;
+    &lt;/id&gt;
+&lt;/class&gt;</pre>
+        <pre xmlns="" xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="">
+create table Person ( personId bigint not null primary key )
+create table PersonAddress ( personId bigint not null, addressId bigint not null, primary key (personId, addressId) )
+create table Address ( addressId bigint not null primary key )
+        </pre>
+        
+        </div>
+
+    </div>
+
+    <div class="section" title="8.4. Bidirectional associations"><div class="titlepage"><div><div><h2 class="title"><a id="assoc-bidirectional"/>8.4. Bidirectional associations</h2></div></div></div>
+        
+        
+        <div class="section" title="8.4.1. one-to-many / many-to-one"><div class="titlepage"><div><div><h3 class="title"><a id="assoc-bidirectional-m21"/>8.4.1. one-to-many / many-to-one</h3></div></div></div>
+        
+        
+        <p>
+            A <span class="emphasis"><em>bidirectional many-to-one association</em></span> is the
+            most common kind of association. The following example illustrates the standard parent/child
+            relationship.
+        </p>
+        
+        <pre xmlns="" xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="">&lt;class name="Person"&gt;
+    &lt;id name="id" column="personId"&gt;
+        &lt;generator class="native"/&gt;
+    &lt;/id&gt;
+    &lt;many-to-one name="address" 
+        column="addressId"
+        not-null="true"/&gt;
+&lt;/class&gt;
+
+&lt;class name="Address"&gt;
+    &lt;id name="id" column="addressId"&gt;
+        &lt;generator class="native"/&gt;
+    &lt;/id&gt;
+    &lt;set name="people" inverse="true"&gt;
+        &lt;key column="addressId"/&gt;
+        &lt;one-to-many class="Person"/&gt;
+    &lt;/set&gt;
+&lt;/class&gt;</pre>
+
+        <pre xmlns="" xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="">
+create table Person ( personId bigint not null primary key, addressId bigint not null )
+create table Address ( addressId bigint not null primary key )
+        </pre>
+
+        <p>
+            If you use a <code class="literal">List</code>, or other indexed collection,
+            set the <code class="literal">key</code> column of the foreign key to <code class="literal">not null</code>.
+            Hibernate will manage the association from the collections side to maintain the index
+            of each element, making the other side virtually inverse by setting
+            <code class="literal">update="false"</code> and <code class="literal">insert="false"</code>:
+        </p>
+
+        <pre xmlns="" xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="">&lt;class name="Person"&gt;
+   &lt;id name="id"/&gt;
+   ...
+   &lt;many-to-one name="address"
+      column="addressId"
+      not-null="true"
+      insert="false"
+      update="false"/&gt;
+&lt;/class&gt;
+
+&lt;class name="Address"&gt;
+   &lt;id name="id"/&gt;
+   ...
+   &lt;list name="people"&gt;
+      &lt;key column="addressId" not-null="true"/&gt;
+      &lt;list-index column="peopleIdx"/&gt;
+      &lt;one-to-many class="Person"/&gt;
+   &lt;/list&gt;
+&lt;/class&gt;</pre>
+
+            <p>
+                If the underlying foreign key column is <code class="literal">NOT NULL</code>, it 
+		is important that you define <code class="literal">not-null="true"</code> on the
+                <code class="literal">&lt;key&gt;</code> element of the collection mapping.
+                Do not only
+                declare <code class="literal">not-null="true"</code> on a possible nested
+                <code class="literal">&lt;column&gt;</code> element, but on the <code class="literal">&lt;key&gt;</code>
+                element.
+            </p>
+
+        </div>
+        
+        <div class="section" title="8.4.2. One-to-one"><div class="titlepage"><div><div><h3 class="title"><a id="assoc-bidirectional-121"/>8.4.2. One-to-one</h3></div></div></div>
+        
+        
+        <p>
+            A <span class="emphasis"><em>bidirectional one-to-one association on a foreign key</em></span>
+            is common:
+        </p>
+        
+       <pre xmlns="" xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="">&lt;class name="Person"&gt;
+    &lt;id name="id" column="personId"&gt;
+        &lt;generator class="native"/&gt;
+    &lt;/id&gt;
+    &lt;many-to-one name="address" 
+        column="addressId" 
+        unique="true"
+        not-null="true"/&gt;
+&lt;/class&gt;
+
+&lt;class name="Address"&gt;
+    &lt;id name="id" column="addressId"&gt;
+        &lt;generator class="native"/&gt;
+    &lt;/id&gt;
+   &lt;one-to-one name="person" 
+        property-ref="address"/&gt;
+&lt;/class&gt;</pre>
+        <pre xmlns="" xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="">
+create table Person ( personId bigint not null primary key, addressId bigint not null unique )
+create table Address ( addressId bigint not null primary key )
+        </pre>
+        
+        <p>
+            A <span class="emphasis"><em>bidirectional one-to-one association on a primary key</em></span>
+            uses the special id generator:
+        </p>
+        
+       <pre xmlns="" xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="">&lt;class name="Person"&gt;
+    &lt;id name="id" column="personId"&gt;
+        &lt;generator class="native"/&gt;
+    &lt;/id&gt;
+    &lt;one-to-one name="address"/&gt;
+&lt;/class&gt;
+
+&lt;class name="Address"&gt;
+    &lt;id name="id" column="personId"&gt;
+        &lt;generator class="foreign"&gt;
+            &lt;param name="property"&gt;person&lt;/param&gt;
+        &lt;/generator&gt;
+    &lt;/id&gt;
+    &lt;one-to-one name="person" 
+        constrained="true"/&gt;
+&lt;/class&gt;</pre>
+        <pre xmlns="" xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="">
+create table Person ( personId bigint not null primary key )
+create table Address ( personId bigint not null primary key )
+        </pre>
+        
+        </div>
+        
+    </div>
+
+    <div class="section" title="8.5. Bidirectional associations with join tables"><div class="titlepage"><div><div><h2 class="title"><a id="assoc-bidirectional-join"/>8.5. Bidirectional associations with join tables</h2></div></div></div>
+        
+        
+        <div class="section" title="8.5.1. one-to-many / many-to-one"><div class="titlepage"><div><div><h3 class="title"><a id="assoc-bidirectional-join-12m"/>8.5.1. one-to-many / many-to-one</h3></div></div></div>
+        
+        
+        <p>
+            The following is an example of a <span class="emphasis"><em>bidirectional one-to-many association on a join table</em></span>.
+            The <code class="literal">inverse="true"</code> can go on either end of the
+            association, on the collection, or on the join.
+        </p>
+        
+        <pre xmlns="" xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="">&lt;class name="Person"&gt;
+    &lt;id name="id" column="personId"&gt;
+        &lt;generator class="native"/&gt;
+    &lt;/id&gt;
+    &lt;set name="addresses" 
+        table="PersonAddress"&gt;
+        &lt;key column="personId"/&gt;
+        &lt;many-to-many column="addressId"
+            unique="true"
+            class="Address"/&gt;
+    &lt;/set&gt;
+&lt;/class&gt;
+
+&lt;class name="Address"&gt;
+    &lt;id name="id" column="addressId"&gt;
+        &lt;generator class="native"/&gt;
+    &lt;/id&gt;
+    &lt;join table="PersonAddress" 
+        inverse="true" 
+        optional="true"&gt;
+        &lt;key column="addressId"/&gt;
+        &lt;many-to-one name="person"
+            column="personId"
+            not-null="true"/&gt;
+    &lt;/join&gt;
+&lt;/class&gt;</pre>
+        <pre xmlns="" xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="">
+create table Person ( personId bigint not null primary key )
+create table PersonAddress ( personId bigint not null, addressId bigint not null primary key )
+create table Address ( addressId bigint not null primary key )
+        </pre>
+        
+        </div>
+
+         <div class="section" title="8.5.2. one to one"><div class="titlepage"><div><div><h3 class="title"><a id="assoc-bidirectional-join-121"/>8.5.2. one to one</h3></div></div></div>
+        
+        
+        <p>
+            A <span class="emphasis"><em>bidirectional one-to-one association on a join table</em></span> is possible,
+            but extremely unusual.
+        </p>
+        
+        <pre xmlns="" xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="">&lt;class name="Person"&gt;
+    &lt;id name="id" column="personId"&gt;
+        &lt;generator class="native"/&gt;
+    &lt;/id&gt;
+    &lt;join table="PersonAddress" 
+        optional="true"&gt;
+        &lt;key column="personId" 
+            unique="true"/&gt;
+        &lt;many-to-one name="address"
+            column="addressId" 
+            not-null="true"
+            unique="true"/&gt;
+    &lt;/join&gt;
+&lt;/class&gt;
+
+&lt;class name="Address"&gt;
+    &lt;id name="id" column="addressId"&gt;
+        &lt;generator class="native"/&gt;
+    &lt;/id&gt;
+    &lt;join table="PersonAddress" 
+        optional="true"
+        inverse="true"&gt;
+        &lt;key column="addressId" 
+            unique="true"/&gt;
+        &lt;many-to-one name="person"
+            column="personId" 
+            not-null="true"
+            unique="true"/&gt;
+    &lt;/join&gt;
+&lt;/class&gt;</pre>
+        <pre xmlns="" xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="">
+create table Person ( personId bigint not null primary key )
+create table PersonAddress ( personId bigint not null primary key, addressId bigint not null unique )
+create table Address ( addressId bigint not null primary key )
+        </pre>
+
+        </div>
+        
+        <div class="section" title="8.5.3. Many-to-many"><div class="titlepage"><div><div><h3 class="title"><a id="assoc-bidirectional-join-m2m"/>8.5.3. Many-to-many</h3></div></div></div>
+        
+        
+        <p>
+            Here is an example of a <span class="emphasis"><em>bidirectional many-to-many association</em></span>.
+        </p>
+        
+        <pre xmlns="" xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="">&lt;class name="Person"&gt;
+    &lt;id name="id" column="personId"&gt;
+        &lt;generator class="native"/&gt;
+    &lt;/id&gt;
+    &lt;set name="addresses" table="PersonAddress"&gt;
+        &lt;key column="personId"/&gt;
+        &lt;many-to-many column="addressId"
+            class="Address"/&gt;
+    &lt;/set&gt;
+&lt;/class&gt;
+
+&lt;class name="Address"&gt;
+    &lt;id name="id" column="addressId"&gt;
+        &lt;generator class="native"/&gt;
+    &lt;/id&gt;
+    &lt;set name="people" inverse="true" table="PersonAddress"&gt;
+        &lt;key column="addressId"/&gt;
+        &lt;many-to-many column="personId"
+            class="Person"/&gt;
+    &lt;/set&gt;
+&lt;/class&gt;</pre>
+
+        <pre xmlns="" xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="">
+create table Person ( personId bigint not null primary key )
+create table PersonAddress ( personId bigint not null, addressId bigint not null, primary key (personId, addressId) )
+create table Address ( addressId bigint not null primary key )
+        </pre>
+        
+        </div>
+        
+    </div>
+    
+    <div class="section" title="8.6. More complex association mappings"><div class="titlepage"><div><div><h2 class="title"><a id="assoc-complex"/>8.6. More complex association mappings</h2></div></div></div>
+        
+        
+        <p>
+            More complex association joins are <span class="emphasis"><em>extremely</em></span> rare. 
+            Hibernate handles more complex situations by using
+            SQL fragments embedded in the mapping document. For example, if a table
+            with historical account information data defines 
+            <code class="literal">accountNumber</code>, <code class="literal">effectiveEndDate</code> 
+            and <code class="literal">effectiveStartDate</code>columns, it would be mapped as follows:
+        </p>
+        
+        <pre xmlns="" xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="">&lt;properties name="currentAccountKey"&gt;
+    &lt;property name="accountNumber" type="string" not-null="true"/&gt;
+    &lt;property name="currentAccount" type="boolean"&gt;
+        &lt;formula&gt;case when effectiveEndDate is null then 1 else 0 end&lt;/formula&gt;
+    &lt;/property&gt;
+&lt;/properties&gt;
+&lt;property name="effectiveEndDate" type="date"/&gt;
+&lt;property name="effectiveStateDate" type="date" not-null="true"/&gt;</pre>
+
+        <p>
+            You can then map an association to the <span class="emphasis"><em>current</em></span> instance, 
+            the one with null <code class="literal">effectiveEndDate</code>, by using:
+        </p>
+        
+        <pre xmlns="" xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="">&lt;many-to-one name="currentAccountInfo"
+        property-ref="currentAccountKey"
+        class="AccountInfo"&gt;
+    &lt;column name="accountNumber"/&gt;
+    &lt;formula&gt;'1'&lt;/formula&gt;
+&lt;/many-to-one&gt;</pre>
+
+        <p>
+            In a more complex example, imagine that the association between 
+            <code class="literal">Employee</code> and <code class="literal">Organization</code> is maintained
+            in an <code class="literal">Employment</code> table full of historical employment data.
+            An association to the employee's <span class="emphasis"><em>most recent</em></span> employer,
+            the one with the most recent <code class="literal">startDate</code>, could be mapped in the following way:
+        </p>
+        
+        <pre xmlns="" xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="">&lt;join&gt;
+    &lt;key column="employeeId"/&gt;
+    &lt;subselect&gt;
+        select employeeId, orgId 
+        from Employments 
+        group by orgId 
+        having startDate = max(startDate)
+    &lt;/subselect&gt;
+    &lt;many-to-one name="mostRecentEmployer" 
+            class="Organization" 
+            column="orgId"/&gt;
+&lt;/join&gt;</pre>
+
+        <p>
+            This functionality allows a degree of creativity and flexibility, but it is more practical 
+            to handle these kinds of cases using HQL or a criteria query.
+        </p>
+
+    </div>
+
+</div><hr xmlns="" xmlns:d="http://docbook.org/ns/docbook"/><a xmlns="" xmlns:d="http://docbook.org/ns/docbook" href="legalnotice.html"/><ul xmlns:d="http://docbook.org/ns/docbook" class="docnav"><li class="previous"><a accesskey="p" href="ch07.html"><strong>Prev</strong>Chapter 7. Collection mapping</a></li><li class="up"><a accesskey="u" href="#"><strong>Up</strong></a></li><li class="home"><a accesskey="h" href="index.html"><strong>Home</strong></a></li><li class="next"><a accesskey="n" href="ch09.html"><strong>Next</strong>Chapter 9. Component Mapping</a></li></ul></body></html>

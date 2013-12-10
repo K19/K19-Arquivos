@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml"><head><title>Chapter 5. Tutorial Using Envers</title><link rel="stylesheet" type="text/css" href="css/hibernate.css"/><meta name="generator" content="DocBook XSL Stylesheets V1.76.1"/><link rel="home" href="index.html" title="Hibernate Getting Started Guide"/><link rel="up" href="index.html" title="Hibernate Getting Started Guide"/><link rel="prev" href="ch04.html" title="Chapter 4. Tutorial Using the Java Persistence API (JPA)"/><link rel="next" href="ch06.html" title="Chapter 6. OSGi Tutorial"/><meta xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" http-equiv="Content-Type" content="text/html; charset=UTF-8"/></head><body><p xmlns:d="http://docbook.org/ns/docbook" id="title"><a href="http://www.hibernate.org" class="site_href"><strong>Hibernate.org</strong></a><a href="http://hibernate.org/Documentation/DocumentationOverview" class="doc_href"><strong>Community Documentation</strong></a></p><ul xmlns:d="http://docbook.org/ns/docbook" class="docnav"><li class="previous"><a accesskey="p" href="ch04.html"><strong>Prev</strong></a></li><li class="next"><a accesskey="n" href="ch06.html"><strong>Next</strong></a></li></ul><div class="chapter" title="Chapter 5. Tutorial Using Envers"><div class="titlepage"><div><div><h2 class="title"><a id="d5e503"/>Chapter 5. Tutorial Using Envers</h2></div></div></div><div class="toc"><p><strong>Table of Contents</strong></p><dl><dt><span class="section"><a href="ch05.html#hibernate-gsg-tutorial-envers-config">5.1. <code class="filename">persistence.xml</code></a></span></dt><dt><span class="section"><a href="ch05.html#hibernate-gsg-tutorial-envers-entity">5.2. The annotated entity Java class</a></span></dt><dt><span class="section"><a href="ch05.html#hibernate-gsg-tutorial-envers-test">5.3. Example code</a></span></dt><dt><span class="section"><a href="ch05.html#hibernate-gsg-tutorial-annotations-further">5.4. Take it further!</a></span></dt></dl></div>
+    
+
+    <p>
+      This tutorial is located within the download bundle under <code class="filename">envers</code>.
+    </p>
+    <div class="itemizedlist" title="Objectives"><p class="title"><strong>Objectives</strong></p><ul class="itemizedlist"><li class="listitem">
+        <p>
+          Configure Envers.
+        </p>
+      </li><li class="listitem">
+        <p>
+          Use the Envers APIs to view and analyze historical data.
+        </p>
+      </li></ul></div>
+
+    <div class="section" title="5.1. persistence.xml"><div class="titlepage"><div><div><h2 class="title"><a id="hibernate-gsg-tutorial-envers-config"/>5.1. <code class="filename">persistence.xml</code></h2></div></div></div>
+      
+      <p>
+        This file was discussed in the <code class="systemitem">JPA</code> tutorial in <a class="xref" href="ch04.html#hibernate-gsg-tutorial-jpa-config" title="4.1. persistence.xml">Section 4.1, “<code class="filename">persistence.xml</code>”</a>, and is essentially the same here.
+      </p>
+    </div>
+
+    <div class="section" title="5.2. The annotated entity Java class"><div class="titlepage"><div><div><h2 class="title"><a id="hibernate-gsg-tutorial-envers-entity"/>5.2. The annotated entity Java class</h2></div></div></div>
+      
+      <p>
+        Again, the entity is largely the same as in <a class="xref" href="ch04.html#hibernate-gsg-tutorial-jpa-entity" title="4.2. The annotated entity Java class">Section 4.2, “The annotated entity Java class”</a>.  The major
+        difference is the addition of the <code class="interfacename">@org.hibernate.envers.Audited</code> annotation, which
+        tells Envers to automatically track changes to this entity.
+      </p>
+    </div>
+
+    <div class="section" title="5.3. Example code"><div class="titlepage"><div><div><h2 class="title"><a id="hibernate-gsg-tutorial-envers-test"/>5.3. Example code</h2></div></div></div>
+      
+      <p>
+        Again, this tutorial makes use of the <code class="systemitem">JPA</code> APIs.  However, the code also makes a change to one
+        of the entities, then uses the Envers API to pull back the initial <em class="firstterm">revision</em> as well as the updated
+        revision. A revision refers to a version of an entity.
+      </p>
+      <div class="example"><a id="hibernate-gsg-tutorial-envers-test-api"/><p class="title"><strong>Example 5.1. Using the <code class="interfacename">org.hibernate.envers.AuditReader</code></strong></p><div class="example-contents">
+        
+        <pre xmlns="" xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="">public void testBasicUsage() {
+    ...
+    AuditReader reader = AuditReaderFactory.get( entityManager );
+    Event firstRevision = reader.find( Event.class, 2L, 1 );
+    ...
+    Event secondRevision = reader.find( Event.class, 2L, 2 );
+    ...
+}</pre>
+      </div></div><br class="example-break"/>
+      <div class="procedure" title="Procedure 5.1. Description of Example"><a id="d5e533"/><p class="title"><strong>Procedure 5.1. Description of Example</strong></p><ol class="procedure" type="1"><li class="step" title="Step 1">
+          <p>
+            An <code class="interfacename">org.hibernate.envers.AuditReader</code> is obtained from the
+            <code class="classname">org.hibernate.envers.AuditReaderFactory</code> which wraps the
+            <code class="interfacename">javax.persistence.EntityManager</code>.
+          </p>
+        </li><li class="step" title="Step 2">
+          <p>
+            Next, the <code class="methodname">find</code> method retrieves specific revisions of the entity.  The first call
+            reads <code class="literal">find revision number 1 of Event with id 2</code>.  The second call reads <code class="literal">find
+            revision number 2 of Event with id 2</code>.
+          </p>
+        </li></ol></div>
+    </div>
+
+    <div class="section" title="5.4. Take it further!"><div class="titlepage"><div><div><h2 class="title"><a id="hibernate-gsg-tutorial-annotations-further"/>5.4. Take it further!</h2></div></div></div>
+      
+      <div class="itemizedlist" title="Practice Exercises"><p class="title"><strong>Practice Exercises</strong></p><ul class="itemizedlist"><li class="listitem">
+            <p>
+                Provide a custom revision entity to additionally capture who made the changes.
+            </p>
+        </li><li class="listitem">
+            <p>
+                Write a query to retrieve only historical data which meets some criteria. Use the
+                <em class="citetitle">Envers User Guide</em> to see how Envers queries are constructed.
+            </p>
+        </li><li class="listitem">
+            <p>
+                Experiment with auditing entities which have many-to-one, many-to-many relations as well as collections.
+                Try retrieving historical versions (revisions) of such entities and navigating the object tree.
+            </p>
+        </li></ul></div>
+    </div>
+
+</div><hr xmlns="" xmlns:d="http://docbook.org/ns/docbook"/><a xmlns="" xmlns:d="http://docbook.org/ns/docbook" href="legalnotice.html"/><ul xmlns:d="http://docbook.org/ns/docbook" class="docnav"><li class="previous"><a accesskey="p" href="ch04.html"><strong>Prev</strong>Chapter 4. Tutorial Using the Java Persistence AP...</a></li><li class="up"><a accesskey="u" href="#"><strong>Up</strong></a></li><li class="home"><a accesskey="h" href="index.html"><strong>Home</strong></a></li><li class="next"><a accesskey="n" href="ch06.html"><strong>Next</strong>Chapter 6. OSGi Tutorial</a></li></ul></body></html>

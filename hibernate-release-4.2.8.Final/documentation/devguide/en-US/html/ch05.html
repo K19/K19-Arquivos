@@ -1,0 +1,248 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml"><head><title>Chapter 5. Locking</title><link rel="stylesheet" type="text/css" href="css/hibernate.css"/><meta name="generator" content="DocBook XSL Stylesheets V1.76.1"/><link rel="home" href="index.html" title="Hibernate Developer Guide"/><link rel="up" href="index.html" title="Hibernate Developer Guide"/><link rel="prev" href="ch04.html" title="Chapter 4. Batch Processing"/><link rel="next" href="ch06.html" title="Chapter 6. Caching"/><meta xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" http-equiv="Content-Type" content="text/html; charset=UTF-8"/></head><body><p xmlns:d="http://docbook.org/ns/docbook" id="title"><a href="http://www.hibernate.org" class="site_href"><strong>Hibernate.org</strong></a><a href="http://hibernate.org/Documentation/DocumentationOverview" class="doc_href"><strong>Community Documentation</strong></a></p><ul xmlns:d="http://docbook.org/ns/docbook" class="docnav"><li class="previous"><a accesskey="p" href="ch04.html"><strong>Prev</strong></a></li><li class="next"><a accesskey="n" href="ch06.html"><strong>Next</strong></a></li></ul><div class="chapter" title="Chapter 5. Locking"><div class="titlepage"><div><div><h2 class="title"><a id="d5e1108"/>Chapter 5. Locking</h2></div></div></div><div class="toc"><p><strong>Table of Contents</strong></p><dl><dt><span class="section"><a href="ch05.html#d5e1128">5.1. Optimistic</a></span></dt><dd><dl><dt><span class="section"><a href="ch05.html#d5e1144">5.1.1. Dedicated version number</a></span></dt><dt><span class="section"><a href="ch05.html#d5e1207">5.1.2. Timestamp</a></span></dt></dl></dd><dt><span class="section"><a href="ch05.html#d5e1256">5.2. Pessimistic</a></span></dt><dd><dl><dt><span class="section"><a href="ch05.html#d5e1261">5.2.1. The <code class="classname">LockMode</code> class</a></span></dt></dl></dd></dl></div>
+  
+  <p>
+    Locking refers to actions taken to prevent data in a relational database from changing between the time it is read
+    and the time that it is used.
+  </p>
+  <p>
+    Your locking strategy can be either <em class="firstterm">optimistic</em> or <em class="firstterm">pessimistic</em>.
+  </p>
+  <div class="variablelist" title="Locking strategies"><p class="title"><strong>Locking strategies</strong></p><dl><dt><span class="term">Optimistic</span></dt><dd>
+        <p>
+          Optimistic locking assumes that multiple transactions can complete without affecting each other, and that
+          therefore transactions can proceed without locking the data resources that they affect. Before committing,
+          each transaction verifies that no other transaction has modified its data. If the check reveals conflicting
+          modifications, the committing transaction rolls back<sup>[<a id="d5e1120" href="#ftn.d5e1120" class="footnote">1</a>]</sup>.
+        </p>
+      </dd><dt><span class="term">Pessimistic</span></dt><dd>
+        <p>
+          Pessimistic locking assumes that concurrent transactions will conflict with each other, and requires resources
+          to be locked after they are read and only unlocked after the application has finished using the data.
+        </p>
+      </dd></dl></div>
+  <p>
+    Hibernate provides mechanisms for implementing both types of locking in your applications.
+  </p>
+  <div class="section" title="5.1. Optimistic"><div class="titlepage"><div><div><h2 class="title"><a id="d5e1128"/>5.1. Optimistic</h2></div></div></div>
+    
+    <p>
+      When your application uses long transactions or conversations that span several database transactions, you can
+      store versioning data, so that if the same entity is updated by two conversations, the last to commit changes is
+      informed of the conflict, and does not override the other conversation's work. This approach guarantees some
+      isolation, but scales well and works particularly well in <em class="firstterm">Read-Often Write-Sometimes</em>
+      situations.
+    </p>
+    <p>
+      Hibernate provides two different mechanisms for storing versioning information, a dedicated version number or a
+      timestamp.
+    </p>
+    <div class="variablelist"><dl><dt><span class="term">Version number</span></dt><dd>
+          <p>
+
+          </p>
+        </dd><dt><span class="term">Timestamp</span></dt><dd>
+          <p>
+
+          </p>
+        </dd></dl></div>
+    <div xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="note" style="margin-left: 0.5in; margin-right: 0.5in;"><h2>Note</h2>
+      <p>
+        A version or timestamp property can never be null for a detached instance. Hibernate detects any instance with a
+        null version or timestamp as transient, regardless of other unsaved-value strategies that you specify. Declaring
+        a nullable version or timestamp property is an easy way to avoid problems with transitive reattachment in
+        Hibernate, especially useful if you use assigned identifiers or composite keys.
+      </p>
+    </div>
+    
+    <div class="section" title="5.1.1. Dedicated version number"><div class="titlepage"><div><div><h3 class="title"><a id="d5e1144"/>5.1.1. Dedicated version number</h3></div></div></div>
+      
+      <p>
+        The version number mechanism for optimistic locking is provided through a <code class="literal">@Version</code>
+        annotation.
+      </p>
+      <div class="example"><a id="d5e1148"/><p class="title"><strong>Example 5.1. The @Version annotation</strong></p><div class="example-contents">
+        
+        <pre xmlns="" xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="JAVA"><!-- <br/> --><span class="java_plain">@</span><!-- <br/> --><span class="java_type">Entity</span>
+<!--  --><br/><span class="java_keyword">public</span><span class="java_plain">&nbsp;</span><span class="java_keyword">class</span><span class="java_plain">&nbsp;</span><span class="java_type">Flight</span><span class="java_plain">&nbsp;</span><span class="java_keyword">implements</span><span class="java_plain">&nbsp;</span><span class="java_type">Serializable</span><span class="java_plain">&nbsp;</span><span class="java_separator">{</span>
+<!--  --><br/><span class="java_separator">...</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;&nbsp;&nbsp;@</span><span class="java_type">Version</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;&nbsp;&nbsp;@</span><span class="java_type">Column</span><span class="java_separator">(</span><span class="java_plain">name</span><span class="java_operator">=</span><span class="java_literal">&quot;OPTLOCK&quot;</span><span class="java_separator">)</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="java_keyword">public</span><span class="java_plain">&nbsp;</span><span class="java_type">Integer</span><span class="java_plain">&nbsp;getVersion</span><span class="java_separator">()</span><span class="java_plain">&nbsp;</span><span class="java_separator">{</span><span class="java_plain">&nbsp;</span><span class="java_separator">...</span><span class="java_plain">&nbsp;</span><span class="java_separator">}</span>
+<!--  --><br/><span class="java_separator">}</span><span class="java_plain">&nbsp;&nbsp;&nbsp;</span></pre>
+        <p>
+          Here, the version property is mapped to the <code class="literal">OPTLOCK</code> column, and the entity manager uses it
+          to detect conflicting updates, and prevent the loss of updates that would be overwritten by a
+          <em class="firstterm">last-commit-wins</em> strategy.
+        </p>
+      </div></div><br class="example-break"/>
+      <p>
+        The version column can be any kind of type, as long as you define and implement the appropriate
+        <code class="classname">UserVersionType</code>.
+      </p>
+      <p>
+        Your application is forbidden from altering the version number set by Hibernate. To artificially increase the
+        version number, see the documentation for properties
+        <span class="property">LockModeType.OPTIMISTIC_FORCE_INCREMENT</span> or
+        <span class="property">LockModeType.PESSIMISTIC_FORCE_INCREMENTcheck</span> in the Hibernate Entity Manager reference
+        documentation.
+      </p>
+      <div xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="note" style="margin-left: 0.5in; margin-right: 0.5in;"><h2>Database-generated version numbers</h2>
+        
+        <p>
+          If the version number is generated by the database, such as a trigger, use the annotation
+          <code class="literal">@org.hibernate.annotations.Generated(GenerationTime.ALWAYS)</code>.
+        </p>
+      </div>
+      <div class="example"><a id="d5e1163"/><p class="title"><strong>Example 5.2. Declaring a version property in <code class="filename">hbm.xml</code></strong></p><div class="example-contents">
+        
+        <pre xmlns="" xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="XML"><!-- XML : generated by JHighlight v1.0 (http://jhighlight.dev.java.net) -->
+<span class="xml_tag_symbols">&lt;</span><span class="xml_tag_name">version</span><span class="xml_plain"></span><br />
+<span class="xml_plain">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="xml_attribute_name">column</span><span class="xml_tag_symbols">=</span><span class="xml_attribute_value">&quot;version_column&quot;</span><span class="xml_plain"></span><br />
+<span class="xml_plain">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="xml_attribute_name">name</span><span class="xml_tag_symbols">=</span><span class="xml_attribute_value">&quot;propertyName&quot;</span><span class="xml_plain"></span><br />
+<span class="xml_plain">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="xml_attribute_name">type</span><span class="xml_tag_symbols">=</span><span class="xml_attribute_value">&quot;typename&quot;</span><span class="xml_plain"></span><br />
+<span class="xml_plain">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="xml_attribute_name">access</span><span class="xml_tag_symbols">=</span><span class="xml_attribute_value">&quot;field|property|ClassName&quot;</span><span class="xml_plain"></span><br />
+<span class="xml_plain">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="xml_attribute_name">unsaved-value</span><span class="xml_tag_symbols">=</span><span class="xml_attribute_value">&quot;null|negative|undefined&quot;</span><span class="xml_plain"></span><br />
+<span class="xml_plain">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="xml_attribute_name">generated</span><span class="xml_tag_symbols">=</span><span class="xml_attribute_value">&quot;never|always&quot;</span><span class="xml_plain"></span><br />
+<span class="xml_plain">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="xml_attribute_name">insert</span><span class="xml_tag_symbols">=</span><span class="xml_attribute_value">&quot;true|false&quot;</span><span class="xml_plain"></span><br />
+<span class="xml_plain">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="xml_attribute_name">node</span><span class="xml_tag_symbols">=</span><span class="xml_attribute_value">&quot;element-name|@attribute-name|element/@attribute|.&quot;</span><span class="xml_plain"></span><br />
+<span class="xml_tag_symbols">/&gt;</span><span class="xml_plain"></span><br />
+</pre>
+        <div class="informaltable">
+          <table border="1"><colgroup><col/><col/></colgroup><tbody><tr><td>column</td><td><p>The name of the column holding the version number. Optional, defaults to the property
+                name. </p></td></tr><tr><td>name</td><td><p>The name of a property of the persistent class.</p></td></tr><tr><td>type</td><td><p>The type of the version number. Optional, defaults to
+                <code class="literal">integer</code>.</p></td></tr><tr><td>access</td><td><p>Hibernate's strategy for accessing the property value. Optional, defaults to
+                <code class="literal">property</code>.</p></td></tr><tr><td>unsaved-value</td><td><p>Indicates that an instance is newly instantiated and thus unsaved. This distinguishes it
+                from detached instances that were saved or loaded in a previous session. The default value,
+                <code class="literal">undefined</code>, indicates that the identifier property value should be
+                used. Optional.</p></td></tr><tr><td>generated</td><td><p>Indicates that the version property value is generated by the database. Optional, defaults
+                to <code class="literal">never</code>.</p></td></tr><tr><td>insert</td><td><p>Whether or not to include the <code class="code">version</code> column in SQL <code class="code">insert</code>
+                statements. Defaults to <code class="literal">true</code>, but you can set it to <code class="literal">false</code> if the
+                database column is defined with a default value of <code class="literal">0</code>.</p></td></tr></tbody></table>
+        </div>
+      </div></div><br class="example-break"/>
+    </div>
+    
+    <div class="section" title="5.1.2. Timestamp"><div class="titlepage"><div><div><h3 class="title"><a id="d5e1207"/>5.1.2. Timestamp</h3></div></div></div>
+      
+      <p>
+        Timestamps are a less reliable way of optimistic locking than version numbers, but can be used by applications
+        for other purposes as well. Timestamping is automatically used if you the <code class="code">@Version</code> annotation on a
+        <span class="type">Date</span> or <span class="type">Calendar</span>.
+      </p>
+      <div class="example"><a id="d5e1213"/><p class="title"><strong>Example 5.3. Using timestamps for optimistic locking</strong></p><div class="example-contents">
+        
+        <pre xmlns="" xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="JAVA"><!-- <br/> --><span class="java_plain">@</span><!-- <br/> --><span class="java_type">Entity</span>
+<!--  --><br/><span class="java_keyword">public</span><span class="java_plain">&nbsp;</span><span class="java_keyword">class</span><span class="java_plain">&nbsp;</span><span class="java_type">Flight</span><span class="java_plain">&nbsp;</span><span class="java_keyword">implements</span><span class="java_plain">&nbsp;</span><span class="java_type">Serializable</span><span class="java_plain">&nbsp;</span><span class="java_separator">{</span>
+<!--  --><br/><span class="java_separator">...</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;&nbsp;&nbsp;@</span><span class="java_type">Version</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="java_keyword">public</span><span class="java_plain">&nbsp;</span><span class="java_type">Date</span><span class="java_plain">&nbsp;getLastUpdate</span><span class="java_separator">()</span><span class="java_plain">&nbsp;</span><span class="java_separator">{</span><span class="java_plain">&nbsp;</span><span class="java_separator">...</span><span class="java_plain">&nbsp;</span><span class="java_separator">}</span>
+<!--  --><br/><span class="java_separator">}</span><span class="java_plain">&nbsp;</span></pre>
+      </div></div><br class="example-break"/>
+      <p>
+        Hibernate can retrieve the timestamp value from the database or the JVM, by reading the value you specify for
+        the <code class="code">@org.hibernate.annotations.Source</code> annotation. The value can be either
+        <code class="literal">org.hibernate.annotations.SourceType.DB</code> or
+        <code class="literal">org.hibernate.annotations.SourceType.VM</code>. The default behavior is to use the database, and is
+        also used if you don't specify the annotation at all.
+      </p>
+      <p>
+        The timestamp can also be generated by the database instead of Hibernate, if you use the
+        <code class="code">@org.hibernate.annotations.Generated(GenerationTime.ALWAYS)</code> annotation.
+      </p>
+      <div class="example"><a id="d5e1222"/><p class="title"><strong>Example 5.4. The timestamp element in <code class="filename">hbm.xml</code></strong></p><div class="example-contents">
+        
+        <pre xmlns="" xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="XML"><!-- XML : generated by JHighlight v1.0 (http://jhighlight.dev.java.net) -->
+<span class="xml_tag_symbols">&lt;</span><span class="xml_tag_name">timestamp</span><span class="xml_plain"></span><br />
+<span class="xml_plain">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="xml_attribute_name">column</span><span class="xml_tag_symbols">=</span><span class="xml_attribute_value">&quot;timestamp_column&quot;</span><span class="xml_plain"></span><br />
+<span class="xml_plain">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="xml_attribute_name">name</span><span class="xml_tag_symbols">=</span><span class="xml_attribute_value">&quot;propertyName&quot;</span><span class="xml_plain"></span><br />
+<span class="xml_plain">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="xml_attribute_name">access</span><span class="xml_tag_symbols">=</span><span class="xml_attribute_value">&quot;field|property|ClassName&quot;</span><span class="xml_plain"></span><br />
+<span class="xml_plain">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="xml_attribute_name">unsaved-value</span><span class="xml_tag_symbols">=</span><span class="xml_attribute_value">&quot;null|undefined&quot;</span><span class="xml_plain"></span><br />
+<span class="xml_plain">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="xml_attribute_name">source</span><span class="xml_tag_symbols">=</span><span class="xml_attribute_value">&quot;vm|db&quot;</span><span class="xml_plain"></span><br />
+<span class="xml_plain">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="xml_attribute_name">generated</span><span class="xml_tag_symbols">=</span><span class="xml_attribute_value">&quot;never|always&quot;</span><span class="xml_plain"></span><br />
+<span class="xml_plain">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="xml_attribute_name">node</span><span class="xml_tag_symbols">=</span><span class="xml_attribute_value">&quot;element-name|@attribute-name|element/@attribute|.&quot;</span><span class="xml_plain"></span><br />
+<span class="xml_tag_symbols">/&gt;</span><span class="xml_plain"></span><br />
+</pre>
+        <div class="informaltable">
+          <table border="1"><colgroup><col/><col/></colgroup><tbody><tr><td>column</td><td><p>The name of the column which holds the timestamp. Optional, defaults to the property
+                namel</p></td></tr><tr><td>name</td><td><p>The name of a JavaBeans style property of Java type Date or Timestamp of the persistent
+                class.</p></td></tr><tr><td>access</td><td><p>The strategy Hibernate uses to access the property value. Optional, defaults to
+                <code class="literal">property</code>.</p></td></tr><tr><td>unsaved-value</td><td><p>A version property which indicates than instance is newly
+                instantiated, and unsaved. This distinguishes it from detached instances that were saved or loaded in a
+                previous session. The default value of <code class="literal">undefined</code> indicates that Hibernate uses the
+                identifier property value.</p></td></tr><tr><td>source</td><td><p>Whether Hibernate retrieves the timestamp from the database or the current
+                JVM. Database-based timestamps incur an overhead because Hibernate needs to query the database each time
+                to determine the incremental next value. However, database-derived timestamps are safer to use in a
+                clustered environment. Not all database dialects are known to support the retrieval of the database's
+                current timestamp. Others may also be unsafe for locking, because of lack of precision.</p></td></tr><tr><td>generated</td><td><p>Whether the timestamp property value is generated by the database. Optional, defaults to
+                <code class="literal">never</code>.</p></td></tr></tbody></table>
+        </div>
+      </div></div><br class="example-break"/>
+    </div>
+
+  </div>
+  
+  <div class="section" title="5.2. Pessimistic"><div class="titlepage"><div><div><h2 class="title"><a id="d5e1256"/>5.2. Pessimistic</h2></div></div></div>
+    
+    <p>
+      Typically, you only need to specify an isolation level for the JDBC connections and let the database handle
+      locking issues. If you do need to obtain exclusive pessimistic locks or re-obtain locks at the start of a new
+      transaction, Hibernate gives you the tools you need.
+    </p>
+    <div xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="note" style="margin-left: 0.5in; margin-right: 0.5in;"><h2>Note</h2>
+      <p>
+        Hibernate always uses the locking mechanism of the database, and never lock objects in memory.
+      </p>
+    </div>
+    <div class="section" title="5.2.1. The LockMode class"><div class="titlepage"><div><div><h3 class="title"><a id="d5e1261"/>5.2.1. The <code class="classname">LockMode</code> class</h3></div></div></div>
+      
+      <p>
+        The <code class="classname">LockMode</code> class defines the different lock levels that Hibernate can acquire.
+      </p>
+      <div class="informaltable">
+        <table border="1"><colgroup><col/><col/></colgroup><tbody><tr><td>LockMode.WRITE</td><td><p>acquired automatically when Hibernate updates or inserts a row.</p></td></tr><tr><td>LockMode.UPGRADE</td><td><p>acquired upon explicit user request using <code class="code">SELECT ... FOR UPDATE</code> on databases
+              which support that syntax.</p></td></tr><tr><td>LockMode.UPGRADE_NOWAIT</td><td><p>acquired upon explicit user request using a <code class="code">SELECT ... FOR UPDATE NOWAIT</code> in
+              Oracle.</p></td></tr><tr><td>LockMode.READ</td><td><p>acquired automatically when Hibernate reads data under <span>Repeatable Read</span> or
+              <span>Serializable</span> isolation level. It can be re-acquired by explicit user
+              request.</p></td></tr><tr><td>LockMode.NONE</td><td><p>The absence of a lock. All objects switch to this lock mode at the end of a
+              Transaction. Objects associated with the session via a call to <code class="methodname">update()</code> or
+              <code class="methodname">saveOrUpdate()</code> also start out in this lock mode. </p></td></tr></tbody></table>
+      </div>
+      <p>
+        The explicit user request mentioned above occurs as a consequence of any of the following actions:
+      </p>
+      <div class="itemizedlist"><ul class="itemizedlist"><li class="listitem">
+          <p>
+            A call to <code class="methodname">Session.load()</code>, specifying a LockMode.
+          </p>
+        </li><li class="listitem">
+          <p>
+            A call to <code class="methodname">Session.lock()</code>.
+          </p>
+        </li><li class="listitem">
+          <p>
+            A call to <code class="methodname">Query.setLockMode()</code>.
+          </p>
+        </li></ul></div>
+      <p>
+        If you call <code class="methodname">Session.load()</code> with option <code class="option">UPGRADE</code> or
+        <code class="option">UPGRADE_NOWAIT</code>, and the requested object is not already loaded by the session, the object is
+        loaded using <code class="code">SELECT ... FOR UPDATE</code>. If you call <code class="methodname">load()</code> for an object that
+        is already loaded with a less restrictive lock than the one you request, Hibernate calls
+        <code class="methodname">lock()</code> for that object.
+      </p>
+      <p>
+        <code class="methodname">Session.lock()</code> performs a version number check if the specified lock mode is
+        <code class="literal">READ</code>, <code class="literal">UPGRADE</code>, or <code class="literal">UPGRADE_NOWAIT</code>. In the case of
+        <code class="literal">UPGRADE</code> or <code class="literal">UPGRADE_NOWAIT</code>, <code class="code">SELECT ... FOR UPDATE</code> syntax is
+        used.
+      </p>
+      <p>
+        If the requested lock mode is not supported by the database, Hibernate uses an appropriate alternate mode
+        instead of throwing an exception. This ensures that applications are portable.
+      </p>
+    </div>
+  </div>
+<div class="footnotes"><br/><hr width="100" align="left"/><div class="footnote"><p><sup>[<a id="ftn.d5e1120" href="#d5e1120" class="para">1</a>] </sup><a class="ulink" href="http://en.wikipedia.org/wiki/Optimistic_locking">http://en.wikipedia.org/wiki/Optimistic_locking</a></p></div></div></div><hr xmlns="" xmlns:d="http://docbook.org/ns/docbook"/><a xmlns="" xmlns:d="http://docbook.org/ns/docbook" href="legalnotice.html"/><ul xmlns:d="http://docbook.org/ns/docbook" class="docnav"><li class="previous"><a accesskey="p" href="ch04.html"><strong>Prev</strong>Chapter 4. Batch Processing</a></li><li class="up"><a accesskey="u" href="#"><strong>Up</strong></a></li><li class="home"><a accesskey="h" href="index.html"><strong>Home</strong></a></li><li class="next"><a accesskey="n" href="ch06.html"><strong>Next</strong>Chapter 6. Caching</a></li></ul></body></html>

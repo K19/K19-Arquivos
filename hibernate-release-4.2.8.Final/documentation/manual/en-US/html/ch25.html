@@ -1,0 +1,640 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml"><head><title>Chapter 25. Example: Various Mappings</title><link rel="stylesheet" type="text/css" href="css/hibernate.css"/><meta name="generator" content="DocBook XSL Stylesheets V1.76.1"/><link rel="home" href="index.html" title="HIBERNATE - Relational Persistence for Idiomatic Java"/><link rel="up" href="index.html" title="HIBERNATE - Relational Persistence for Idiomatic Java"/><link rel="prev" href="ch24.html" title="Chapter 24. Example: Weblog Application"/><link rel="next" href="ch26.html" title="Chapter 26. Best Practices"/><link rel="copyright" href="ln-d5e19.html" title="Legal Notice"/><meta xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" http-equiv="Content-Type" content="text/html; charset=UTF-8"/></head><body><p xmlns:d="http://docbook.org/ns/docbook" id="title"><a href="http://www.hibernate.org" class="site_href"><strong>Hibernate.org</strong></a><a href="http://hibernate.org/Documentation/DocumentationOverview" class="doc_href"><strong>Community Documentation</strong></a></p><ul xmlns:d="http://docbook.org/ns/docbook" class="docnav"><li class="previous"><a accesskey="p" href="ch24.html"><strong>Prev</strong></a></li><li class="next"><a accesskey="n" href="ch26.html"><strong>Next</strong></a></li></ul><div class="chapter" title="Chapter 25. Example: Various Mappings"><div class="titlepage"><div><div><h2 class="title"><a id="example-mappings"/>Chapter 25. Example: Various Mappings</h2></div></div></div><div class="toc"><p><strong>Table of Contents</strong></p><dl><dt><span class="section"><a href="ch25.html#example-mappings-emp">25.1. Employer/Employee</a></span></dt><dt><span class="section"><a href="ch25.html#example-mappings-authorwork">25.2. Author/Work</a></span></dt><dt><span class="section"><a href="ch25.html#example-mappings-customerorderproduct">25.3. Customer/Order/Product</a></span></dt><dt><span class="section"><a href="ch25.html#misc">25.4. Miscellaneous example mappings</a></span></dt><dd><dl><dt><span class="section"><a href="ch25.html#example-mappings-typed-onetone">25.4.1. "Typed" one-to-one association</a></span></dt><dt><span class="section"><a href="ch25.html#example-mappings-composite-key">25.4.2. Composite key example</a></span></dt><dt><span class="section"><a href="ch25.html#example-mappings-composite-key-manytomany">25.4.3. Many-to-many with shared composite key attribute</a></span></dt><dt><span class="section"><a href="ch25.html#example-mappings-content-discrimination">25.4.4. Content based discrimination</a></span></dt><dt><span class="section"><a href="ch25.html#example-mappings-association-alternatekeys">25.4.5. Associations on alternate keys</a></span></dt></dl></dd></dl></div>
+    
+   
+
+    <p>
+        This chapters explores some more complex association mappings.
+    </p>
+    
+    <div class="section" title="25.1. Employer/Employee"><div class="titlepage"><div><div><h2 class="title"><a id="example-mappings-emp"/>25.1. Employer/Employee</h2></div></div></div>
+        
+
+        <p>
+            The following model of the relationship between <code class="literal">Employer</code> and 
+            <code class="literal">Employee</code> uses an entity class (<code class="literal">Employment</code>) 
+            to represent the association. You can do this when there might be more than one
+            period of employment for the same two parties. Components are used to model monetary 
+            values and employee names.
+        </p>
+
+        <div class="mediaobject" align="center"><img src="images/EmployerEmployee.png" align="middle"/></div>
+        
+        <p>
+            Here is a possible mapping document:
+        </p>
+        
+        <pre xmlns="" xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="">&lt;hibernate-mapping&gt;
+        
+    &lt;class name="Employer" table="employers"&gt;
+        &lt;id name="id"&gt;
+            &lt;generator class="sequence"&gt;
+                &lt;param name="sequence"&gt;employer_id_seq&lt;/param&gt;
+            &lt;/generator&gt;
+        &lt;/id&gt;
+        &lt;property name="name"/&gt;
+    &lt;/class&gt;
+
+    &lt;class name="Employment" table="employment_periods"&gt;
+
+        &lt;id name="id"&gt;
+            &lt;generator class="sequence"&gt;
+                &lt;param name="sequence"&gt;employment_id_seq&lt;/param&gt;
+            &lt;/generator&gt;
+        &lt;/id&gt;
+        &lt;property name="startDate" column="start_date"/&gt;
+        &lt;property name="endDate" column="end_date"/&gt;
+
+        &lt;component name="hourlyRate" class="MonetaryAmount"&gt;
+            &lt;property name="amount"&gt;
+                &lt;column name="hourly_rate" sql-type="NUMERIC(12, 2)"/&gt;
+            &lt;/property&gt;
+            &lt;property name="currency" length="12"/&gt;
+        &lt;/component&gt;
+
+        &lt;many-to-one name="employer" column="employer_id" not-null="true"/&gt;
+        &lt;many-to-one name="employee" column="employee_id" not-null="true"/&gt;
+
+    &lt;/class&gt;
+
+    &lt;class name="Employee" table="employees"&gt;
+        &lt;id name="id"&gt;
+            &lt;generator class="sequence"&gt;
+                &lt;param name="sequence"&gt;employee_id_seq&lt;/param&gt;
+            &lt;/generator&gt;
+        &lt;/id&gt;
+        &lt;property name="taxfileNumber"/&gt;
+        &lt;component name="name" class="Name"&gt;
+            &lt;property name="firstName"/&gt;
+            &lt;property name="initial"/&gt;
+            &lt;property name="lastName"/&gt;
+        &lt;/component&gt;
+    &lt;/class&gt;
+
+&lt;/hibernate-mapping&gt;</pre>
+
+    <p>
+        Here is the table schema generated by <code class="literal">SchemaExport</code>.
+    </p>
+
+    <pre xmlns="" xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="">create table employers (
+    id BIGINT not null, 
+    name VARCHAR(255), 
+    primary key (id)
+)
+
+create table employment_periods (
+    id BIGINT not null,
+    hourly_rate NUMERIC(12, 2),
+    currency VARCHAR(12), 
+    employee_id BIGINT not null, 
+    employer_id BIGINT not null, 
+    end_date TIMESTAMP, 
+    start_date TIMESTAMP, 
+    primary key (id)
+)
+
+create table employees (
+    id BIGINT not null, 
+    firstName VARCHAR(255), 
+    initial CHAR(1), 
+    lastName VARCHAR(255), 
+    taxfileNumber VARCHAR(255), 
+    primary key (id)
+)
+
+alter table employment_periods 
+    add constraint employment_periodsFK0 foreign key (employer_id) references employers
+alter table employment_periods 
+    add constraint employment_periodsFK1 foreign key (employee_id) references employees
+create sequence employee_id_seq
+create sequence employment_id_seq
+create sequence employer_id_seq</pre>
+
+    </div>
+    
+    <div class="section" title="25.2. Author/Work"><div class="titlepage"><div><div><h2 class="title"><a id="example-mappings-authorwork"/>25.2. Author/Work</h2></div></div></div>
+        
+
+        <p>
+            Consider the following model of the relationships between <code class="literal">Work</code>,
+            <code class="literal">Author</code> and <code class="literal">Person</code>. In the example, the relationship
+            between <code class="literal">Work</code> and <code class="literal">Author</code> is represented as a many-to-many
+            association and the relationship between <code class="literal">Author</code> 
+            and <code class="literal">Person</code> is represented as one-to-one association. Another possibility would be to 
+            have <code class="literal">Author</code> extend <code class="literal">Person</code>.  
+        </p>
+
+        <div class="mediaobject" align="center"><img src="images/AuthorWork.png" align="middle"/></div>
+        
+        <p>
+            The following mapping document correctly represents these relationships:
+        </p>
+        
+        <pre xmlns="" xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="">&lt;hibernate-mapping&gt;
+
+    &lt;class name="Work" table="works" discriminator-value="W"&gt;
+
+        &lt;id name="id" column="id"&gt;
+            &lt;generator class="native"/&gt;
+        &lt;/id&gt;
+        &lt;discriminator column="type" type="character"/&gt;
+
+        &lt;property name="title"/&gt;
+        &lt;set name="authors" table="author_work"&gt;
+            &lt;key column name="work_id"/&gt;
+            &lt;many-to-many class="Author" column name="author_id"/&gt;
+        &lt;/set&gt;
+
+        &lt;subclass name="Book" discriminator-value="B"&gt;
+            &lt;property name="text"/&gt;
+        &lt;/subclass&gt;
+
+        &lt;subclass name="Song" discriminator-value="S"&gt;
+            &lt;property name="tempo"/&gt;
+            &lt;property name="genre"/&gt;
+        &lt;/subclass&gt;
+
+    &lt;/class&gt;
+
+    &lt;class name="Author" table="authors"&gt;
+
+        &lt;id name="id" column="id"&gt;
+            &lt;!-- The Author must have the same identifier as the Person --&gt;
+            &lt;generator class="assigned"/&gt; 
+        &lt;/id&gt;
+
+        &lt;property name="alias"/&gt;
+        &lt;one-to-one name="person" constrained="true"/&gt;
+
+        &lt;set name="works" table="author_work" inverse="true"&gt;
+            &lt;key column="author_id"/&gt;
+            &lt;many-to-many class="Work" column="work_id"/&gt;
+        &lt;/set&gt;
+
+    &lt;/class&gt;
+
+    &lt;class name="Person" table="persons"&gt;
+        &lt;id name="id" column="id"&gt;
+            &lt;generator class="native"/&gt;
+        &lt;/id&gt;
+        &lt;property name="name"/&gt;
+    &lt;/class&gt;
+
+&lt;/hibernate-mapping&gt;</pre>
+
+    <p>
+        There are four tables in this mapping: <code class="literal">works</code>,
+        <code class="literal">authors</code> and <code class="literal">persons</code> hold work, author
+        and person data respectively. <code class="literal">author_work</code> is an association
+        table linking authors to works. Here is the table schema, as generated by
+        <code class="literal">SchemaExport</code>:
+    </p>
+
+    <pre xmlns="" xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="">create table works (
+    id BIGINT not null generated by default as identity, 
+    tempo FLOAT, 
+    genre VARCHAR(255), 
+    text INTEGER, 
+    title VARCHAR(255), 
+    type CHAR(1) not null, 
+    primary key (id)
+)
+
+create table author_work (
+    author_id BIGINT not null, 
+    work_id BIGINT not null, 
+    primary key (work_id, author_id)
+)
+
+create table authors (
+    id BIGINT not null generated by default as identity, 
+    alias VARCHAR(255), 
+    primary key (id)
+)
+
+create table persons (
+    id BIGINT not null generated by default as identity, 
+    name VARCHAR(255), 
+    primary key (id)
+)
+
+alter table authors 
+    add constraint authorsFK0 foreign key (id) references persons
+alter table author_work 
+    add constraint author_workFK0 foreign key (author_id) references authors
+alter table author_work
+    add constraint author_workFK1 foreign key (work_id) references works</pre>
+
+    </div>
+
+    <div class="section" title="25.3. Customer/Order/Product"><div class="titlepage"><div><div><h2 class="title"><a id="example-mappings-customerorderproduct"/>25.3. Customer/Order/Product</h2></div></div></div>
+        
+
+        <p>
+            In this section we consider a model of the relationships between <code class="literal">Customer</code>,
+            <code class="literal">Order</code>, <code class="literal">Line Item</code> and <code class="literal">Product</code>.
+            There is a one-to-many association between <code class="literal">Customer</code> and
+            <code class="literal">Order</code>, but how can you represent <code class="literal">Order</code> / 
+            <code class="literal">LineItem</code> / <code class="literal">Product</code>? In the example, 
+            <code class="literal">LineItem</code> is mapped as an association class representing the many-to-many
+            association between <code class="literal">Order</code> and <code class="literal">Product</code>. In
+            Hibernate this is called a composite element.
+        </p>
+
+        <div class="mediaobject" align="center"><img src="images/CustomerOrderProduct.png" align="middle"/></div>
+        
+        <p>
+            The mapping document will look like this:
+        </p>
+        
+        <pre xmlns="" xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="">&lt;hibernate-mapping&gt;
+
+    &lt;class name="Customer" table="customers"&gt;
+        &lt;id name="id"&gt;
+            &lt;generator class="native"/&gt;
+        &lt;/id&gt;
+        &lt;property name="name"/&gt;
+        &lt;set name="orders" inverse="true"&gt;
+            &lt;key column="customer_id"/&gt;
+            &lt;one-to-many class="Order"/&gt;
+        &lt;/set&gt;
+    &lt;/class&gt;
+
+    &lt;class name="Order" table="orders"&gt;
+        &lt;id name="id"&gt;
+            &lt;generator class="native"/&gt;
+        &lt;/id&gt;
+        &lt;property name="date"/&gt;
+        &lt;many-to-one name="customer" column="customer_id"/&gt;
+        &lt;list name="lineItems" table="line_items"&gt;
+            &lt;key column="order_id"/&gt;
+            &lt;list-index column="line_number"/&gt;
+            &lt;composite-element class="LineItem"&gt;
+                &lt;property name="quantity"/&gt;
+                &lt;many-to-one name="product" column="product_id"/&gt;
+            &lt;/composite-element&gt;
+        &lt;/list&gt;
+    &lt;/class&gt;
+
+    &lt;class name="Product" table="products"&gt;
+        &lt;id name="id"&gt;
+            &lt;generator class="native"/&gt;
+        &lt;/id&gt;
+        &lt;property name="serialNumber"/&gt;
+    &lt;/class&gt;
+
+&lt;/hibernate-mapping&gt;</pre>
+
+    <p>
+        <code class="literal">customers</code>, <code class="literal">orders</code>, <code class="literal">line_items</code> and 
+        <code class="literal">products</code> hold customer, order, order line item and product data
+        respectively. <code class="literal">line_items</code> also acts as an association table linking
+        orders with products.
+    </p>
+
+    <pre xmlns="" xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="">create table customers (
+    id BIGINT not null generated by default as identity, 
+    name VARCHAR(255), 
+    primary key (id)
+)
+
+create table orders (
+    id BIGINT not null generated by default as identity, 
+    customer_id BIGINT, 
+    date TIMESTAMP, 
+    primary key (id)
+)
+
+create table line_items (
+    line_number INTEGER not null, 
+    order_id BIGINT not null, 
+    product_id BIGINT, 
+    quantity INTEGER, 
+    primary key (order_id, line_number)
+)
+
+create table products (
+    id BIGINT not null generated by default as identity, 
+    serialNumber VARCHAR(255), 
+    primary key (id)
+)
+
+alter table orders 
+    add constraint ordersFK0 foreign key (customer_id) references customers
+alter table line_items
+    add constraint line_itemsFK0 foreign key (product_id) references products
+alter table line_items
+    add constraint line_itemsFK1 foreign key (order_id) references orders</pre>
+
+    </div>
+    
+    <div class="section" title="25.4. Miscellaneous example mappings"><div class="titlepage"><div><div><h2 class="title"><a id="misc"/>25.4. Miscellaneous example mappings</h2></div></div></div>
+        
+        
+        <p>
+            These examples are available from the Hibernate test suite. You
+            will find many other useful example mappings there by searching in the
+            <code class="literal">test</code> folder of the Hibernate distribution.
+        </p>
+        
+      
+        
+        <div class="section" title="25.4.1. &#34;Typed&#34; one-to-one association"><div class="titlepage"><div><div><h3 class="title"><a id="example-mappings-typed-onetone"/>25.4.1. "Typed" one-to-one association</h3></div></div></div>
+            
+<pre xmlns="" xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="">&lt;class name="Person"&gt;
+    &lt;id name="name"/&gt;
+    &lt;one-to-one name="address" 
+            cascade="all"&gt;
+        &lt;formula&gt;name&lt;/formula&gt;
+        &lt;formula&gt;'HOME'&lt;/formula&gt;
+    &lt;/one-to-one&gt;
+    &lt;one-to-one name="mailingAddress" 
+            cascade="all"&gt;
+        &lt;formula&gt;name&lt;/formula&gt;
+        &lt;formula&gt;'MAILING'&lt;/formula&gt;
+    &lt;/one-to-one&gt;
+&lt;/class&gt;
+
+&lt;class name="Address" batch-size="2" 
+        check="addressType in ('MAILING', 'HOME', 'BUSINESS')"&gt;
+    &lt;composite-id&gt;
+        &lt;key-many-to-one name="person" 
+                column="personName"/&gt;
+        &lt;key-property name="type" 
+                column="addressType"/&gt;
+    &lt;/composite-id&gt;
+    &lt;property name="street" type="text"/&gt;
+    &lt;property name="state"/&gt;
+    &lt;property name="zip"/&gt;
+&lt;/class&gt;</pre>
+        </div>
+        
+        <div class="section" title="25.4.2. Composite key example"><div class="titlepage"><div><div><h3 class="title"><a id="example-mappings-composite-key"/>25.4.2. Composite key example</h3></div></div></div>
+            
+<pre xmlns="" xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="">&lt;class name="Customer"&gt;
+
+    &lt;id name="customerId"
+        length="10"&gt;
+        &lt;generator class="assigned"/&gt;
+    &lt;/id&gt;
+
+    &lt;property name="name" not-null="true" length="100"/&gt;
+    &lt;property name="address" not-null="true" length="200"/&gt;
+
+    &lt;list name="orders"
+            inverse="true"
+            cascade="save-update"&gt;
+        &lt;key column="customerId"/&gt;
+        &lt;index column="orderNumber"/&gt;
+        &lt;one-to-many class="Order"/&gt;
+    &lt;/list&gt;
+
+&lt;/class&gt;
+
+&lt;class name="Order" table="CustomerOrder" lazy="true"&gt;
+    &lt;synchronize table="LineItem"/&gt;
+    &lt;synchronize table="Product"/&gt;
+    
+    &lt;composite-id name="id" 
+            class="Order$Id"&gt;
+        &lt;key-property name="customerId" length="10"/&gt;
+        &lt;key-property name="orderNumber"/&gt;
+    &lt;/composite-id&gt;
+    
+    &lt;property name="orderDate" 
+            type="calendar_date"
+            not-null="true"/&gt;
+    
+    &lt;property name="total"&gt;
+        &lt;formula&gt;
+            ( select sum(li.quantity*p.price) 
+            from LineItem li, Product p 
+            where li.productId = p.productId 
+                and li.customerId = customerId 
+                and li.orderNumber = orderNumber )
+        &lt;/formula&gt;
+    &lt;/property&gt;
+    
+    &lt;many-to-one name="customer"
+            column="customerId"
+            insert="false"
+            update="false" 
+            not-null="true"/&gt;
+        
+    &lt;bag name="lineItems"
+            fetch="join" 
+            inverse="true"
+            cascade="save-update"&gt;
+        &lt;key&gt;
+            &lt;column name="customerId"/&gt;
+            &lt;column name="orderNumber"/&gt;
+        &lt;/key&gt;
+        &lt;one-to-many class="LineItem"/&gt;
+    &lt;/bag&gt;
+    
+&lt;/class&gt;
+    
+&lt;class name="LineItem"&gt;
+    
+    &lt;composite-id name="id" 
+            class="LineItem$Id"&gt;
+        &lt;key-property name="customerId" length="10"/&gt;
+        &lt;key-property name="orderNumber"/&gt;
+        &lt;key-property name="productId" length="10"/&gt;
+    &lt;/composite-id&gt;
+    
+    &lt;property name="quantity"/&gt;
+    
+    &lt;many-to-one name="order"
+            insert="false"
+            update="false" 
+            not-null="true"&gt;
+        &lt;column name="customerId"/&gt;
+        &lt;column name="orderNumber"/&gt;
+    &lt;/many-to-one&gt;
+    
+    &lt;many-to-one name="product"
+            insert="false"
+            update="false" 
+            not-null="true"
+            column="productId"/&gt;
+        
+&lt;/class&gt;
+
+&lt;class name="Product"&gt;
+    &lt;synchronize table="LineItem"/&gt;
+
+    &lt;id name="productId"
+        length="10"&gt;
+        &lt;generator class="assigned"/&gt;
+    &lt;/id&gt;
+    
+    &lt;property name="description" 
+        not-null="true" 
+        length="200"/&gt;
+    &lt;property name="price" length="3"/&gt;
+    &lt;property name="numberAvailable"/&gt;
+    
+    &lt;property name="numberOrdered"&gt;
+        &lt;formula&gt;
+            ( select sum(li.quantity) 
+            from LineItem li 
+            where li.productId = productId )
+        &lt;/formula&gt;
+    &lt;/property&gt;
+    
+&lt;/class&gt;</pre>
+        </div>
+        
+        <div class="section" title="25.4.3. Many-to-many with shared composite key attribute"><div class="titlepage"><div><div><h3 class="title"><a id="example-mappings-composite-key-manytomany"/>25.4.3. Many-to-many with shared composite key attribute</h3></div></div></div>
+            
+<pre xmlns="" xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="">&lt;class name="User" table="`User`"&gt;
+    &lt;composite-id&gt;
+        &lt;key-property name="name"/&gt;
+        &lt;key-property name="org"/&gt;
+    &lt;/composite-id&gt;
+    &lt;set name="groups" table="UserGroup"&gt;
+        &lt;key&gt;
+            &lt;column name="userName"/&gt;
+            &lt;column name="org"/&gt;
+        &lt;/key&gt;
+        &lt;many-to-many class="Group"&gt;
+            &lt;column name="groupName"/&gt;
+            &lt;formula&gt;org&lt;/formula&gt;
+        &lt;/many-to-many&gt;
+    &lt;/set&gt;
+&lt;/class&gt;
+    
+&lt;class name="Group" table="`Group`"&gt;
+    &lt;composite-id&gt;
+        &lt;key-property name="name"/&gt;
+        &lt;key-property name="org"/&gt;
+    &lt;/composite-id&gt;
+    &lt;property name="description"/&gt;
+    &lt;set name="users" table="UserGroup" inverse="true"&gt;
+        &lt;key&gt;
+            &lt;column name="groupName"/&gt;
+            &lt;column name="org"/&gt;
+        &lt;/key&gt;
+        &lt;many-to-many class="User"&gt;
+            &lt;column name="userName"/&gt;
+            &lt;formula&gt;org&lt;/formula&gt;
+        &lt;/many-to-many&gt;
+    &lt;/set&gt;
+&lt;/class&gt;
+</pre>
+        </div>
+
+        <div class="section" title="25.4.4. Content based discrimination"><div class="titlepage"><div><div><h3 class="title"><a id="example-mappings-content-discrimination"/>25.4.4. Content based discrimination</h3></div></div></div>
+            
+<pre xmlns="" xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="">&lt;class name="Person"
+    discriminator-value="P"&gt;
+    
+    &lt;id name="id" 
+        column="person_id" 
+        unsaved-value="0"&gt;
+        &lt;generator class="native"/&gt;
+    &lt;/id&gt;
+    
+            
+    &lt;discriminator 
+        type="character"&gt;
+        &lt;formula&gt;
+            case 
+                when title is not null then 'E' 
+                when salesperson is not null then 'C' 
+                else 'P' 
+            end
+        &lt;/formula&gt;
+    &lt;/discriminator&gt;
+
+    &lt;property name="name" 
+        not-null="true"
+        length="80"/&gt;
+        
+    &lt;property name="sex" 
+        not-null="true"
+        update="false"/&gt;
+    
+    &lt;component name="address"&gt;
+        &lt;property name="address"/&gt;
+        &lt;property name="zip"/&gt;
+        &lt;property name="country"/&gt;
+    &lt;/component&gt;
+    
+    &lt;subclass name="Employee" 
+        discriminator-value="E"&gt;
+            &lt;property name="title"
+                length="20"/&gt;
+            &lt;property name="salary"/&gt;
+            &lt;many-to-one name="manager"/&gt;
+    &lt;/subclass&gt;
+    
+    &lt;subclass name="Customer" 
+        discriminator-value="C"&gt;
+            &lt;property name="comments"/&gt;
+            &lt;many-to-one name="salesperson"/&gt;
+    &lt;/subclass&gt;
+    
+&lt;/class&gt;</pre>
+        </div>
+
+        <div class="section" title="25.4.5. Associations on alternate keys"><div class="titlepage"><div><div><h3 class="title"><a id="example-mappings-association-alternatekeys"/>25.4.5. Associations on alternate keys</h3></div></div></div>
+            
+<pre xmlns="" xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="">&lt;class name="Person"&gt;
+    
+    &lt;id name="id"&gt;
+        &lt;generator class="hilo"/&gt;
+    &lt;/id&gt;
+    
+    &lt;property name="name" length="100"/&gt;
+    
+    &lt;one-to-one name="address" 
+        property-ref="person"
+        cascade="all"
+        fetch="join"/&gt;
+    
+    &lt;set name="accounts" 
+        inverse="true"&gt;
+        &lt;key column="userId"
+            property-ref="userId"/&gt;
+        &lt;one-to-many class="Account"/&gt;
+    &lt;/set&gt;
+    
+    &lt;property name="userId" length="8"/&gt;
+
+&lt;/class&gt;
+
+&lt;class name="Address"&gt;
+
+    &lt;id name="id"&gt;
+        &lt;generator class="hilo"/&gt;
+    &lt;/id&gt;
+
+    &lt;property name="address" length="300"/&gt;
+    &lt;property name="zip" length="5"/&gt;
+    &lt;property name="country" length="25"/&gt;
+    &lt;many-to-one name="person" unique="true" not-null="true"/&gt;
+
+&lt;/class&gt;
+
+&lt;class name="Account"&gt;
+    &lt;id name="accountId" length="32"&gt;
+        &lt;generator class="uuid"/&gt;
+    &lt;/id&gt;
+    
+    &lt;many-to-one name="user"
+        column="userId"
+        property-ref="userId"/&gt;
+    
+    &lt;property name="type" not-null="true"/&gt;
+    
+&lt;/class&gt;</pre>
+        </div>
+
+    </div>
+
+</div><hr xmlns="" xmlns:d="http://docbook.org/ns/docbook"/><a xmlns="" xmlns:d="http://docbook.org/ns/docbook" href="legalnotice.html"/><ul xmlns:d="http://docbook.org/ns/docbook" class="docnav"><li class="previous"><a accesskey="p" href="ch24.html"><strong>Prev</strong>Chapter 24. Example: Weblog Application</a></li><li class="up"><a accesskey="u" href="#"><strong>Up</strong></a></li><li class="home"><a accesskey="h" href="index.html"><strong>Home</strong></a></li><li class="next"><a accesskey="n" href="ch26.html"><strong>Next</strong>Chapter 26. Best Practices</a></li></ul></body></html>

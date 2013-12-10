@@ -1,0 +1,351 @@
+apply plugin: 'eclipse'
+apply plugin: 'idea'
+apply from: "./libraries.gradle"
+allprojects {
+    repositories {
+    	mavenCentral()
+    	mavenLocal()
+        mavenRepo name: 'jboss-nexus', url: "http://repository.jboss.org/nexus/content/groups/public/"
+        mavenRepo name: "jboss-snapshots", url: "http://snapshots.jboss.org/maven2/"
+    }
+}
+
+buildscript {
+    repositories {
+	    mavenCentral()
+	    mavenLocal()
+        mavenRepo name: 'jboss-nexus', url: "http://repository.jboss.org/nexus/content/groups/public/"
+        mavenRepo name: "jboss-snapshots", url: "http://snapshots.jboss.org/maven2/"
+    }
+    dependencies {
+        classpath 'org.hibernate.build.gradle:gradle-upload-auth-plugin:1.1.1'
+    }
+}
+
+idea {
+    project {
+        languageLevel = "1.6"
+        ipr {
+            withXml { provider ->
+                provider.node.component.find { it.@name == 'VcsDirectoryMappings' }.mapping.@vcs = 'Git'
+                def maxHeapSizeConfig =  provider.node.component.find { it.@name == 'JavacSettings' }
+                if( maxHeapSizeConfig == null ){
+                    def javacSettingsNode =  provider.node.appendNode('component',[name: 'JavacSettings'])
+                    javacSettingsNode.appendNode('option', [name:"MAXIMUM_HEAP_SIZE", value:"512"])
+                }
+            }
+            beforeMerged { project ->
+                project.modulePaths.clear()
+            }
+        }
+    }
+    module {
+        name = "hibernate-orm"
+    }
+}
+
+subprojects { subProject ->
+    apply plugin: 'idea'
+    apply plugin: 'eclipse'
+
+    defaultTasks 'build'
+
+    group = 'org.hibernate'
+    version = '4.2.8.Final'
+    
+    // The OSGi manifest exported package versions need to be only the numerical release -- no "SNAPSHOT" or "Final"
+    exportPackageVersion = version.replaceAll("-SNAPSHOT", "");
+    exportPackageVersion = exportPackageVersion.replaceAll(".Final", "");
+
+    // minimize changes, at least for now (gradle uses 'build' by default)..
+    buildDir = "target"
+    if ( ! subProject.name.startsWith( 'release' )  && ! subProject.name.startsWith( 'documentation' ) ) {
+        apply plugin: 'java'
+        apply plugin: 'maven' // for install task as well as deploy dependencies
+        apply plugin: 'uploadAuth'
+        apply plugin: 'osgi'
+        apply from: "../utilities.gradle"
+
+        configurations {
+            provided {
+                // todo : need to make sure these are non-exported
+                description = 'Non-exported compile-time dependencies.'
+            }
+            jbossLoggingTool {
+                description = "Dependencies for running the JBoss logging AnnotationProcessor tool"
+            }
+            hibernateJpaModelGenTool {
+                description = "Dependencies for running the Hibernate JPA Metamodel Generator AnnotationProcessor tool"
+            }
+            deployerJars {
+                description = 'Jars needed for doing deployment to JBoss Nexus repo'
+            }
+            jaxb {
+                description = 'Dependencies for running ant xjc (jaxb class generation)'
+            }
+            configurations {
+                all*.exclude group: 'xml-apis', module: 'xml-apis'
+            }
+
+        }
+
+        ext.toolsJar = file("${System.getProperty('java.home')}/../lib/tools.jar")
+        // appropriately inject the common dependencies into each sub-project
+        dependencies {
+            compile( libraries.logging )
+            testCompile( libraries.junit )
+            testCompile( libraries.byteman )
+            testCompile( libraries.byteman_install )
+            testCompile( libraries.byteman_bmunit )
+            
+            testRuntime( libraries.slf4j_api )
+            testRuntime( libraries.slf4j_log4j12 )
+            testRuntime( libraries.jcl_slf4j )
+            testRuntime( libraries.jcl_api )
+            testRuntime( libraries.jcl )
+            testRuntime( libraries.javassist )
+            testRuntime( libraries.h2 )
+            jbossLoggingTool( libraries.logging_processor )
+            hibernateJpaModelGenTool( libraries.jpa_modelgen )
+            jaxb( libraries.jaxb ){exclude group: "javax.xml.stream"}
+            jaxb( libraries.jaxb2_basics )
+            jaxb( libraries.jaxb2_ant )
+            deployerJars "org.apache.maven.wagon:wagon-http:1.0"
+        }
+		if(ext.toolsJar.exists()){
+		    dependencies{
+		        testCompile files( toolsJar )
+		    }
+		}
+        ext.aptDumpDir = file( "${buildDir}/tmp/apt" )
+
+        sourceSets.main {
+            compileClasspath += configurations.provided
+        }
+
+        sourceSets.all {
+            ext.originalJavaSrcDirs = java.srcDirs
+            ext.generatedLoggingSrcDir = file( "${buildDir}/generated-src/logging/${name}" )
+            java.srcDir generatedLoggingSrcDir
+        }
+
+        task generateMainLoggingClasses(type: JavaCompile) {
+            classpath = compileJava.classpath + configurations.jbossLoggingTool
+            source = sourceSets.main.originalJavaSrcDirs
+            destinationDir = aptDumpDir
+            options.define(
+                    compilerArgs: [
+                            "-nowarn",
+                            "-proc:only",
+                            "-encoding", "UTF-8",
+                            "-processor", "org.jboss.logging.processor.apt.LoggingToolsProcessor",
+                            "-s", "$sourceSets.main.generatedLoggingSrcDir.absolutePath",
+                            "-AloggingVersion=3.0",
+                            "-source", "1.6",
+                            "-target", "1.6",
+                            "-AtranslationFilesPath=${project.rootDir}/src/main/resources"
+
+                    ]
+            );
+            outputs.dir sourceSets.main.generatedLoggingSrcDir;
+            doFirst {
+                source = sourceSets.main.originalJavaSrcDirs
+                sourceSets.main.generatedLoggingSrcDir.mkdirs()
+            }
+        }
+
+        // for the time being eat the annoying output from running the annotation processors
+        generateMainLoggingClasses.logging.captureStandardError(LogLevel.INFO)
+
+	task generateSources( type: Task )
+        generateSources.dependsOn generateMainLoggingClasses
+
+        compileJava.dependsOn generateMainLoggingClasses
+        compileJava.options.define(compilerArgs: ["-proc:none", "-encoding", "UTF-8"])
+        compileTestJava.options.define(compilerArgs: ["-proc:none", "-encoding", "UTF-8"])
+
+        jar {
+            Set<String> exportPackages = new HashSet<String>()
+            Set<String> privatePackages = new HashSet<String>()
+            
+            // TODO: Could more of this be pulled into utilities.gradle?
+            sourceSets.each { SourceSet sourceSet ->
+                        // skip certain source sets
+                        if ( ! ['test','matrix'].contains( sourceSet.name ) ) {
+                            sourceSet.java.each { javaFile ->
+                                // - .util for external module use (especially envers)
+                                final String[] temporaryExports = [
+                                    'org.hibernate.internal.util' ]
+                            
+                                final String packageName = determinePackageName( sourceSet.java, javaFile );
+                                if ( ! temporaryExports.contains( packageName )
+                                        && ( packageName.endsWith( ".internal" )
+                                        || packageName.contains( ".internal." )
+                                        || packageName.endsWith( ".test" )
+                                        || packageName.contains( ".test." ) ) ) {
+                                    privatePackages.add( packageName );
+                                }
+                                else {
+                            		exportPackages.add( packageName + ";version=\"" + exportPackageVersion + "\"" );
+                                }
+                            }
+                        }
+                    }
+
+            manifest = osgiManifest {
+                // GRADLE-1411: Even if we override Imports and Exports
+                // auto-generation with instructions, classesDir and classpath
+                // need to be here (temporarily).
+                classesDir = sourceSets.main.output.classesDir
+                classpath = configurations.runtime
+                
+                instruction 'Export-Package', exportPackages.toArray(new String[0])
+                instruction 'Private-Package', privatePackages.toArray(new String[0])
+                instruction 'Bundle-Vendor', 'Hibernate.org'
+                
+                instruction 'Implementation-Url', 'http://hibernate.org'
+                instruction 'Implementation-Version', version
+                instruction 'Implementation-Vendor', 'Hibernate.org'
+                instruction 'Implementation-Vendor-Id', 'org.hibernate'
+            }
+        }
+
+        test {
+            // pass along command line defined system props (-D) to the test
+            //      pretty sure I used to have this limited to just certain prefixes, but that is no longer here
+            //      and  I no longer remember that groovy-magic needed to accomplish that
+            // TODO: Temporarily removing -- was causing issues with
+            // entitymanager tests.
+            //systemProperties = System.properties
+            systemProperties['hibernate.test.validatefailureexpected'] = true
+            maxHeapSize = "1024m"
+        }
+
+
+
+        processTestResources.doLast( {
+            copy {
+                from( sourceSets.test.java.srcDirs ) {
+                    include '**/*.properties'
+                    include '**/*.xml'
+                }
+                into sourceSets.test.output.classesDir
+            }
+        } )
+
+        assemble.doLast( { install } )
+        uploadArchives.dependsOn install
+
+        targetCompatibility = "1.6"
+        sourceCompatibility = "1.6"
+
+        idea {
+            module {
+                iml {
+                    beforeMerged { module ->
+                        module.dependencies.clear()
+                        module.excludeFolders.clear()
+                    }
+                    whenMerged { module ->
+                        module.dependencies*.exported = true
+                        module.excludeFolders += module.pathFactory.path(file(".gradle"))
+                        module.excludeFolders += module.pathFactory.path(file("$buildDir/bundles"))
+                        module.excludeFolders += module.pathFactory.path(file("$buildDir/classes"))
+                        module.excludeFolders += module.pathFactory.path(file("$buildDir/dependency-cache"))
+                        module.excludeFolders += module.pathFactory.path(file("$buildDir/libs"))
+                        module.excludeFolders += module.pathFactory.path(file("$buildDir/reports"))
+                        module.excludeFolders += module.pathFactory.path(file("$buildDir/test-results"))
+                        module.excludeFolders += module.pathFactory.path(file("$buildDir/tmp"))
+                        module.excludeFolders += module.pathFactory.path(file("$buildDir/matrix"))
+                        module.excludeFolders += module.pathFactory.path(file("$buildDir/resources"))
+                        module.excludeFolders -= module.pathFactory.path(file("$buildDir"))
+                    }
+                }
+                downloadSources = true
+                scopes.COMPILE.plus += configurations.provided
+            }
+        }
+
+        eclipse {
+            classpath {
+                plusConfigurations.add( configurations.provided )
+            }
+        }
+	// eclipseClasspath will not add sources to classpath unless the dirs actually exist.
+	eclipseClasspath.dependsOn("generateSources")
+
+        // elements used to customize the generated POM used during upload
+        def pomConfig = {
+            name 'A Hibernate O/RM Module'
+            description 'A module of the Hibernate O/RM project'
+            url 'http://hibernate.org'
+            organization {
+                name 'Hibernate.org'
+                url 'http://hibernate.org'
+            }
+            issueManagement {
+                system 'jira'
+                url 'http://opensource.atlassian.com/projects/hibernate/browse/HHH'
+            }
+            scm {
+                url "http://github.com/hibernate/hibernate-core"
+                connection "scm:git:http://github.com/hibernate/hibernate-core.git"
+                developerConnection "scm:git:git@github.com:hibernate/hibernate-core.git"
+            }
+            licenses {
+                license {
+                    name 'GNU Lesser General Public License'
+                    url 'http://www.gnu.org/licenses/lgpl-2.1.html'
+                    comments 'See discussion at http://hibernate.org/license for more details.'
+                    distribution 'repo'
+                }
+            }
+            developers {
+                developer {
+                    id 'hibernate-team'
+                    name 'The Hibernate Development Team'
+                    organization 'Hibernate.org'
+                    organizationUrl 'http://hibernate.org'
+                }
+            }
+        }
+
+        subProject.ext.basePomConfig = pomConfig
+
+        configure(install.repositories.mavenInstaller) {
+            pom.project pomConfig
+        }
+
+        uploadArchives {
+            repositories.mavenDeployer {
+                name = 'jbossDeployer'
+                configuration = configurations.deployerJars
+                pom.project pomConfig
+                repository(id: "jboss-releases-repository", url: "https://repository.jboss.org/nexus/service/local/staging/deploy/maven2/")
+                snapshotRepository(id: "jboss-snapshots-repository", url: "https://repository.jboss.org/nexus/content/repositories/snapshots")
+            }
+        }
+
+        task sourcesJar(type: Jar, dependsOn: compileJava) {
+            from sourceSets.main.allSource
+            classifier = 'sources'
+        }
+
+        artifacts {
+            archives sourcesJar
+        }
+
+        uploadArchives.dependsOn sourcesJar
+    }
+
+}
+
+// This is a task that generates the gradlew scripts, allowing users to run gradle without having gradle installed
+// on their system.
+// This task should be run by "build master" and the resulting output committed to source control.  Its outputs include:
+//  1) /gradlew which is the *NIX shell script for executing builds
+//  2) /gradlew.bat which is the windows bat script for for executing builds
+//  3) /wrapper which is a directory named by the "jarPath" config which contains other needed files.
+task wrapper(type: Wrapper) {
+    gradleVersion = '1.9'
+}

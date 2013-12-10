@@ -1,0 +1,526 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml"><head><title>Chapter 17. Criteria Queries</title><link rel="stylesheet" type="text/css" href="css/hibernate.css"/><meta name="generator" content="DocBook XSL Stylesheets V1.76.1"/><link rel="home" href="index.html" title="HIBERNATE - Relational Persistence for Idiomatic Java"/><link rel="up" href="index.html" title="HIBERNATE - Relational Persistence for Idiomatic Java"/><link rel="prev" href="ch16.html" title="Chapter 16. HQL: The Hibernate Query Language"/><link rel="next" href="ch18.html" title="Chapter 18. Native SQL"/><link rel="copyright" href="ln-d5e19.html" title="Legal Notice"/><meta xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" http-equiv="Content-Type" content="text/html; charset=UTF-8"/></head><body><p xmlns:d="http://docbook.org/ns/docbook" id="title"><a href="http://www.hibernate.org" class="site_href"><strong>Hibernate.org</strong></a><a href="http://hibernate.org/Documentation/DocumentationOverview" class="doc_href"><strong>Community Documentation</strong></a></p><ul xmlns:d="http://docbook.org/ns/docbook" class="docnav"><li class="previous"><a accesskey="p" href="ch16.html"><strong>Prev</strong></a></li><li class="next"><a accesskey="n" href="ch18.html"><strong>Next</strong></a></li></ul><div class="chapter" title="Chapter 17. Criteria Queries"><div class="titlepage"><div><div><h2 class="title"><a id="querycriteria"/>Chapter 17. Criteria Queries</h2></div></div></div><div class="toc"><p><strong>Table of Contents</strong></p><dl><dt><span class="section"><a href="ch17.html#querycriteria-creating">17.1. Creating a <code class="literal">Criteria</code> instance</a></span></dt><dt><span class="section"><a href="ch17.html#querycriteria-narrowing">17.2. Narrowing the result set</a></span></dt><dt><span class="section"><a href="ch17.html#querycriteria-ordering">17.3. Ordering the results</a></span></dt><dt><span class="section"><a href="ch17.html#querycriteria-associations">17.4. Associations</a></span></dt><dt><span class="section"><a href="ch17.html#querycriteria-dynamicfetching">17.5. Dynamic association fetching</a></span></dt><dt><span class="section"><a href="ch17.html#querycriteria-components">17.6. Components</a></span></dt><dt><span class="section"><a href="ch17.html#querycriteria-collections">17.7. Collections</a></span></dt><dt><span class="section"><a href="ch17.html#querycriteria-examples">17.8. Example queries</a></span></dt><dt><span class="section"><a href="ch17.html#querycriteria-projection">17.9. Projections, aggregation and grouping</a></span></dt><dt><span class="section"><a href="ch17.html#querycriteria-detachedqueries">17.10. Detached queries and subqueries</a></span></dt><dt><span class="section"><a href="ch17.html#query-criteria-naturalid">17.11. Queries by natural identifier</a></span></dt></dl></div>
+    
+
+    <p>
+        Hibernate features an intuitive, extensible criteria query API.
+    </p>
+    
+    <div class="section" title="17.1. Creating a Criteria instance"><div class="titlepage"><div><div><h2 class="title"><a id="querycriteria-creating"/>17.1. Creating a <code class="literal">Criteria</code> instance</h2></div></div></div>
+        
+
+        <p>
+            The interface <code class="literal">org.hibernate.Criteria</code> represents a query against
+            a particular persistent class. The <code class="literal">Session</code> is a factory for
+            <code class="literal">Criteria</code> instances.
+        </p>
+
+        <pre xmlns="" xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="">Criteria crit = sess.createCriteria(Cat.class);
+crit.setMaxResults(50);
+List cats = crit.list();</pre>
+
+    </div>
+     
+    <div class="section" title="17.2. Narrowing the result set"><div class="titlepage"><div><div><h2 class="title"><a id="querycriteria-narrowing"/>17.2. Narrowing the result set</h2></div></div></div>
+        
+
+        <p>
+            An individual query criterion is an instance of the interface
+            <code class="literal">org.hibernate.criterion.Criterion</code>. The class
+            <code class="literal">org.hibernate.criterion.Restrictions</code> defines
+            factory methods for obtaining certain built-in
+            <code class="literal">Criterion</code> types.
+        </p>
+
+        <pre xmlns="" xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="">List cats = sess.createCriteria(Cat.class)
+    .add( Restrictions.like("name", "Fritz%") )
+    .add( Restrictions.between("weight", minWeight, maxWeight) )
+    .list();</pre>
+    
+        <p>
+            Restrictions can be grouped logically.
+        </p>
+
+        <pre xmlns="" xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="">List cats = sess.createCriteria(Cat.class)
+    .add( Restrictions.like("name", "Fritz%") )
+    .add( Restrictions.or(
+        Restrictions.eq( "age", new Integer(0) ),
+        Restrictions.isNull("age")
+    ) )
+    .list();</pre>
+    
+       <pre xmlns="" xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="">List cats = sess.createCriteria(Cat.class)
+    .add( Restrictions.in( "name", new String[] { "Fritz", "Izi", "Pk" } ) )
+    .add( Restrictions.disjunction()
+        .add( Restrictions.isNull("age") )
+        .add( Restrictions.eq("age", new Integer(0) ) )
+        .add( Restrictions.eq("age", new Integer(1) ) )
+        .add( Restrictions.eq("age", new Integer(2) ) )
+    ) )
+    .list();</pre>
+    
+        <p>
+            There are a range of built-in criterion types (<code class="literal">Restrictions</code>
+            subclasses). One of the most useful allows you to specify SQL directly.
+        </p>
+
+        <pre xmlns="" xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="">List cats = sess.createCriteria(Cat.class)
+    .add( Restrictions.sqlRestriction("lower({alias}.name) like lower(?)", "Fritz%", Hibernate.STRING) )
+    .list();</pre>
+    
+        <p>
+            The <code class="literal">{alias}</code> placeholder will be replaced by the row alias
+            of the queried entity.
+        </p>
+        
+        <p>
+            You can also obtain a criterion from a 
+            <code class="literal">Property</code> instance. You can create a <code class="literal">Property</code>
+            by calling <code class="literal">Property.forName()</code>:
+        </p>
+    
+        <pre xmlns="" xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="">
+Property age = Property.forName("age");
+List cats = sess.createCriteria(Cat.class)
+    .add( Restrictions.disjunction()
+        .add( age.isNull() )
+        .add( age.eq( new Integer(0) ) )
+        .add( age.eq( new Integer(1) ) )
+        .add( age.eq( new Integer(2) ) )
+    ) )
+    .add( Property.forName("name").in( new String[] { "Fritz", "Izi", "Pk" } ) )
+    .list();</pre>
+    
+   </div>
+     
+    <div class="section" title="17.3. Ordering the results"><div class="titlepage"><div><div><h2 class="title"><a id="querycriteria-ordering"/>17.3. Ordering the results</h2></div></div></div>
+        
+
+        <p>
+            You can order the results using <code class="literal">org.hibernate.criterion.Order</code>.
+        </p>
+
+        <pre xmlns="" xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="">List cats = sess.createCriteria(Cat.class)
+    .add( Restrictions.like("name", "F%")
+    .addOrder( Order.asc("name") )
+    .addOrder( Order.desc("age") )
+    .setMaxResults(50)
+    .list();</pre>
+    
+        <pre xmlns="" xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="">List cats = sess.createCriteria(Cat.class)
+    .add( Property.forName("name").like("F%") )
+    .addOrder( Property.forName("name").asc() )
+    .addOrder( Property.forName("age").desc() )
+    .setMaxResults(50)
+    .list();</pre>
+    
+    </div>
+    
+    <div class="section" title="17.4. Associations"><div class="titlepage"><div><div><h2 class="title"><a id="querycriteria-associations"/>17.4. Associations</h2></div></div></div>
+        
+
+        <p>
+            By navigating
+            associations using <code class="literal">createCriteria()</code> you can specify constraints upon related entities:
+        </p>
+
+        <pre xmlns="" xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="">List cats = sess.createCriteria(Cat.class)
+    .add( Restrictions.like("name", "F%") )
+    .createCriteria("kittens")
+        .add( Restrictions.like("name", "F%") )
+    .list();</pre>
+
+        <p>
+            The second <code class="literal">createCriteria()</code> returns a new
+            instance of <code class="literal">Criteria</code> that refers to the elements of
+            the <code class="literal">kittens</code> collection.
+        </p>
+
+        <p>
+            There is also an alternate form that is useful in certain circumstances:
+        </p>
+
+        <pre xmlns="" xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="">List cats = sess.createCriteria(Cat.class)
+    .createAlias("kittens", "kt")
+    .createAlias("mate", "mt")
+    .add( Restrictions.eqProperty("kt.name", "mt.name") )
+    .list();</pre>
+
+        <p>
+            (<code class="literal">createAlias()</code> does not create a new instance of
+            <code class="literal">Criteria</code>.)
+        </p>
+
+        <p>
+            The kittens collections held by the <code class="literal">Cat</code> instances
+            returned by the previous two queries are <span class="emphasis"><em>not</em></span> pre-filtered
+            by the criteria. If you want to retrieve just the kittens that match the
+            criteria, you must use a <code class="literal">ResultTransformer</code>.
+        </p>
+
+        <pre xmlns="" xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="">List cats = sess.createCriteria(Cat.class)
+    .createCriteria("kittens", "kt")
+        .add( Restrictions.eq("name", "F%") )
+    .setResultTransformer(Criteria.ALIAS_TO_ENTITY_MAP)
+    .list();
+Iterator iter = cats.iterator();
+while ( iter.hasNext() ) {
+    Map map = (Map) iter.next();
+    Cat cat = (Cat) map.get(Criteria.ROOT_ALIAS);
+    Cat kitten = (Cat) map.get("kt");
+}</pre>
+
+	<p>
+		Additionally you may manipulate the result set using a left outer join:
+	</p>
+	<pre xmlns="" xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="">
+		List cats = session.createCriteria( Cat.class )
+                       .createAlias("mate", "mt", Criteria.LEFT_JOIN, Restrictions.like("mt.name", "good%") )
+                       .addOrder(Order.asc("mt.age"))
+                       .list();
+	
+	</pre>
+
+	<p>
+		This will return all of the <code class="literal">Cat</code>s with a mate whose name starts with "good"
+		ordered by their mate's age, and all cats who do not have a mate.  
+		 This is useful when there is a need to order or limit in the database
+		 prior to returning complex/large result sets, and removes many instances where
+		 multiple queries would have to be performed and the results unioned 
+		 by java in memory.  
+	</p>
+	<p>
+		Without this feature, first all of the cats without a mate would need to be loaded in one query. 
+	</p>
+	<p>
+		A second query would need to retreive the cats with mates who's name started with "good" sorted by the mates age.
+	</p>
+	<p>
+		Thirdly, in memory; the lists would need to be joined manually.
+	</p>
+    </div>
+    
+    <div class="section" title="17.5. Dynamic association fetching"><div class="titlepage"><div><div><h2 class="title"><a id="querycriteria-dynamicfetching"/>17.5. Dynamic association fetching</h2></div></div></div>
+        
+
+        <p>
+            You can specify association fetching semantics at runtime using
+            <code class="literal">setFetchMode()</code>.
+        </p>
+
+        <pre xmlns="" xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="">List cats = sess.createCriteria(Cat.class)
+    .add( Restrictions.like("name", "Fritz%") )
+    .setFetchMode("mate", FetchMode.EAGER)
+    .setFetchMode("kittens", FetchMode.EAGER)
+    .list();</pre>
+    
+        <p>
+            This query will fetch both <code class="literal">mate</code> and <code class="literal">kittens</code>
+            by outer join. See <a class="xref" href="ch20.html#performance-fetching" title="20.1. Fetching strategies">Section 20.1, “Fetching strategies”</a> for more information.
+        </p>
+    
+    </div>
+
+    <div class="section" title="17.6. Components"><div class="titlepage"><div><div><h2 class="title"><a id="querycriteria-components"/>17.6. Components</h2></div></div></div>
+        
+
+        <p>
+               To add a restriction against a property of an embedded component, the component property
+               name should be prepended to the property name when creating the <code class="literal">Restriction</code>.
+               The criteria object should be created on the owning entity, and cannot be created on the component 
+               itself.  For example, suppose the <code class="literal">Cat</code> has a component property <code class="literal">fullName</code>
+               with sub-properties <code class="literal">firstName</code> and <code class="literal">lastName</code>:
+	</p>
+
+	<pre xmlns="" xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="">
+		List cats = session.createCriteria(Cat.class)
+			.add(Restrictions.eq("fullName.lastName", "Cattington"))
+			.list();
+	</pre>
+	
+	<p>
+		Note: this does not apply when querying collections of components, for that see below 
+		<a class="xref" href="ch17.html#querycriteria-collections" title="17.7. Collections">Section 17.7, “Collections”</a>
+	</p>
+
+    </div>
+
+    <div class="section" title="17.7. Collections"><div class="titlepage"><div><div><h2 class="title"><a id="querycriteria-collections"/>17.7. Collections</h2></div></div></div>
+	
+	<p>
+		When using criteria against collections, there are two distinct cases.  One is if
+		the collection contains entities (eg. <code class="literal">&lt;one-to-many/&gt;</code> 
+		or <code class="literal">&lt;many-to-many/&gt;</code>) or components 
+		(<code class="literal">&lt;composite-element/&gt;</code> ),
+		and the second is if the collection contains scalar values 
+		(<code class="literal">&lt;element/&gt;</code>).
+		In the first case, the syntax is as given above in the section 
+		<a class="xref" href="ch17.html#querycriteria-associations" title="17.4. Associations">Section 17.4, “Associations”</a> where we restrict the <code class="literal">kittens</code>
+		collection. Essentially we create a <code class="literal">Criteria</code> object against the collection
+		property and restrict the entity or component properties using that instance.
+	</p>
+	<p>
+		For queryng a collection of basic values, we still create the <code class="literal">Criteria</code>
+		object against the collection, but to reference the value, we use the special property 
+		"elements".  For an indexed collection, we can also reference the index property using
+		the special property "indices".
+	</p>
+	<pre xmlns="" xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="">
+		List cats = session.createCriteria(Cat.class)
+			.createCriteria("nickNames")
+				.add(Restrictions.eq("elements", "BadBoy"))
+			.list();
+	</pre>
+    </div>
+
+    <div class="section" title="17.8. Example queries"><div class="titlepage"><div><div><h2 class="title"><a id="querycriteria-examples"/>17.8. Example queries</h2></div></div></div>
+        
+
+        <p>
+            The class <code class="literal">org.hibernate.criterion.Example</code> allows
+            you to construct a query criterion from a given instance.
+        </p>
+
+        <pre xmlns="" xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="">Cat cat = new Cat();
+cat.setSex('F');
+cat.setColor(Color.BLACK);
+List results = session.createCriteria(Cat.class)
+    .add( Example.create(cat) )
+    .list();</pre>
+    
+        <p>
+           Version properties, identifiers and associations are ignored. By default,
+           null valued properties are excluded.
+        </p>
+
+        <p>
+           You can adjust how the <code class="literal">Example</code> is applied.
+        </p>
+
+        <pre xmlns="" xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="">Example example = Example.create(cat)
+    .excludeZeroes()           //exclude zero valued properties
+    .excludeProperty("color")  //exclude the property named "color"
+    .ignoreCase()              //perform case insensitive string comparisons
+    .enableLike();             //use like for string comparisons
+List results = session.createCriteria(Cat.class)
+    .add(example)
+    .list();</pre>
+    
+        <p>
+            You can even use examples to place criteria upon associated objects.
+        </p>
+
+        <pre xmlns="" xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="">List results = session.createCriteria(Cat.class)
+    .add( Example.create(cat) )
+    .createCriteria("mate")
+        .add( Example.create( cat.getMate() ) )
+    .list();</pre>
+    
+    </div>
+    
+    <div class="section" title="17.9. Projections, aggregation and grouping"><div class="titlepage"><div><div><h2 class="title"><a id="querycriteria-projection"/>17.9. Projections, aggregation and grouping</h2></div></div></div>
+        
+        <p>
+            The class <code class="literal">org.hibernate.criterion.Projections</code> is a
+            factory for <code class="literal">Projection</code> instances. You can apply a
+            projection to a query by calling <code class="literal">setProjection()</code>.
+        </p>
+        
+        <pre xmlns="" xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="">List results = session.createCriteria(Cat.class)
+    .setProjection( Projections.rowCount() )
+    .add( Restrictions.eq("color", Color.BLACK) )
+    .list();</pre>
+    
+        <pre xmlns="" xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="">List results = session.createCriteria(Cat.class)
+    .setProjection( Projections.projectionList()
+        .add( Projections.rowCount() )
+        .add( Projections.avg("weight") )
+        .add( Projections.max("weight") )
+        .add( Projections.groupProperty("color") )
+    )
+    .list();</pre>
+    
+        <p>
+            There is no explicit "group by" necessary in a criteria query. Certain
+            projection types are defined to be <span class="emphasis"><em>grouping projections</em></span>,
+            which also appear in the SQL <code class="literal">group by</code> clause.
+        </p>
+    
+        <p>
+            An alias can be assigned to a projection so that the projected value
+            can be referred to in restrictions or orderings. Here are two different ways to
+            do this:
+        </p>
+
+        <pre xmlns="" xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="">List results = session.createCriteria(Cat.class)
+    .setProjection( Projections.alias( Projections.groupProperty("color"), "colr" ) )
+    .addOrder( Order.asc("colr") )
+    .list();</pre>
+    
+        <pre xmlns="" xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="">List results = session.createCriteria(Cat.class)
+    .setProjection( Projections.groupProperty("color").as("colr") )
+    .addOrder( Order.asc("colr") )
+    .list();</pre>
+    
+        <p>
+            The <code class="literal">alias()</code> and <code class="literal">as()</code> methods simply wrap a
+            projection instance in another, aliased, instance of <code class="literal">Projection</code>.
+            As a shortcut, you can assign an alias when you add the projection to a 
+            projection list:
+        </p>
+
+       <pre xmlns="" xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="">List results = session.createCriteria(Cat.class)
+    .setProjection( Projections.projectionList()
+        .add( Projections.rowCount(), "catCountByColor" )
+        .add( Projections.avg("weight"), "avgWeight" )
+        .add( Projections.max("weight"), "maxWeight" )
+        .add( Projections.groupProperty("color"), "color" )
+    )
+    .addOrder( Order.desc("catCountByColor") )
+    .addOrder( Order.desc("avgWeight") )
+    .list();</pre>
+    
+        <pre xmlns="" xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="">List results = session.createCriteria(Domestic.class, "cat")
+    .createAlias("kittens", "kit")
+    .setProjection( Projections.projectionList()
+        .add( Projections.property("cat.name"), "catName" )
+        .add( Projections.property("kit.name"), "kitName" )
+    )
+    .addOrder( Order.asc("catName") )
+    .addOrder( Order.asc("kitName") )
+    .list();</pre>
+    
+        <p>
+            You can also use <code class="literal">Property.forName()</code> to express projections:
+        </p>
+    
+        <pre xmlns="" xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="">List results = session.createCriteria(Cat.class)
+    .setProjection( Property.forName("name") )
+    .add( Property.forName("color").eq(Color.BLACK) )
+    .list();</pre>
+    
+        <pre xmlns="" xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="">List results = session.createCriteria(Cat.class)
+    .setProjection( Projections.projectionList()
+        .add( Projections.rowCount().as("catCountByColor") )
+        .add( Property.forName("weight").avg().as("avgWeight") )
+        .add( Property.forName("weight").max().as("maxWeight") )
+        .add( Property.forName("color").group().as("color" )
+    )
+    .addOrder( Order.desc("catCountByColor") )
+    .addOrder( Order.desc("avgWeight") )
+    .list();</pre>
+    
+    </div>
+    
+    <div class="section" title="17.10. Detached queries and subqueries"><div class="titlepage"><div><div><h2 class="title"><a id="querycriteria-detachedqueries"/>17.10. Detached queries and subqueries</h2></div></div></div>
+        
+        <p>
+            The <code class="literal">DetachedCriteria</code> class allows you to create a query outside the scope 
+            of a session and then execute it using an arbitrary <code class="literal">Session</code>.
+        </p>
+        
+        <pre xmlns="" xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="">DetachedCriteria query = DetachedCriteria.forClass(Cat.class)
+    .add( Property.forName("sex").eq('F') );
+    
+Session session = ....;
+Transaction txn = session.beginTransaction();
+List results = query.getExecutableCriteria(session).setMaxResults(100).list();
+txn.commit();
+session.close();</pre>
+
+        <p>
+            A <code class="literal">DetachedCriteria</code> can also be used to express a subquery. Criterion
+            instances involving subqueries can be obtained via <code class="literal">Subqueries</code> or
+            <code class="literal">Property</code>.            
+        </p>
+        
+        <pre xmlns="" xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="">DetachedCriteria avgWeight = DetachedCriteria.forClass(Cat.class)
+    .setProjection( Property.forName("weight").avg() );
+session.createCriteria(Cat.class)
+    .add( Property.forName("weight").gt(avgWeight) )
+    .list();</pre>
+    
+        <pre xmlns="" xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="">DetachedCriteria weights = DetachedCriteria.forClass(Cat.class)
+    .setProjection( Property.forName("weight") );
+session.createCriteria(Cat.class)
+    .add( Subqueries.geAll("weight", weights) )
+    .list();</pre>
+    
+        <p>
+            Correlated subqueries are also possible:
+        </p>
+        
+        <pre xmlns="" xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="">DetachedCriteria avgWeightForSex = DetachedCriteria.forClass(Cat.class, "cat2")
+    .setProjection( Property.forName("weight").avg() )
+    .add( Property.forName("cat2.sex").eqProperty("cat.sex") );
+session.createCriteria(Cat.class, "cat")
+    .add( Property.forName("weight").gt(avgWeightForSex) )
+    .list();</pre>
+
+        <p>
+            Example of multi-column restriction based on a subquery:
+        </p>
+
+        <pre xmlns="" xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="">DetachedCriteria sizeQuery = DetachedCriteria.forClass( Man.class )
+    .setProjection( Projections.projectionList().add( Projections.property( "weight" ) )
+                                                .add( Projections.property( "height" ) ) )
+    .add( Restrictions.eq( "name", "John" ) );
+session.createCriteria( Woman.class )
+    .add( Subqueries.propertiesEq( new String[] { "weight", "height" }, sizeQuery ) )
+    .list();</pre>
+
+    </div>
+
+        
+               
+    <div class="section" title="17.11. Queries by natural identifier"><div class="titlepage"><div><div><h2 class="title"><a id="query-criteria-naturalid"/>17.11. Queries by natural identifier</h2></div></div></div>
+        
+        
+        <p>
+            For most queries, including criteria queries, the query cache is not efficient
+            because query cache invalidation occurs too frequently. However, there is a special
+            kind of query where you can optimize the cache invalidation algorithm: lookups by a 
+            constant natural key. In some applications, this kind of query occurs frequently.
+            The criteria API provides special provision for this use case.
+        </p>
+        
+        <p>
+            First, map the natural key of your entity using 
+            <code class="literal">&lt;natural-id&gt;</code> and enable use of the second-level cache.
+        </p>
+
+        <pre xmlns="" xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="">&lt;class name="User"&gt;
+    &lt;cache usage="read-write"/&gt;
+    &lt;id name="id"&gt;
+        &lt;generator class="increment"/&gt;
+    &lt;/id&gt;
+    &lt;natural-id&gt;
+        &lt;property name="name"/&gt;
+        &lt;property name="org"/&gt;
+    &lt;/natural-id&gt;
+    &lt;property name="password"/&gt;
+&lt;/class&gt;</pre>
+    
+        <p>
+            This functionality is not intended for use with entities with 
+            <span class="emphasis"><em>mutable</em></span> natural keys.
+        </p>
+        
+        <p>
+            Once you have enabled the Hibernate query cache, 
+            the <code class="literal">Restrictions.naturalId()</code> allows you to make use of
+            the more efficient cache algorithm.
+        </p>
+       
+        <pre xmlns="" xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="">session.createCriteria(User.class)
+    .add( Restrictions.naturalId()
+        .set("name", "gavin")
+        .set("org", "hb") 
+    ).setCacheable(true)
+    .uniqueResult();</pre>
+            
+    </div>
+    
+</div><hr xmlns="" xmlns:d="http://docbook.org/ns/docbook"/><a xmlns="" xmlns:d="http://docbook.org/ns/docbook" href="legalnotice.html"/><ul xmlns:d="http://docbook.org/ns/docbook" class="docnav"><li class="previous"><a accesskey="p" href="ch16.html"><strong>Prev</strong>Chapter 16. HQL: The Hibernate Query Language</a></li><li class="up"><a accesskey="u" href="#"><strong>Up</strong></a></li><li class="home"><a accesskey="h" href="index.html"><strong>Home</strong></a></li><li class="next"><a accesskey="n" href="ch18.html"><strong>Next</strong>Chapter 18. Native SQL</a></li></ul></body></html>

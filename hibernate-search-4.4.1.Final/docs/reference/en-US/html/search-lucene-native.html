@@ -1,0 +1,284 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml"><head><title xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory">Chapter 10. Advanced features</title><link rel="stylesheet" href="css/hibernate.css" type="text/css"/><meta xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" name="generator" content="DocBook XSL Stylesheets V1.72.0"/><link rel="start" href="index.html" title="Hibernate Search"/><link rel="up" href="index.html" title="Hibernate Search"/><link rel="prev" href="spatial.html" title="Chapter 9. Spatial"/><link rel="next" href="ch11.html" title="Chapter 11. Further reading"/></head><body><p id="title"><a href="http://www.hibernate.org" class="site_href"><strong>Hibernate.org</strong></a><a href="http://hibernate.org/Documentation/DocumentationOverview" class="doc_href"><strong>Community Documentation</strong></a></p><ul class="docnav"><li class="previous"><a accesskey="p" href="spatial.html"><strong>Prev</strong></a></li><li class="next"><a accesskey="n" href="ch11.html"><strong>Next</strong></a></li></ul><div class="chapter" lang="en-US"><div class="titlepage"><div><div><h2 class="title"><a id="search-lucene-native"/>Chapter 10. Advanced features</h2></div></div></div><div class="toc"><dl><dt><span class="section"><a href="search-lucene-native.html#d0e8203">10.1. Accessing the SearchFactory</a></span></dt><dt><span class="section"><a href="search-lucene-native.html#IndexReaders">10.2. Using an IndexReader</a></span></dt><dt><span class="section"><a href="search-lucene-native.html#d0e8294">10.3. Accessing a Lucene Directory</a></span></dt><dt><span class="section"><a href="search-lucene-native.html#advanced-features-sharding">10.4. Sharding indexes</a></span></dt><dd><dl><dt><span class="section"><a href="search-lucene-native.html#d0e8351">10.4.1. Static sharding</a></span></dt><dt><span class="section"><a href="search-lucene-native.html#advanced-features-dynamic-sharding">10.4.2. Dynamic sharding</a></span></dt></dl></dd><dt><span class="section"><a href="search-lucene-native.html#section-sharing-indexes">10.5. Sharing indexes</a></span></dt><dt><span class="section"><a href="search-lucene-native.html#section-services">10.6. Using external services</a></span></dt><dd><dl><dt><span class="section"><a href="search-lucene-native.html#d0e8572">10.6.1. Exposing a service</a></span></dt><dt><span class="section"><a href="search-lucene-native.html#d0e8660">10.6.2. Using a service</a></span></dt></dl></dd><dt><span class="section"><a href="search-lucene-native.html#d0e8681">10.7. Customizing Lucene's scoring formula</a></span></dt></dl></div><p>In this final chapter we are offering a smorgasbord of tips and tricks
+  which might become useful as you dive deeper and deeper into Hibernate
+  Search.</p><div class="section" lang="en-US"><div class="titlepage"><div><div><h2 class="title"><a id="d0e8203"/>10.1. Accessing the SearchFactory</h2></div></div></div><p>The <code class="classname">SearchFactory</code> object keeps track of the
+    underlying Lucene resources for Hibernate Search. It is a convenient way
+    to access Lucene natively. The <code class="literal">SearchFactory</code> can be
+    accessed from a <code class="classname">FullTextSession</code>:</p><div class="example"><a id="d0e8217"/><p class="title"><b>Example 10.1. Accessing the <code class="classname">SearchFactory</code></b></p><div class="example-contents"><pre xmlns="" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="JAVA"><!-- <br/> --><span class="java_type">FullTextSession</span><!-- <br/> --><span class="java_plain">&nbsp;fullTextSession&nbsp;</span><!-- <br/> --><span class="java_operator">=</span><!-- <br/> --><span class="java_plain">&nbsp;</span><!-- <br/> --><span class="java_type">Search</span><!-- <br/> --><span class="java_separator">.</span><!-- <br/> --><span class="java_plain">getFullTextSession</span><!-- <br/> --><span class="java_separator">(</span><!-- <br/> --><span class="java_plain">regularSession</span><!-- <br/> --><span class="java_separator">);</span>
+<!--  --><br/><span class="java_type">SearchFactory</span><span class="java_plain">&nbsp;searchFactory&nbsp;</span><span class="java_operator">=</span><span class="java_plain">&nbsp;fullTextSession</span><span class="java_separator">.</span><span class="java_plain">getSearchFactory</span><span class="java_separator">();</span></pre></div></div><br class="example-break"/></div><div class="section" lang="en-US"><div class="titlepage"><div><div><h2 class="title"><a id="IndexReaders"/>10.2. Using an IndexReader</h2></div></div></div><p>Queries in Lucene are executed on an
+    <code class="classname">IndexReader</code>. Hibernate Search caches index readers
+    to maximize performance and implements other strategies to retrieve
+    updated <code class="classname">IndexReader</code>s in order to minimize IO
+    operations. Your code can access these cached resources, but you have to
+    follow some "good citizen" rules.</p><div class="example"><a id="d0e8235"/><p class="title"><b>Example 10.2. Accessing an <code class="classname">IndexReader</code></b></p><div class="example-contents"><pre xmlns="" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="JAVA"><!-- <br/> --><span class="java_type">IndexReader</span><!-- <br/> --><span class="java_plain">&nbsp;reader&nbsp;</span><!-- <br/> --><span class="java_operator">=</span><!-- <br/> --><span class="java_plain">&nbsp;searchFactory</span><!-- <br/> --><span class="java_separator">.</span><!-- <br/> --><span class="java_plain">getIndexReaderAccessor</span><!-- <br/> --><span class="java_separator">().</span><!-- <br/> --><span class="java_plain">open</span><!-- <br/> --><span class="java_separator">(</span><!-- <br/> --><span class="java_type">Order</span><!-- <br/> --><span class="java_separator">.</span><!-- <br/> --><span class="java_keyword">class</span><!-- <br/> --><span class="java_separator">);</span>
+<!--  --><br/><span class="java_keyword">try</span><span class="java_plain">&nbsp;</span><span class="java_separator">{</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;&nbsp;</span><span class="java_operator">//</span><span class="java_plain">perform&nbsp;read</span><span class="java_operator">-</span><span class="java_plain">only&nbsp;operations&nbsp;on&nbsp;the&nbsp;reader</span>
+<!--  --><br/><span class="java_separator">}</span>
+<!--  --><br/><span class="java_keyword">finally</span><span class="java_plain">&nbsp;</span><span class="java_separator">{</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;&nbsp;searchFactory</span><span class="java_separator">.</span><span class="java_plain">getIndexReaderAccessor</span><span class="java_separator">().</span><span class="java_plain">close</span><span class="java_separator">(</span><span class="java_plain">reader</span><span class="java_separator">);</span>
+<!--  --><br/><span class="java_separator">}</span><span class="java_plain">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></pre></div></div><br class="example-break"/><p>In this example the <code class="classname">SearchFactory</code> figures out
+    which indexes are needed to query this entity. Using the configured
+    <code class="classname">ReaderProvider</code> (described in <a href="search-architecture.html#search-architecture-readerstrategy" title="2.3. Reader strategy">Reader strategy</a>) on each index, it returns
+    a compound <code class="literal">IndexReader</code> on top of all involved indexes.
+    Because this <code class="classname">IndexReader</code> is shared amongst several
+    clients, you must adhere to the following rules:</p><div class="itemizedlist"><ul><li><p>Never call indexReader.close(), but always call
+        readerProvider.closeReader(reader), using a finally block.</p></li><li><p>Don't use this <code class="classname">IndexReader</code> for
+        modification operations: it's a readonly
+        <code class="classname">IndexReader</code>, you would get an
+        exception).</p></li></ul></div><p>Aside from those rules, you can use the
+    <code class="classname">IndexReader</code> freely, especially to do native Lucene
+    queries. Using this shared <code class="classname">IndexReader</code>s will be
+    more efficient than by opening one directly from - for example - the
+    filesystem.</p><p>As an alternative to the method <code class="methodname">open(Class...
+    types)</code> you can use <code class="methodname">open(String...
+    indexNames)</code>; in this case you pass in one or more index
+    names; using this strategy you can also select a subset of the indexes for
+    any indexed type if sharding is used.</p><div class="example"><a id="d0e8287"/><p class="title"><b>Example 10.3. Accessing an <code class="classname">IndexReader by index
+      names</code></b></p><div class="example-contents"><pre xmlns="" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="JAVA"><!-- <br/> --><span class="java_type">IndexReader</span><!-- <br/> --><span class="java_plain">&nbsp;reader&nbsp;</span><!-- <br/> --><span class="java_operator">=</span><!-- <br/> --><span class="java_plain">&nbsp;searchFactory</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="java_separator">.</span><span class="java_plain">getIndexReaderAccessor</span><span class="java_separator">()</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="java_separator">.</span><span class="java_plain">open</span><span class="java_separator">(</span><span class="java_literal">&quot;Products.1&quot;</span><span class="java_separator">,</span><span class="java_plain">&nbsp;</span><span class="java_literal">&quot;Products.3&quot;</span><span class="java_separator">);</span></pre></div></div><br class="example-break"/></div><div class="section" lang="en-US"><div class="titlepage"><div><div><h2 class="title"><a id="d0e8294"/>10.3. Accessing a Lucene Directory</h2></div></div></div><p>A <code class="classname">Directory</code> is the most common abstraction
+    used by Lucene to represent the index storage; Hibernate Search doesn't
+    interact directly with a Lucene <code class="classname">Directory</code> but
+    abstracts these interactions via an <code class="classname">IndexManager</code>:
+    an index does not necessarily need to be implemented by a
+    <code class="classname">Directory</code>.</p><p>If you are certain that your index is represented as a
+    <code class="classname">Directory</code> and need to access it, you can get a
+    reference to the <code class="classname">Directory</code> via the
+    <code class="classname">IndexManager</code>. You will have to cast the
+    <code class="classname">IndexManager</code> instance to a
+    <code class="classname">DirectoryBasedIndexManager</code> and then use
+    <code class="literal">getDirectoryProvider().getDirectory()</code> to get a
+    reference to the underlying <code class="classname">Directory</code>. This is not
+    recommended, if you need low level access to the index using Lucene APIs
+    we suggest to see <a href="search-lucene-native.html#IndexReaders" title="10.2. Using an IndexReader">Section 10.2, “Using an IndexReader”</a> instead.</p></div><div class="section" lang="en-US"><div class="titlepage"><div><div><h2 class="title"><a id="advanced-features-sharding"/>10.4. Sharding indexes</h2></div></div></div><p>In some cases it can be useful to split (shard) the data into
+    several Lucene indexes. There are two main use use cases:</p><div class="itemizedlist"><ul><li><p>A single index is so big that index update times are slowing the
+        application down. In this case static sharding can be used to split
+        the data into a pre-defined number of shards.</p></li><li><p>Data is naturally segmented by customer, region, language or
+        other application parameter and the index should be split according to
+        these segments. This is a use case for dynamic sharding.</p></li></ul></div><div xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="tip"><h2>Tip</h2><p>By default sharding is not enabled.</p></div><div class="section" lang="en-US"><div class="titlepage"><div><div><h3 class="title"><a id="d0e8351"/>10.4.1. Static sharding</h3></div></div></div><p>To enable static sharding set the
+      <code class="constant">hibernate.search.&lt;indexName&gt;.sharding_strategy.nbr_of_shards</code>
+      property as seen in <a href="search-lucene-native.html#example-index-sharding" title="Example 10.4. Enabling index sharding">Example 10.4, “Enabling index sharding”</a>.</p><div class="example"><a id="example-index-sharding"/><p class="title"><b>Example 10.4. Enabling index sharding</b></p><div class="example-contents"><pre class="programlisting">hibernate.search.[default|&lt;indexName&gt;].sharding_strategy.nbr_of_shards = 5</pre></div></div><br class="example-break"/><p>The default sharding strategy which gets enabled by setting this
+      property, splits the data according to the hash value of the document id
+      (generated by the <code class="classname">FieldBridge</code>). This ensures a
+      fairly balanced sharding. You can replace the default strategy by
+      implementing a custom <code class="classname">IndexShardingStrategy</code>. To
+      use your custom strategy you have to set the
+      <code class="constant">hibernate.search.[default|&lt;indexName&gt;].sharding_strategy</code>
+      property to the fully qualified class name of your custom
+      <code class="classname">IndexShardingStrategy</code>.</p><div class="example"><a id="example-index-sharding-strategy"/><p class="title"><b>Example 10.5. Registering a custom IndexShardingStrategy</b></p><div class="example-contents"><pre class="programlisting">hibernate.search.[default|&lt;indexName&gt;].sharding_strategy = my.custom.RandomShardingStrategy</pre></div></div><br class="example-break"/></div><div class="section" lang="en-US"><div class="titlepage"><div><div><h3 class="title"><a id="advanced-features-dynamic-sharding"/>10.4.2. Dynamic sharding</h3></div></div></div><p>Dynamic sharding allows you to manage the shards yourself and even
+      create new shards on the fly. To do so you need to implement the
+      interface <code class="classname">ShardIdentifierProvider</code> and set the
+      <code class="constant">hibernate.search.[default|&lt;indexName&gt;].sharding_strategy</code>
+      property to the fully qualified name of this class. Note that instead of
+      implementing the interface directly, you should rather derive your
+      implementation from
+      <code class="classname">org.hibernate.search.store.ShardIdentifierProviderTemplate</code>
+      which provides a basic implementation. Let's look at <a href="search-lucene-native.html#example-custom-shard-identifier-provider" title="Example 10.6. Custom ShardidentiferProvider">Example 10.6, “Custom <code class="classname">ShardidentiferProvider</code>”</a> for an
+      example.</p><div class="example"><a id="example-custom-shard-identifier-provider"/><p class="title"><b>Example 10.6. Custom <code class="classname">ShardidentiferProvider</code></b></p><div class="example-contents"><pre class="programlisting">public static class AnimalShardIdentifierProvider extends ShardIdentifierProviderTemplate {
+
+ @Override
+ public String getShardIdentifier(Class&lt;?&gt; entityType, Serializable id,
+         String idAsString, Document document) {
+    if ( entityType.equals(Animal.class) ) {
+       String type = document.getFieldable("type").stringValue();
+       addShard(type);
+       return type;
+    }
+    throw new RuntimeException("Animal expected but found " + entityType);
+ }
+
+ @Override
+ protected Set&lt;String&gt; loadInitialShardNames(Properties properties, BuildContext buildContext) {
+    ServiceManager serviceManager = buildContext.getServiceManager();
+    SessionFactory sessionFactory = serviceManager.requestService(
+        HibernateSessionFactoryServiceProvider.class, buildContext);
+    Session session = sessionFactory.openSession();
+    try {
+       Criteria initialShardsCriteria = session.createCriteria(Animal.class);
+       initialShardsCriteria.setProjection( Projections.distinct(Property.forName("type")));
+
+       @SuppressWarnings("unchecked")
+       List&lt;String&gt; initialTypes = initialShardsCriteria.list();
+       return new HashSet&lt;String&gt;(initialTypes);
+    }
+    finally {
+       session.close();
+    }
+ }
+}</pre></div></div><p><br class="example-break"/>The are several things happening in
+      <code class="classname">AnimalShardIdentifierProvider</code>. First off its
+      purpose is to create one shard per animal type (e.g. mammal, insect,
+      etc.). It does so by inspecting the class type and the Lucene document
+      passed to the <code class="methodname">getShardIdentifier()</code> method. It
+      extracts the <code class="constant">type</code> field from the document and uses
+      it as shard name. <code class="methodname">getShardIdentifier()</code> is
+      called for every addition to the index and a new shard will be created
+      with every new animal type encountered. The base class
+      <code class="classname">ShardIdentifierProviderTemplate</code> maintains a set
+      with all known shards to which any identifier must be added by calling
+      <code class="methodname">addShard()</code>.</p><p>It is important to understand that Hibernate Search cannot know which
+      shards already exist when the application starts. When using
+      <code class="classname">ShardIdentifierProviderTemplate</code> as base class of
+      a <code class="classname">ShardIdentifierProvider</code> implementation, the
+      initial set of shard identifiers must be returned by the
+      <code class="methodname">loadInitialShardNames()</code> method. How this is
+      done will depend on the use case. However, a common case in combination
+      with Hibernate ORM is that the initial shard set is defined by the the
+      distinct values of a given database column. <a href="search-lucene-native.html#example-custom-shard-identifier-provider" title="Example 10.6. Custom ShardidentiferProvider">Example 10.6, “Custom <code class="classname">ShardidentiferProvider</code>”</a> shows how to handle
+      such a case. <code class="classname">AnimalShardIdentifierProvider</code> makes
+      in its <code class="methodname">loadInitialShardNames()</code> implementation
+      use of a service called
+      <code class="classname">HibernateSessionFactoryServiceProvider</code> (see also
+      <a href="search-lucene-native.html#section-services" title="10.6. Using external services">Section 10.6, “Using external services”</a>) which is available within an ORM
+      environment. It allows to request a Hibernate
+      <code class="classname">SessionFactory</code> instance which can be used to run
+      a <code class="classname">Criteria</code> query in order to determine the
+      initial set of shard identifers.</p><p>Last but not least, the
+      <code class="classname">ShardIdentifierProvider</code> also allows for
+      optimizing searches by selecting which shard to run a query against. By
+      activating a filter (see <a href="search-query.html#query-filter-shard" title="5.3.1. Using filters in a sharded environment">Section 5.3.1, “Using filters in a sharded environment”</a>), a
+      sharding strategy can select a subset of the shards used to answer a
+      query (<code class="classname">getShardIdentifiersForQuery()</code>, not shown
+      in the example) and thus speed up the query execution.</p></div><div xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="important"><h2>Important</h2><p>This <code class="classname">ShardIdentifierProvider</code> is considered
+        experimental. We might need to apply some changes to the defined method
+        signatures to accomodate for unforeseen use cases. Please provide
+        feedback if you have ideas, or just to let us know how you're using
+        this API.</p></div></div><div class="section" lang="en-US"><div class="titlepage"><div><div><h2 class="title"><a id="section-sharing-indexes"/>10.5. Sharing indexes</h2></div></div></div><p>It is technically possible to store the information of more than one
+    entity into a single Lucene index. There are two ways to accomplish
+    this:</p><div class="itemizedlist"><ul><li><p>Configuring the underlying directory providers to point to the
+        same physical index directory. In practice, you set the property
+        <code class="literal">hibernate.search.[fully qualified entity
+        name].indexName</code> to the same value. As an example let’s use
+        the same index (directory) for the <code class="classname">Furniture</code>
+        and <code class="classname">Animal</code> entity. We just set
+        <code class="literal">indexName</code> for both entities to for example
+        “Animal”. Both entities will then be stored in the Animal
+        directory.</p><pre class="programlisting">hibernate.search.org.hibernate.search.test.shards.Furniture.indexName = Animal
+hibernate.search.org.hibernate.search.test.shards.Animal.indexName = Animal</pre></li><li><p>Setting the <code class="code">@Indexed</code> annotation’s
+        <code class="methodname">index</code> attribute of the entities you want to
+        merge to the same value. If we again wanted all
+        <code class="classname">Furniture</code> instances to be indexed in the
+        <code class="classname">Animal</code> index along with all instances of
+        <code class="classname">Animal</code> we would specify
+        <code class="code">@Indexed(index="Animal")</code> on both
+        <code class="classname">Animal</code> and <code class="classname">Furniture</code>
+        classes.</p><div xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="note"><h2>Note</h2><p>This is only presented here so that you know the option is
+            available. There is really not much benefit in sharing
+            indexes.</p></div></li></ul></div></div><div class="section" lang="en-US"><div class="titlepage"><div><div><h2 class="title"><a id="section-services"/>10.6. Using external services</h2></div></div></div><p>Any of the pluggable contracts we have seen so far allows for the
+    injection of a service. The most notable example being the
+    <code class="classname">DirectoryProvider</code>. The full list is:</p><div class="itemizedlist"><ul><li><p><code class="classname">DirectoryProvider</code></p></li><li><p><code class="classname">ReaderProvider</code></p></li><li><p><code class="classname">OptimizerStrategy</code></p></li><li><p><code class="classname">BackendQueueProcessor</code></p></li><li><p><code class="classname">Worker</code></p></li><li><p><code class="classname">ErrorHandler</code></p></li><li><p><code class="classname">MassIndexerProgressMonitor</code></p></li></ul></div><p>Some of these components need to access a service which is either
+    available in the environment or whose lifecycle is bound to the
+    <code class="classname">SearchFactory</code>. Sometimes, you even want the same
+    service to be shared amongst several instances of these contract. One
+    example is the ability the share an Infinispan cache instance between
+    several directory providers running in different <code class="literal">JVM</code>s
+    to store the various indexes using the same underlying infrastructure;
+    this provides real-time replication of indexes across nodes.</p><div class="section" lang="en-US"><div class="titlepage"><div><div><h3 class="title"><a id="d0e8572"/>10.6.1. Exposing a service</h3></div></div></div><p>To expose a service, you need to implement
+      <code class="classname">org.hibernate.search.spi.ServiceProvider&lt;T&gt;</code>.
+      <code class="classname">T</code> is the type of the service you want to use.
+      Services are retrieved by components via their
+      <code class="classname">ServiceProvider</code> class implementation.</p><div class="section" lang="en-US"><div class="titlepage"><div><div><h4 class="title"><a id="d0e8586"/>10.6.1.1. Managed services</h4></div></div></div><p>If your service ought to be started when Hibernate Search starts
+        and stopped when Hibernate Search stops, you can use a managed
+        service. Make sure to properly implement the
+        <code class="methodname">start</code> and <code class="methodname">stop</code>
+        methods of <code class="classname">ServiceProvider</code>. When the service is
+        requested, the <code class="methodname">getService</code> method is
+        called.</p><div class="example"><a id="d0e8603"/><p class="title"><b>Example 10.7. Example of ServiceProvider implementation</b></p><div class="example-contents"><pre xmlns="" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="JAVA"><!-- <br/> --><span class="java_keyword">public</span><!-- <br/> --><span class="java_plain">&nbsp;</span><!-- <br/> --><span class="java_keyword">class</span><!-- <br/> --><span class="java_plain">&nbsp;</span><!-- <br/> --><span class="java_type">CacheServiceProvider</span><!-- <br/> --><span class="java_plain">&nbsp;</span><!-- <br/> --><span class="java_keyword">implements</span><!-- <br/> --><span class="java_plain">&nbsp;</span><!-- <br/> --><span class="java_type">ServiceProvider</span><!-- <br/> --><span class="java_operator">&lt;</span><!-- <br/> --><span class="java_type">Cache</span><!-- <br/> --><span class="java_operator">&gt;</span><!-- <br/> --><span class="java_plain">&nbsp;</span><!-- <br/> --><span class="java_separator">{</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="java_keyword">private</span><span class="java_plain">&nbsp;</span><span class="java_type">CacheManager</span><span class="java_plain">&nbsp;manager</span><span class="java_separator">;</span>
+</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="java_keyword">public</span><span class="java_plain">&nbsp;</span><span class="java_type">void</span><span class="java_plain">&nbsp;start</span><span class="java_separator">(</span><span class="java_type">Properties</span><span class="java_plain">&nbsp;properties</span><span class="java_separator">)</span><span class="java_plain">&nbsp;</span><span class="java_separator">{</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="java_operator">//</span><span class="java_plain">read&nbsp;configuration</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;manager&nbsp;</span><span class="java_operator">=</span><span class="java_plain">&nbsp;</span><span class="java_keyword">new</span><span class="java_plain">&nbsp;</span><span class="java_type">CacheManager</span><span class="java_separator">(</span><span class="java_plain">properties</span><span class="java_separator">);</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="java_separator">}</span>
+</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="java_keyword">public</span><span class="java_plain">&nbsp;</span><span class="java_type">Cache</span><span class="java_plain">&nbsp;getService</span><span class="java_separator">()</span><span class="java_plain">&nbsp;</span><span class="java_separator">{</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="java_keyword">return</span><span class="java_plain">&nbsp;manager</span><span class="java_separator">.</span><span class="java_plain">getCache</span><span class="java_separator">(</span><span class="java_plain">DEFAULT</span><span class="java_separator">);</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="java_separator">}</span>
+</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="java_type">void</span><span class="java_plain">&nbsp;stop</span><span class="java_separator">()</span><span class="java_plain">&nbsp;</span><span class="java_separator">{</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;manager</span><span class="java_separator">.</span><span class="java_plain">close</span><span class="java_separator">();</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="java_separator">}</span>
+<!--  --><br/><span class="java_separator">}</span></pre></div></div><br class="example-break"/><div xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="note"><h2>Note</h2><p>The <code class="classname">ServiceProvider</code> implementation must
+          have a no-arg constructor.</p></div><p>To be transparently discoverable, such service should have an
+        accompanying
+        <code class="filename">META-INF/services/org.hibernate.search.spi.ServiceProvider</code>
+        whose content list the (various) service provider
+        implementation(s).</p><div class="example"><a id="d0e8619"/><p class="title"><b>Example 10.8. Content of
+          META-INF/services/org.hibernate.search.spi.ServiceProvider</b></p><div class="example-contents"><pre class="programlisting">com.acme.infra.hibernate.CacheServiceProvider</pre></div></div><br class="example-break"/></div><div class="section" lang="en-US"><div class="titlepage"><div><div><h4 class="title"><a id="d0e8624"/>10.6.1.2. Provided services</h4></div></div></div><p>Alternatively, the service can be provided by the environment
+        bootstrapping Hibernate Search. For example, Infinispan which uses
+        Hibernate Search as its internal search engine can pass the
+        <code class="classname">CacheContainer</code> to Hibernate Search. In this
+        case, the <code class="classname">CacheContainer</code> instance is not
+        managed by Hibernate Search and the
+        <code class="methodname">start</code>/<code class="methodname">stop</code> methods
+        of its corresponding service provider will not be used.</p><div xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="note"><h2>Note</h2><p>Provided services have priority over managed services. If a
+          provider service is registered with the same
+          <code class="classname">ServiceProvider</code> class as a managed service,
+          the provided service will be used.</p></div><p>The provided services are passed to Hibernate Search via the
+        <code class="classname">SearchConfiguration</code> interface
+        (<code class="methodname">getProvidedServices</code>).</p><div xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="important"><h2>Important</h2><p>Provided services are used by frameworks controlling the
+          lifecycle of Hibernate Search and not by traditional users.</p></div><p>If, as a user, you want to retrieve a service instance from the
+        environment, use registry services like JNDI and look the service up
+        in the provider.</p></div></div><div class="section" lang="en-US"><div class="titlepage"><div><div><h3 class="title"><a id="d0e8660"/>10.6.2. Using a service</h3></div></div></div><p>Many of of the pluggable contracts of Hibernate Search can use
+      services. Services are accessible via the
+      <code class="classname">BuildContext</code> interface.</p><div class="example"><a id="d0e8668"/><p class="title"><b>Example 10.9. Example of a directory provider using a cache service</b></p><div class="example-contents"><pre xmlns="" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="JAVA"><!-- <br/> --><span class="java_keyword">public</span><!-- <br/> --><span class="java_plain">&nbsp;</span><!-- <br/> --><span class="java_type">CustomDirectoryProvider</span><!-- <br/> --><span class="java_plain">&nbsp;</span><!-- <br/> --><span class="java_keyword">implements</span><!-- <br/> --><span class="java_plain">&nbsp;</span><!-- <br/> --><span class="java_type">DirectoryProvider</span><!-- <br/> --><span class="java_operator">&lt;</span><!-- <br/> --><span class="java_type">RAMDirectory</span><!-- <br/> --><span class="java_operator">&gt;</span><!-- <br/> --><span class="java_plain">&nbsp;</span><!-- <br/> --><span class="java_separator">{</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="java_keyword">private</span><span class="java_plain">&nbsp;</span><span class="java_type">BuildContext</span><span class="java_plain">&nbsp;context</span><span class="java_separator">;</span>
+</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="java_keyword">public</span><span class="java_plain">&nbsp;</span><span class="java_type">void</span><span class="java_plain">&nbsp;initialize</span><span class="java_separator">(</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="java_type">String</span><span class="java_plain">&nbsp;directoryProviderName</span><span class="java_separator">,</span><span class="java_plain">&nbsp;</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="java_type">Properties</span><span class="java_plain">&nbsp;properties</span><span class="java_separator">,</span><span class="java_plain">&nbsp;</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="java_type">BuildContext</span><span class="java_plain">&nbsp;context</span><span class="java_separator">)</span><span class="java_plain">&nbsp;</span><span class="java_separator">{</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="java_operator">//</span><span class="java_plain">initialize</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="java_keyword">this</span><span class="java_separator">.</span><span class="java_plain">context&nbsp;</span><span class="java_operator">=</span><span class="java_plain">&nbsp;context</span><span class="java_separator">;</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="java_separator">}</span>
+</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="java_keyword">public</span><span class="java_plain">&nbsp;</span><span class="java_type">void</span><span class="java_plain">&nbsp;start</span><span class="java_separator">()</span><span class="java_plain">&nbsp;</span><span class="java_separator">{</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="java_type">Cache</span><span class="java_plain">&nbsp;cache&nbsp;</span><span class="java_operator">=</span><span class="java_plain">&nbsp;context</span><span class="java_separator">.</span><span class="java_plain">requestService</span><span class="java_separator">(</span><span class="java_type">CacheServiceProvider</span><span class="java_separator">.</span><span class="java_keyword">class</span><span class="java_separator">);</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="java_operator">//</span><span class="java_plain">use&nbsp;cache</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="java_separator">}</span>
+</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="java_keyword">public</span><span class="java_plain">&nbsp;</span><span class="java_type">RAMDirectory</span><span class="java_plain">&nbsp;getDirectory</span><span class="java_separator">()</span><span class="java_plain">&nbsp;</span><span class="java_separator">{</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="java_operator">//</span><span class="java_plain">&nbsp;use&nbsp;cache</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="java_separator">}</span>
+</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="java_keyword">public</span><span class="java_plain">&nbsp;stop</span><span class="java_separator">()</span><span class="java_plain">&nbsp;</span><span class="java_separator">{</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="java_operator">//</span><span class="java_plain">stop&nbsp;services</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;context</span><span class="java_separator">.</span><span class="java_plain">releaseService</span><span class="java_separator">(</span><span class="java_type">CacheServiceProvider</span><span class="java_separator">.</span><span class="java_keyword">class</span><span class="java_separator">);</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="java_separator">}</span><span class="java_plain">&nbsp;</span>
+<!--  --><br/><span class="java_separator">}</span></pre></div></div><br class="example-break"/><p>When you request a service, an instance of the service is served
+      to you. Make sure to then release the service. This is fundamental. Note
+      that the service can be released in the
+      <code class="methodname">DirectoryProvider.stop</code> method if the
+      <code class="classname">DirectoryProvider</code> uses the service during its
+      lifetime or could be released right away of the service is simply used
+      at initialization time.</p></div></div><div class="section" lang="en-US"><div class="titlepage"><div><div><h2 class="title"><a id="d0e8681"/>10.7. Customizing Lucene's scoring formula</h2></div></div></div><p>Lucene allows the user to customize its scoring formula by extending
+    <code class="classname">org.apache.lucene.search.Similarity</code>. The abstract
+    methods defined in this class match the factors of the following formula
+    calculating the score of query q for document d:</p><p><span class="bold"><strong>score(q,d) = coord(q,d) · queryNorm(q) · ∑
+    <sub>t in q</sub> ( tf(t in d) · idf(t)
+    <sup>2</sup> · t.getBoost() · norm(t,d) )
+    </strong></span></p><div class="informaltable"><table border="1"><colgroup><col/><col/></colgroup><thead><tr><th align="center">Factor</th><th align="center">Description</th></tr></thead><tbody><tr><td align="left">tf(t ind)</td><td align="left">Term frequency factor for the term (t) in the document
+              (d).</td></tr><tr><td align="left">idf(t)</td><td align="left">Inverse document frequency of the term.</td></tr><tr><td align="left">coord(q,d)</td><td align="left">Score factor based on how many of the query terms are
+              found in the specified document.</td></tr><tr><td align="left">queryNorm(q)</td><td align="left">Normalizing factor used to make scores between queries
+              comparable.</td></tr><tr><td align="left">t.getBoost()</td><td align="left">Field boost.</td></tr><tr><td align="left">norm(t,d)</td><td align="left">Encapsulates a few (indexing time) boost and length
+              factors.</td></tr></tbody></table></div><p>It is beyond the scope of this manual to explain this
+    formula in more detail. Please refer to
+    <code class="classname">Similarity</code>'s Javadocs for more information.</p><p>Hibernate Search provides two ways to modify Lucene's similarity
+    calculation.</p><p>First you can set the default similarity by specifying the fully
+    specified classname of your <code class="classname">Similarity</code>
+    implementation using the property
+    <code class="constant">hibernate.search.similarity</code>. The default value is
+    <code class="classname">org.apache.lucene.search.DefaultSimilarity</code>.</p><p>Secondly, you can override the similarity used for a specific index
+    by setting the <code class="literal">similarity</code> property for this index (see
+    <a href="search-configuration.html#search-configuration-directory" title="3.3. Directory configuration">Section 3.3, “Directory configuration”</a> for more information
+    about index configuration):</p><pre class="programlisting">hibernate.search.[default|&lt;indexname&gt;].similarity = my.custom.Similarity</pre><p>As an example, let's assume it is not important how often a term
+    appears in a document. Documents with a single occurrence of the term
+    should be scored the same as documents with multiple occurrences. In this
+    case your custom implementation of the method <code class="methodname">tf(float freq)
+    </code> should return 1.0.</p><div xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="note"><h2>Note</h2><p>When two entities share the same index they must declare the same
+      <code class="classname">Similarity</code> implementation.</p></div><div xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="note"><h2>Note</h2><p>The use of <code class="classname">@Similarity</code> which was used to
+      configure the similarity on a class level is deprecated since Hibernate
+      Search 4.4. Instead of using the annotation use the configuration
+      property.</p></div></div></div><HR xmlns=""/><a xmlns="" href=""/><ul class="docnav"><li class="previous"><a accesskey="p" href="spatial.html"><strong>Prev</strong>Chapter 9. Spatial</a></li><li class="up"><a accesskey="u" href="#"><strong>Top of page</strong></a></li><li class="home"><a accesskey="h" href="index.html"><strong>Front page</strong></a></li><li class="next"><a accesskey="n" href="ch11.html"><strong>Next</strong>Chapter 11. Further reading</a></li></ul></body></html>

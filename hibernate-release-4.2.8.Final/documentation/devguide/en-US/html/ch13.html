@@ -1,0 +1,992 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml"><head><title>Chapter 13. Native SQL Queries</title><link rel="stylesheet" type="text/css" href="css/hibernate.css"/><meta name="generator" content="DocBook XSL Stylesheets V1.76.1"/><link rel="home" href="index.html" title="Hibernate Developer Guide"/><link rel="up" href="index.html" title="Hibernate Developer Guide"/><link rel="prev" href="ch12.html" title="Chapter 12. Criteria"/><link rel="next" href="ch14.html" title="Chapter 14. JMX"/><meta xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" http-equiv="Content-Type" content="text/html; charset=UTF-8"/></head><body><p xmlns:d="http://docbook.org/ns/docbook" id="title"><a href="http://www.hibernate.org" class="site_href"><strong>Hibernate.org</strong></a><a href="http://hibernate.org/Documentation/DocumentationOverview" class="doc_href"><strong>Community Documentation</strong></a></p><ul xmlns:d="http://docbook.org/ns/docbook" class="docnav"><li class="previous"><a accesskey="p" href="ch12.html"><strong>Prev</strong></a></li><li class="next"><a accesskey="n" href="ch14.html"><strong>Next</strong></a></li></ul><div class="chapter" title="Chapter 13. Native SQL Queries"><div class="titlepage"><div><div><h2 class="title"><a id="d5e3565"/>Chapter 13. Native SQL Queries</h2></div></div></div><div class="toc"><p><strong>Table of Contents</strong></p><dl><dt><span class="section"><a href="ch13.html#querysql-creating">13.1. Using a <code class="literal">SQLQuery</code></a></span></dt><dd><dl><dt><span class="section"><a href="ch13.html#d5e3574">13.1.1. Scalar queries</a></span></dt><dt><span class="section"><a href="ch13.html#d5e3598">13.1.2. Entity queries</a></span></dt><dt><span class="section"><a href="ch13.html#d5e3616">13.1.3. Handling associations and collections</a></span></dt><dt><span class="section"><a href="ch13.html#d5e3629">13.1.4. Returning multiple entities</a></span></dt><dt><span class="section"><a href="ch13.html#d5e3721">13.1.5. Returning non-managed entities</a></span></dt><dt><span class="section"><a href="ch13.html#d5e3733">13.1.6. Handling inheritance</a></span></dt><dt><span class="section"><a href="ch13.html#d5e3736">13.1.7. Parameters</a></span></dt></dl></dd><dt><span class="section"><a href="ch13.html#querysql-namedqueries">13.2. Named SQL queries</a></span></dt><dd><dl><dt><span class="section"><a href="ch13.html#propertyresults">13.2.1. Using return-property to explicitly specify column/alias
+      names</a></span></dt><dt><span class="section"><a href="ch13.html#sp_query">13.2.2. Using stored procedures for querying</a></span></dt></dl></dd><dt><span class="section"><a href="ch13.html#querysql-cud">13.3. Custom SQL for create, update and delete</a></span></dt><dt><span class="section"><a href="ch13.html#querysql-load">13.4. Custom SQL for loading</a></span></dt></dl></div>
+
+    
+
+    <p>
+        You may also express queries in the native SQL dialect of your database. This is useful if you
+        want to utilize database specific features such as query hints or the CONNECT BY option in Oracle.
+        It also provides a clean migration path from a direct SQL/JDBC based application to Hibernate/JPA.
+        Hibernate also allows you to specify handwritten SQL (including stored procedures) for all
+        create, update, delete, and load operations.
+    </p>
+
+  <div class="section" title="13.1. Using a SQLQuery"><div class="titlepage"><div><div><h2 class="title"><a id="querysql-creating"/>13.1. Using a <code class="literal">SQLQuery</code></h2></div></div></div>
+    
+
+    <p>Execution of native SQL queries is controlled via the
+    <code class="literal">SQLQuery</code> interface, which is obtained by calling
+    <code class="literal">Session.createSQLQuery()</code>. The following sections
+    describe how to use this API for querying.</p>
+
+    <div class="section" title="13.1.1. Scalar queries"><div class="titlepage"><div><div><h3 class="title"><a id="d5e3574"/>13.1.1. Scalar queries</h3></div></div></div>
+      
+
+      <p>The most basic SQL query is to get a list of scalars
+      (values).</p>
+
+      <pre xmlns="" xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="">sess.createSQLQuery("SELECT * FROM CATS").list();
+sess.createSQLQuery("SELECT ID, NAME, BIRTHDATE FROM CATS").list();
+</pre>
+
+      <p>These will return a List of Object arrays (Object[]) with scalar
+      values for each column in the CATS table. Hibernate will use
+      ResultSetMetadata to deduce the actual order and types of the returned
+      scalar values.</p>
+
+      <p>To avoid the overhead of using
+      <code class="literal">ResultSetMetadata</code>, or simply to be more explicit in
+      what is returned, one can use <code class="literal">addScalar()</code>:</p>
+
+      <pre xmlns="" xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="">sess.createSQLQuery("SELECT * FROM CATS")
+ .addScalar("ID", Hibernate.LONG)
+ .addScalar("NAME", Hibernate.STRING)
+ .addScalar("BIRTHDATE", Hibernate.DATE)
+</pre>
+
+      <p>This query specified:</p>
+
+      <div class="itemizedlist"><ul class="itemizedlist"><li class="listitem">
+          <p>the SQL query string</p>
+        </li><li class="listitem">
+          <p>the columns and types to return</p>
+        </li></ul></div>
+
+      <p>This will return Object arrays, but now it will not use
+      <code class="literal">ResultSetMetadata</code> but will instead explicitly get the
+      ID, NAME and BIRTHDATE column as respectively a Long, String and a Short
+      from the underlying resultset. This also means that only these three
+      columns will be returned, even though the query is using
+      <code class="literal">*</code> and could return more than the three listed
+      columns.</p>
+
+      <p>It is possible to leave out the type information for all or some
+      of the scalars.</p>
+
+      <pre xmlns="" xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="">sess.createSQLQuery("SELECT * FROM CATS")
+ .addScalar("ID", Hibernate.LONG)
+ .addScalar("NAME")
+ .addScalar("BIRTHDATE")
+</pre>
+
+      <p>This is essentially the same query as before, but now
+      <code class="literal">ResultSetMetaData</code> is used to determine the type of
+      NAME and BIRTHDATE, where as the type of ID is explicitly
+      specified.</p>
+
+      <p>How the java.sql.Types returned from ResultSetMetaData is mapped
+      to Hibernate types is controlled by the Dialect. If a specific type is
+      not mapped, or does not result in the expected type, it is possible to
+      customize it via calls to <code class="literal">registerHibernateType</code> in
+      the Dialect.</p>
+    </div>
+
+    <div class="section" title="13.1.2. Entity queries"><div class="titlepage"><div><div><h3 class="title"><a id="d5e3598"/>13.1.2. Entity queries</h3></div></div></div>
+      
+
+      <p>The above queries were all about returning scalar values,
+      basically returning the "raw" values from the resultset. The following
+      shows how to get entity objects from a native sql query via
+      <code class="literal">addEntity()</code>.</p>
+
+      <pre xmlns="" xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="">sess.createSQLQuery("SELECT * FROM CATS").addEntity(Cat.class);
+sess.createSQLQuery("SELECT ID, NAME, BIRTHDATE FROM CATS").addEntity(Cat.class);
+</pre>
+
+      <p>This query specified:</p>
+
+      <div class="itemizedlist"><ul class="itemizedlist"><li class="listitem">
+          <p>the SQL query string</p>
+        </li><li class="listitem">
+          <p>the entity returned by the query</p>
+        </li></ul></div>
+
+      <p>Assuming that Cat is mapped as a class with the columns ID, NAME
+      and BIRTHDATE the above queries will both return a List where each
+      element is a Cat entity.</p>
+
+      <p>If the entity is mapped with a <code class="literal">many-to-one</code> to
+      another entity it is required to also return this when performing the
+      native query, otherwise a database specific "column not found" error
+      will occur. The additional columns will automatically be returned when
+      using the * notation, but we prefer to be explicit as in the following
+      example for a <code class="literal">many-to-one</code> to a
+      <code class="literal">Dog</code>:</p>
+
+      <pre xmlns="" xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="">sess.createSQLQuery("SELECT ID, NAME, BIRTHDATE, DOG_ID FROM CATS").addEntity(Cat.class);
+</pre>
+
+      <p>This will allow cat.getDog() to function properly.</p>
+    </div>
+
+    <div class="section" title="13.1.3. Handling associations and collections"><div class="titlepage"><div><div><h3 class="title"><a id="d5e3616"/>13.1.3. Handling associations and collections</h3></div></div></div>
+      
+
+      <p>It is possible to eagerly join in the <code class="literal">Dog</code> to
+      avoid the possible extra roundtrip for initializing the proxy. This is
+      done via the <code class="literal">addJoin()</code> method, which allows you to
+      join in an association or collection.</p>
+
+      <pre xmlns="" xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="">sess.createSQLQuery("SELECT c.ID, NAME, BIRTHDATE, DOG_ID, D_ID, D_NAME FROM CATS c, DOGS d WHERE c.DOG_ID = d.D_ID")
+ .addEntity("cat", Cat.class)
+ .addJoin("cat.dog");
+</pre>
+
+      <p>In this example, the returned <code class="literal">Cat</code>'s will have
+      their <code class="literal">dog</code> property fully initialized without any
+      extra roundtrip to the database. Notice that you added an alias name
+      ("cat") to be able to specify the target property path of the join. It
+      is possible to do the same eager joining for collections, e.g. if the
+      <code class="literal">Cat</code> had a one-to-many to <code class="literal">Dog</code>
+      instead.</p>
+
+      <pre xmlns="" xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="">sess.createSQLQuery("SELECT ID, NAME, BIRTHDATE, D_ID, D_NAME, CAT_ID FROM CATS c, DOGS d WHERE c.ID = d.CAT_ID")
+ .addEntity("cat", Cat.class)
+ .addJoin("cat.dogs");
+</pre>
+
+      <p>At this stage you are reaching the limits of what is possible with
+      native queries, without starting to enhance the sql queries to make them
+      usable in Hibernate. Problems can arise when returning multiple entities
+      of the same type or when the default alias/column names are not
+      enough.</p>
+    </div>
+
+    <div class="section" title="13.1.4. Returning multiple entities"><div class="titlepage"><div><div><h3 class="title"><a id="d5e3629"/>13.1.4. Returning multiple entities</h3></div></div></div>
+      
+
+      <p>Until now, the result set column names are assumed to be the same
+      as the column names specified in the mapping document. This can be
+      problematic for SQL queries that join multiple tables, since the same
+      column names can appear in more than one table.</p>
+
+      <p>Column alias injection is needed in the following query (which
+      most likely will fail):</p>
+
+      <pre xmlns="" xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="">sess.createSQLQuery("SELECT c.*, m.*  FROM CATS c, CATS m WHERE c.MOTHER_ID = c.ID")
+ .addEntity("cat", Cat.class)
+ .addEntity("mother", Cat.class)
+</pre>
+
+      <p>The query was intended to return two Cat instances per row: a cat
+      and its mother. The query will, however, fail because there is a
+      conflict of names; the instances are mapped to the same column names.
+      Also, on some databases the returned column aliases will most likely be
+      on the form "c.ID", "c.NAME", etc. which are not equal to the columns
+      specified in the mappings ("ID" and "NAME").</p>
+
+      <p>The following form is not vulnerable to column name
+      duplication:</p>
+
+      <pre xmlns="" xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="">sess.createSQLQuery("SELECT {cat.*}, {m.*}  FROM CATS c, CATS m WHERE c.MOTHER_ID = m.ID")
+ .addEntity("cat", Cat.class)
+ .addEntity("mother", Cat.class)
+</pre>
+
+      <p>This query specified:</p>
+
+      <div class="itemizedlist"><ul class="itemizedlist"><li class="listitem">
+          <p>the SQL query string, with placeholders for Hibernate to
+          inject column aliases</p>
+        </li><li class="listitem">
+          <p>the entities returned by the query</p>
+        </li></ul></div>
+
+      <p>The {cat.*} and {mother.*} notation used above is a shorthand for
+      "all properties". Alternatively, you can list the columns explicitly,
+      but even in this case Hibernate injects the SQL column aliases for each
+      property. The placeholder for a column alias is just the property name
+      qualified by the table alias. In the following example, you retrieve
+      Cats and their mothers from a different table (cat_log) to the one
+      declared in the mapping metadata. You can even use the property aliases
+      in the where clause.</p>
+
+      <pre xmlns="" xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="">String sql = "SELECT ID as {c.id}, NAME as {c.name}, " +
+         "BIRTHDATE as {c.birthDate}, MOTHER_ID as {c.mother}, {mother.*} " +
+         "FROM CAT_LOG c, CAT_LOG m WHERE {c.mother} = c.ID";
+
+List loggedCats = sess.createSQLQuery(sql)
+        .addEntity("cat", Cat.class)
+        .addEntity("mother", Cat.class).list()
+</pre>
+
+      <div class="section" title="13.1.4.1. Alias and property references"><div class="titlepage"><div><div><h4 class="title"><a id="querysql-aliasreferences"/>13.1.4.1. Alias and property references</h4></div></div></div>
+        
+
+        <p>In most cases the above alias injection is needed. For queries
+        relating to more complex mappings, like composite properties,
+        inheritance discriminators, collections etc., you can use specific
+        aliases that allow Hibernate to inject the proper aliases.</p>
+
+        <p>The following table shows the different ways you can use the
+        alias injection. Please note that the alias names in the result are
+        simply examples; each alias will have a unique and probably different
+        name when used.</p>
+
+        <div class="table"><a id="aliasinjection-summary"/><p class="title"><strong>Table 13.1. Alias injection names</strong></p><div class="table-contents">
+          
+
+          <table summary="Alias injection names" border="1"><colgroup><col width="1*"/><col width="1*"/><col width="2.5*"/></colgroup><thead><tr><th>Description</th><th>Syntax</th><th>Example</th></tr></thead><tbody><tr><td>A simple property</td><td><code class="literal">{[aliasname].[propertyname]</code></td><td><code class="literal">A_NAME as {item.name}</code></td></tr><tr><td>A composite property</td><td><code class="literal">{[aliasname].[componentname].[propertyname]}</code></td><td><code class="literal">CURRENCY as {item.amount.currency}, VALUE as
+                {item.amount.value}</code></td></tr><tr><td>Discriminator of an entity</td><td><code class="literal">{[aliasname].class}</code></td><td><code class="literal">DISC as {item.class}</code></td></tr><tr><td>All properties of an entity</td><td><code class="literal">{[aliasname].*}</code></td><td><code class="literal">{item.*}</code></td></tr><tr><td>A collection key</td><td><code class="literal">{[aliasname].key}</code></td><td><code class="literal">ORGID as {coll.key}</code></td></tr><tr><td>The id of an collection</td><td><code class="literal">{[aliasname].id}</code></td><td><code class="literal">EMPID as {coll.id}</code></td></tr><tr><td>The element of an collection</td><td><code class="literal">{[aliasname].element}</code></td><td><code class="literal">XID as {coll.element}</code></td></tr><tr><td>property of the element in the collection</td><td><code class="literal">{[aliasname].element.[propertyname]}</code></td><td><code class="literal">NAME as {coll.element.name}</code></td></tr><tr><td>All properties of the element in the collection</td><td><code class="literal">{[aliasname].element.*}</code></td><td><code class="literal">{coll.element.*}</code></td></tr><tr><td>All properties of the collection</td><td><code class="literal">{[aliasname].*}</code></td><td><code class="literal">{coll.*}</code></td></tr></tbody></table>
+        </div></div><br class="table-break"/>
+      </div>
+    </div>
+
+    <div class="section" title="13.1.5. Returning non-managed entities"><div class="titlepage"><div><div><h3 class="title"><a id="d5e3721"/>13.1.5. Returning non-managed entities</h3></div></div></div>
+      
+
+      <p>It is possible to apply a ResultTransformer to native SQL queries,
+      allowing it to return non-managed entities.</p>
+
+      <pre xmlns="" xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="">sess.createSQLQuery("SELECT NAME, BIRTHDATE FROM CATS")
+        .setResultTransformer(Transformers.aliasToBean(CatDTO.class))</pre>
+
+      <p>This query specified:</p>
+
+      <div class="itemizedlist"><ul class="itemizedlist"><li class="listitem">
+          <p>the SQL query string</p>
+        </li><li class="listitem">
+          <p>a result transformer</p>
+        </li></ul></div>
+
+      <p>The above query will return a list of <code class="literal">CatDTO</code>
+      which has been instantiated and injected the values of NAME and
+      BIRTHNAME into its corresponding properties or fields.</p>
+    </div>
+
+    <div class="section" title="13.1.6. Handling inheritance"><div class="titlepage"><div><div><h3 class="title"><a id="d5e3733"/>13.1.6. Handling inheritance</h3></div></div></div>
+      
+
+      <p>Native SQL queries which query for entities that are mapped as
+      part of an inheritance must include all properties for the baseclass and
+      all its subclasses.</p>
+    </div>
+
+    <div class="section" title="13.1.7. Parameters"><div class="titlepage"><div><div><h3 class="title"><a id="d5e3736"/>13.1.7. Parameters</h3></div></div></div>
+      
+
+      <p>Native SQL queries support positional as well as named
+      parameters:</p>
+
+      <pre xmlns="" xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="">Query query = sess.createSQLQuery("SELECT * FROM CATS WHERE NAME like ?").addEntity(Cat.class);
+List pusList = query.setString(0, "Pus%").list();
+
+query = sess.createSQLQuery("SELECT * FROM CATS WHERE NAME like :name").addEntity(Cat.class);
+List pusList = query.setString("name", "Pus%").list();          </pre>
+    </div>
+  </div>
+
+  <div class="section" title="13.2. Named SQL queries"><div class="titlepage"><div><div><h2 class="title"><a id="querysql-namedqueries"/>13.2. Named SQL queries</h2></div></div></div>
+    
+
+    <p>Named SQL queries can also be defined in the mapping document and
+    called in exactly the same way as a named HQL query (see <a class="xref" href="">???</a>). In this case, you do
+    <span class="emphasis"><em>not</em></span> need to call
+    <code class="literal">addEntity()</code>.</p>
+
+    <div class="example"><a id="d5e3746"/><p class="title"><strong>Example 13.1. Named sql query using the &lt;sql-query&gt; maping
+      element</strong></p><div class="example-contents">
+      
+
+      <pre xmlns="" xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="">&lt;sql-query name="persons"&gt;
+    &lt;return alias="person" class="eg.Person"/&gt;
+    SELECT person.NAME AS {person.name},
+           person.AGE AS {person.age},
+           person.SEX AS {person.sex}
+    FROM PERSON person
+    WHERE person.NAME LIKE :namePattern
+&lt;/sql-query&gt;</pre>
+    </div></div><br class="example-break"/>
+
+    <div class="example"><a id="d5e3749"/><p class="title"><strong>Example 13.2. Execution of a named query</strong></p><div class="example-contents">
+      
+
+      <pre xmlns="" xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="">List people = sess.getNamedQuery("persons")
+    .setString("namePattern", namePattern)
+    .setMaxResults(50)
+    .list();</pre>
+    </div></div><br class="example-break"/>
+
+    <p>The <code class="literal">&lt;return-join&gt;</code> element is use to join
+    associations and the <code class="literal">&lt;load-collection&gt;</code> element is
+    used to define queries which initialize collections,</p>
+
+    <div class="example"><a id="d5e3755"/><p class="title"><strong>Example 13.3. Named sql query with association</strong></p><div class="example-contents">
+      
+
+      <pre xmlns="" xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="">&lt;sql-query name="personsWith"&gt;
+    &lt;return alias="person" class="eg.Person"/&gt;
+    &lt;return-join alias="address" property="person.mailingAddress"/&gt;
+    SELECT person.NAME AS {person.name},
+           person.AGE AS {person.age},
+           person.SEX AS {person.sex},
+           address.STREET AS {address.street},
+           address.CITY AS {address.city},
+           address.STATE AS {address.state},
+           address.ZIP AS {address.zip}
+    FROM PERSON person
+    JOIN ADDRESS address
+        ON person.ID = address.PERSON_ID AND address.TYPE='MAILING'
+    WHERE person.NAME LIKE :namePattern
+&lt;/sql-query&gt;</pre>
+    </div></div><br class="example-break"/>
+
+    <p>A named SQL query may return a scalar value. You must declare the
+    column alias and Hibernate type using the
+    <code class="literal">&lt;return-scalar&gt;</code> element:</p>
+
+    <div class="example"><a id="d5e3760"/><p class="title"><strong>Example 13.4. Named query returning a scalar</strong></p><div class="example-contents">
+      
+
+      <pre xmlns="" xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="">&lt;sql-query name="mySqlQuery"&gt;
+    &lt;return-scalar column="name" type="string"/&gt;
+    &lt;return-scalar column="age" type="long"/&gt;
+    SELECT p.NAME AS name,
+           p.AGE AS age,
+    FROM PERSON p WHERE p.NAME LIKE 'Hiber%'
+&lt;/sql-query&gt;</pre>
+    </div></div><br class="example-break"/>
+
+    <p>You can externalize the resultset mapping information in a
+    <code class="literal">&lt;resultset&gt;</code> element which will allow you to
+    either reuse them across several named queries or through the
+    <code class="literal">setResultSetMapping()</code> API.</p>
+
+    <div class="example"><a id="d5e3766"/><p class="title"><strong>Example 13.5. &lt;resultset&gt; mapping used to externalize mapping
+      information</strong></p><div class="example-contents">
+      
+
+      <pre xmlns="" xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="">&lt;resultset name="personAddress"&gt;
+    &lt;return alias="person" class="eg.Person"/&gt;
+    &lt;return-join alias="address" property="person.mailingAddress"/&gt;
+&lt;/resultset&gt;
+
+&lt;sql-query name="personsWith" resultset-ref="personAddress"&gt;
+    SELECT person.NAME AS {person.name},
+           person.AGE AS {person.age},
+           person.SEX AS {person.sex},
+           address.STREET AS {address.street},
+           address.CITY AS {address.city},
+           address.STATE AS {address.state},
+           address.ZIP AS {address.zip}
+    FROM PERSON person
+    JOIN ADDRESS address
+        ON person.ID = address.PERSON_ID AND address.TYPE='MAILING'
+    WHERE person.NAME LIKE :namePattern
+&lt;/sql-query&gt;</pre>
+    </div></div><br class="example-break"/>
+
+    <p>You can, alternatively, use the resultset mapping information in
+    your hbm files directly in java code.</p>
+
+    <div class="example"><a id="d5e3770"/><p class="title"><strong>Example 13.6. Programmatically specifying the result mapping information
+      </strong></p><div class="example-contents">
+      
+
+      <pre xmlns="" xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="">List cats = sess.createSQLQuery(
+        "select {cat.*}, {kitten.*} from cats cat, cats kitten where kitten.mother = cat.id"
+    )
+    .setResultSetMapping("catAndKitten")
+    .list();</pre>
+    </div></div><br class="example-break"/>
+
+    <p>So far we have only looked at externalizing SQL queries using
+    Hibernate mapping files. The same concept is also available with
+    anntations and is called named native queries. You can use
+    <code class="classname">@NamedNativeQuery</code>
+    (<code class="classname">@NamedNativeQueries</code>) in conjunction with
+    <code class="literal">@SqlResultSetMapping</code>
+    (<code class="literal">@SqlResultSetMappings</code>). Like
+    <code class="literal">@NamedQuery</code>, <code class="classname">@NamedNativeQuery</code>
+    and <code class="literal">@SqlResultSetMapping</code> can be defined at class level,
+    but their scope is global to the application. Lets look at a view
+    examples.</p>
+
+    <p><a class="xref" href="ch13.html#example-named-native-query-annotation-with-result-set-mapping" title="Example 13.7. Named SQL query using @NamedNativeQuery together with @SqlResultSetMapping">Example 13.7, “Named SQL query using <code class="classname">@NamedNativeQuery</code>
+      together with <code class="classname">@SqlResultSetMapping</code>”</a>
+    shows how a <code class="literal">resultSetMapping</code> parameter is defined in
+    <code class="literal">@NamedNativeQuery</code>. It represents the name of a defined
+    <code class="literal">@SqlResultSetMapping</code>. The resultset mapping declares
+    the entities retrieved by this native query. Each field of the entity is
+    bound to an SQL alias (or column name). All fields of the entity including
+    the ones of subclasses and the foreign key columns of related entities
+    have to be present in the SQL query. Field definitions are optional
+    provided that they map to the same column name as the one declared on the
+    class property. In the example 2 entities, <code class="literal">Night</code> and
+    <code class="literal">Area</code>, are returned and each property is declared and
+    associated to a column name, actually the column name retrieved by the
+    query. </p>
+
+    <p>In <a class="xref" href="ch13.html#example-implicit-result-set-mapping" title="Example 13.8. Implicit result set mapping">Example 13.8, “Implicit result set mapping”</a> the result
+    set mapping is implicit. We only describe the entity class of the result
+    set mapping. The property / column mappings is done using the entity
+    mapping values. In this case the model property is bound to the model_txt
+    column. </p>
+
+    <p>Finally, if the association to a related entity involve a composite
+    primary key, a <code class="literal">@FieldResult</code> element should be used for
+    each foreign key column. The <code class="literal">@FieldResult</code> name is
+    composed of the property name for the relationship, followed by a dot
+    ("."), followed by the name or the field or property of the primary key.
+    This can be seen in <a class="xref" href="ch13.html#example-field-result-annotation-with-associations" title="Example 13.9. Using dot notation in @FieldResult for specifying associations">Example 13.9, “Using dot notation in @FieldResult for specifying associations
+      ”</a>.</p>
+
+    <div class="example"><a id="example-named-native-query-annotation-with-result-set-mapping"/><p class="title"><strong>Example 13.7. Named SQL query using <code class="classname">@NamedNativeQuery</code>
+      together with <code class="classname">@SqlResultSetMapping</code></strong></p><div class="example-contents">
+      
+
+      <pre xmlns="" xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="JAVA"><!-- <br/> --><span class="java_plain">@</span><!-- <br/> --><span class="java_type">NamedNativeQuery</span><!-- <br/> --><span class="java_separator">(</span><!-- <br/> --><span class="java_plain">name</span><!-- <br/> --><span class="java_operator">=</span><!-- <br/> --><span class="java_literal">&quot;night&amp;area&quot;</span><!-- <br/> --><span class="java_separator">,</span><!-- <br/> --><span class="java_plain">&nbsp;query</span><!-- <br/> --><span class="java_operator">=</span><!-- <br/> --><span class="java_literal">&quot;select&nbsp;night.id&nbsp;nid,&nbsp;night.night_duration,&nbsp;&quot;</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="java_operator">+</span><span class="java_plain">&nbsp;</span><span class="java_literal">&quot;&nbsp;night.night_date,&nbsp;area.id&nbsp;aid,&nbsp;night.area_id,&nbsp;area.name&nbsp;&quot;</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="java_operator">+</span><span class="java_plain">&nbsp;</span><span class="java_literal">&quot;from&nbsp;Night&nbsp;night,&nbsp;Area&nbsp;area&nbsp;where&nbsp;night.area_id&nbsp;=&nbsp;area.id&quot;</span><span class="java_separator">,</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;resultSetMapping</span><span class="java_operator">=</span><span class="java_literal">&quot;joinMapping&quot;</span><span class="java_separator">)</span>
+<!--  --><br/><span class="java_plain">@</span><span class="java_type">SqlResultSetMapping</span><span class="java_separator">(</span><span class="java_plain">name</span><span class="java_operator">=</span><span class="java_literal">&quot;joinMapping&quot;</span><span class="java_separator">,</span><span class="java_plain">&nbsp;entities</span><span class="java_operator">=</span><span class="java_separator">{</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;&nbsp;&nbsp;@</span><span class="java_type">EntityResult</span><span class="java_separator">(</span><span class="java_plain">entityClass</span><span class="java_operator">=</span><span class="java_type">Night</span><span class="java_separator">.</span><span class="java_keyword">class</span><span class="java_separator">,</span><span class="java_plain">&nbsp;fields&nbsp;</span><span class="java_operator">=</span><span class="java_plain">&nbsp;</span><span class="java_separator">{</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;@</span><span class="java_type">FieldResult</span><span class="java_separator">(</span><span class="java_plain">name</span><span class="java_operator">=</span><span class="java_literal">&quot;id&quot;</span><span class="java_separator">,</span><span class="java_plain">&nbsp;column</span><span class="java_operator">=</span><span class="java_literal">&quot;nid&quot;</span><span class="java_separator">),</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;@</span><span class="java_type">FieldResult</span><span class="java_separator">(</span><span class="java_plain">name</span><span class="java_operator">=</span><span class="java_literal">&quot;duration&quot;</span><span class="java_separator">,</span><span class="java_plain">&nbsp;column</span><span class="java_operator">=</span><span class="java_literal">&quot;night_duration&quot;</span><span class="java_separator">),</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;@</span><span class="java_type">FieldResult</span><span class="java_separator">(</span><span class="java_plain">name</span><span class="java_operator">=</span><span class="java_literal">&quot;date&quot;</span><span class="java_separator">,</span><span class="java_plain">&nbsp;column</span><span class="java_operator">=</span><span class="java_literal">&quot;night_date&quot;</span><span class="java_separator">),</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;@</span><span class="java_type">FieldResult</span><span class="java_separator">(</span><span class="java_plain">name</span><span class="java_operator">=</span><span class="java_literal">&quot;area&quot;</span><span class="java_separator">,</span><span class="java_plain">&nbsp;column</span><span class="java_operator">=</span><span class="java_literal">&quot;area_id&quot;</span><span class="java_separator">),</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;discriminatorColumn</span><span class="java_operator">=</span><span class="java_literal">&quot;disc&quot;</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="java_separator">}),</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;&nbsp;&nbsp;@</span><span class="java_type">EntityResult</span><span class="java_separator">(</span><span class="java_plain">entityClass</span><span class="java_operator">=</span><span class="java_plain">org</span><span class="java_separator">.</span><span class="java_plain">hibernate</span><span class="java_separator">.</span><span class="java_plain">test</span><span class="java_separator">.</span><span class="java_plain">annotations</span><span class="java_separator">.</span><span class="java_plain">query</span><span class="java_separator">.</span><span class="java_type">Area</span><span class="java_separator">.</span><span class="java_keyword">class</span><span class="java_separator">,</span><span class="java_plain">&nbsp;fields&nbsp;</span><span class="java_operator">=</span><span class="java_plain">&nbsp;</span><span class="java_separator">{</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;@</span><span class="java_type">FieldResult</span><span class="java_separator">(</span><span class="java_plain">name</span><span class="java_operator">=</span><span class="java_literal">&quot;id&quot;</span><span class="java_separator">,</span><span class="java_plain">&nbsp;column</span><span class="java_operator">=</span><span class="java_literal">&quot;aid&quot;</span><span class="java_separator">),</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;@</span><span class="java_type">FieldResult</span><span class="java_separator">(</span><span class="java_plain">name</span><span class="java_operator">=</span><span class="java_literal">&quot;name&quot;</span><span class="java_separator">,</span><span class="java_plain">&nbsp;column</span><span class="java_operator">=</span><span class="java_literal">&quot;name&quot;</span><span class="java_separator">)</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="java_separator">})</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="java_separator">}</span>
+<!--  --><br/><span class="java_separator">)</span></pre>
+    </div></div><br class="example-break"/>
+
+    <div class="example"><a id="example-implicit-result-set-mapping"/><p class="title"><strong>Example 13.8. Implicit result set mapping</strong></p><div class="example-contents">
+      
+
+      <pre xmlns="" xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="JAVA"><!-- <br/> --><span class="java_plain">@</span><!-- <br/> --><span class="java_type">Entity</span>
+<!--  --><br/><span class="java_plain">@</span><span class="java_type">SqlResultSetMapping</span><span class="java_separator">(</span><span class="java_plain">name</span><span class="java_operator">=</span><span class="java_literal">&quot;implicit&quot;</span><span class="java_separator">,</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;entities</span><span class="java_operator">=</span><span class="java_plain">@</span><span class="java_type">EntityResult</span><span class="java_separator">(</span><span class="java_plain">entityClass</span><span class="java_operator">=</span><span class="java_type">SpaceShip</span><span class="java_separator">.</span><span class="java_keyword">class</span><span class="java_separator">))</span>
+<!--  --><br/><span class="java_plain">@</span><span class="java_type">NamedNativeQuery</span><span class="java_separator">(</span><span class="java_plain">name</span><span class="java_operator">=</span><span class="java_literal">&quot;implicitSample&quot;</span><span class="java_separator">,</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;query</span><span class="java_operator">=</span><span class="java_literal">&quot;select&nbsp;*&nbsp;from&nbsp;SpaceShip&quot;</span><span class="java_separator">,</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;resultSetMapping</span><span class="java_operator">=</span><span class="java_literal">&quot;implicit&quot;</span><span class="java_separator">)</span>
+<!--  --><br/><span class="java_keyword">public</span><span class="java_plain">&nbsp;</span><span class="java_keyword">class</span><span class="java_plain">&nbsp;</span><span class="java_type">SpaceShip</span><span class="java_plain">&nbsp;</span><span class="java_separator">{</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="java_keyword">private</span><span class="java_plain">&nbsp;</span><span class="java_type">String</span><span class="java_plain">&nbsp;name</span><span class="java_separator">;</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="java_keyword">private</span><span class="java_plain">&nbsp;</span><span class="java_type">String</span><span class="java_plain">&nbsp;model</span><span class="java_separator">;</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="java_keyword">private</span><span class="java_plain">&nbsp;</span><span class="java_type">double</span><span class="java_plain">&nbsp;speed</span><span class="java_separator">;</span>
+</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;&nbsp;&nbsp;@</span><span class="java_type">Id</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="java_keyword">public</span><span class="java_plain">&nbsp;</span><span class="java_type">String</span><span class="java_plain">&nbsp;getName</span><span class="java_separator">()</span><span class="java_plain">&nbsp;</span><span class="java_separator">{</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="java_keyword">return</span><span class="java_plain">&nbsp;name</span><span class="java_separator">;</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="java_separator">}</span>
+</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="java_keyword">public</span><span class="java_plain">&nbsp;</span><span class="java_type">void</span><span class="java_plain">&nbsp;setName</span><span class="java_separator">(</span><span class="java_type">String</span><span class="java_plain">&nbsp;name</span><span class="java_separator">)</span><span class="java_plain">&nbsp;</span><span class="java_separator">{</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="java_keyword">this</span><span class="java_separator">.</span><span class="java_plain">name&nbsp;</span><span class="java_operator">=</span><span class="java_plain">&nbsp;name</span><span class="java_separator">;</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="java_separator">}</span>
+</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;&nbsp;&nbsp;@</span><span class="java_type">Column</span><span class="java_separator">(</span><span class="java_plain">name</span><span class="java_operator">=</span><span class="java_literal">&quot;model_txt&quot;</span><span class="java_separator">)</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="java_keyword">public</span><span class="java_plain">&nbsp;</span><span class="java_type">String</span><span class="java_plain">&nbsp;getModel</span><span class="java_separator">()</span><span class="java_plain">&nbsp;</span><span class="java_separator">{</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="java_keyword">return</span><span class="java_plain">&nbsp;model</span><span class="java_separator">;</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="java_separator">}</span>
+</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="java_keyword">public</span><span class="java_plain">&nbsp;</span><span class="java_type">void</span><span class="java_plain">&nbsp;setModel</span><span class="java_separator">(</span><span class="java_type">String</span><span class="java_plain">&nbsp;model</span><span class="java_separator">)</span><span class="java_plain">&nbsp;</span><span class="java_separator">{</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="java_keyword">this</span><span class="java_separator">.</span><span class="java_plain">model&nbsp;</span><span class="java_operator">=</span><span class="java_plain">&nbsp;model</span><span class="java_separator">;</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="java_separator">}</span>
+</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="java_keyword">public</span><span class="java_plain">&nbsp;</span><span class="java_type">double</span><span class="java_plain">&nbsp;getSpeed</span><span class="java_separator">()</span><span class="java_plain">&nbsp;</span><span class="java_separator">{</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="java_keyword">return</span><span class="java_plain">&nbsp;speed</span><span class="java_separator">;</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="java_separator">}</span>
+</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="java_keyword">public</span><span class="java_plain">&nbsp;</span><span class="java_type">void</span><span class="java_plain">&nbsp;setSpeed</span><span class="java_separator">(</span><span class="java_type">double</span><span class="java_plain">&nbsp;speed</span><span class="java_separator">)</span><span class="java_plain">&nbsp;</span><span class="java_separator">{</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="java_keyword">this</span><span class="java_separator">.</span><span class="java_plain">speed&nbsp;</span><span class="java_operator">=</span><span class="java_plain">&nbsp;speed</span><span class="java_separator">;</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="java_separator">}</span>
+<!--  --><br/><span class="java_separator">}</span></pre>
+    </div></div><br class="example-break"/>
+
+    <div class="example"><a id="example-field-result-annotation-with-associations"/><p class="title"><strong>Example 13.9. Using dot notation in @FieldResult for specifying associations
+      </strong></p><div class="example-contents">
+      
+
+      <pre xmlns="" xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="JAVA"><!-- <br/> --><span class="java_plain">@</span><!-- <br/> --><span class="java_type">Entity</span>
+<!--  --><br/><span class="java_plain">@</span><span class="java_type">SqlResultSetMapping</span><span class="java_separator">(</span><span class="java_plain">name</span><span class="java_operator">=</span><span class="java_literal">&quot;compositekey&quot;</span><span class="java_separator">,</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;entities</span><span class="java_operator">=</span><span class="java_plain">@</span><span class="java_type">EntityResult</span><span class="java_separator">(</span><span class="java_plain">entityClass</span><span class="java_operator">=</span><span class="java_type">SpaceShip</span><span class="java_separator">.</span><span class="java_keyword">class</span><span class="java_separator">,</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;fields&nbsp;</span><span class="java_operator">=</span><span class="java_plain">&nbsp;</span><span class="java_separator">{</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;@</span><span class="java_type">FieldResult</span><span class="java_separator">(</span><span class="java_plain">name</span><span class="java_operator">=</span><span class="java_literal">&quot;name&quot;</span><span class="java_separator">,</span><span class="java_plain">&nbsp;column&nbsp;</span><span class="java_operator">=</span><span class="java_plain">&nbsp;</span><span class="java_literal">&quot;name&quot;</span><span class="java_separator">),</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;@</span><span class="java_type">FieldResult</span><span class="java_separator">(</span><span class="java_plain">name</span><span class="java_operator">=</span><span class="java_literal">&quot;model&quot;</span><span class="java_separator">,</span><span class="java_plain">&nbsp;column&nbsp;</span><span class="java_operator">=</span><span class="java_plain">&nbsp;</span><span class="java_literal">&quot;model&quot;</span><span class="java_separator">),</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;@</span><span class="java_type">FieldResult</span><span class="java_separator">(</span><span class="java_plain">name</span><span class="java_operator">=</span><span class="java_literal">&quot;speed&quot;</span><span class="java_separator">,</span><span class="java_plain">&nbsp;column&nbsp;</span><span class="java_operator">=</span><span class="java_plain">&nbsp;</span><span class="java_literal">&quot;speed&quot;</span><span class="java_separator">),</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;@</span><span class="java_type">FieldResult</span><span class="java_separator">(</span><span class="java_plain">name</span><span class="java_operator">=</span><span class="java_literal">&quot;captain.firstname&quot;</span><span class="java_separator">,</span><span class="java_plain">&nbsp;column&nbsp;</span><span class="java_operator">=</span><span class="java_plain">&nbsp;</span><span class="java_literal">&quot;firstn&quot;</span><span class="java_separator">),</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;@</span><span class="java_type">FieldResult</span><span class="java_separator">(</span><span class="java_plain">name</span><span class="java_operator">=</span><span class="java_literal">&quot;captain.lastname&quot;</span><span class="java_separator">,</span><span class="java_plain">&nbsp;column&nbsp;</span><span class="java_operator">=</span><span class="java_plain">&nbsp;</span><span class="java_literal">&quot;lastn&quot;</span><span class="java_separator">),</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;@</span><span class="java_type">FieldResult</span><span class="java_separator">(</span><span class="java_plain">name</span><span class="java_operator">=</span><span class="java_literal">&quot;dimensions.length&quot;</span><span class="java_separator">,</span><span class="java_plain">&nbsp;column&nbsp;</span><span class="java_operator">=</span><span class="java_plain">&nbsp;</span><span class="java_literal">&quot;length&quot;</span><span class="java_separator">),</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;@</span><span class="java_type">FieldResult</span><span class="java_separator">(</span><span class="java_plain">name</span><span class="java_operator">=</span><span class="java_literal">&quot;dimensions.width&quot;</span><span class="java_separator">,</span><span class="java_plain">&nbsp;column&nbsp;</span><span class="java_operator">=</span><span class="java_plain">&nbsp;</span><span class="java_literal">&quot;width&quot;</span><span class="java_separator">)</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="java_separator">}),</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;columns&nbsp;</span><span class="java_operator">=</span><span class="java_plain">&nbsp;</span><span class="java_separator">{</span><span class="java_plain">&nbsp;@</span><span class="java_type">ColumnResult</span><span class="java_separator">(</span><span class="java_plain">name&nbsp;</span><span class="java_operator">=</span><span class="java_plain">&nbsp;</span><span class="java_literal">&quot;surface&quot;</span><span class="java_separator">),</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;@</span><span class="java_type">ColumnResult</span><span class="java_separator">(</span><span class="java_plain">name&nbsp;</span><span class="java_operator">=</span><span class="java_plain">&nbsp;</span><span class="java_literal">&quot;volume&quot;</span><span class="java_separator">)</span><span class="java_plain">&nbsp;</span><span class="java_separator">}</span><span class="java_plain">&nbsp;</span><span class="java_separator">)</span>
+</span>
+<!--  --><br/><span class="java_plain">@</span><span class="java_type">NamedNativeQuery</span><span class="java_separator">(</span><span class="java_plain">name</span><span class="java_operator">=</span><span class="java_literal">&quot;compositekey&quot;</span><span class="java_separator">,</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;&nbsp;&nbsp;query</span><span class="java_operator">=</span><span class="java_literal">&quot;select&nbsp;name,&nbsp;model,&nbsp;speed,&nbsp;lname&nbsp;as&nbsp;lastn,&nbsp;fname&nbsp;as&nbsp;firstn,&nbsp;length,&nbsp;width,&nbsp;length&nbsp;*&nbsp;width&nbsp;as&nbsp;surface&nbsp;from&nbsp;SpaceShip&quot;</span><span class="java_separator">,</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;&nbsp;&nbsp;resultSetMapping</span><span class="java_operator">=</span><span class="java_literal">&quot;compositekey&quot;</span><span class="java_separator">)</span>
+<!--  --><br/><span class="java_separator">}</span><span class="java_plain">&nbsp;</span><span class="java_separator">)</span>
+<!--  --><br/><span class="java_keyword">public</span><span class="java_plain">&nbsp;</span><span class="java_keyword">class</span><span class="java_plain">&nbsp;</span><span class="java_type">SpaceShip</span><span class="java_plain">&nbsp;</span><span class="java_separator">{</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="java_keyword">private</span><span class="java_plain">&nbsp;</span><span class="java_type">String</span><span class="java_plain">&nbsp;name</span><span class="java_separator">;</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="java_keyword">private</span><span class="java_plain">&nbsp;</span><span class="java_type">String</span><span class="java_plain">&nbsp;model</span><span class="java_separator">;</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="java_keyword">private</span><span class="java_plain">&nbsp;</span><span class="java_type">double</span><span class="java_plain">&nbsp;speed</span><span class="java_separator">;</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="java_keyword">private</span><span class="java_plain">&nbsp;</span><span class="java_type">Captain</span><span class="java_plain">&nbsp;captain</span><span class="java_separator">;</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="java_keyword">private</span><span class="java_plain">&nbsp;</span><span class="java_type">Dimensions</span><span class="java_plain">&nbsp;dimensions</span><span class="java_separator">;</span>
+</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;&nbsp;&nbsp;@</span><span class="java_type">Id</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="java_keyword">public</span><span class="java_plain">&nbsp;</span><span class="java_type">String</span><span class="java_plain">&nbsp;getName</span><span class="java_separator">()</span><span class="java_plain">&nbsp;</span><span class="java_separator">{</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="java_keyword">return</span><span class="java_plain">&nbsp;name</span><span class="java_separator">;</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="java_separator">}</span>
+</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="java_keyword">public</span><span class="java_plain">&nbsp;</span><span class="java_type">void</span><span class="java_plain">&nbsp;setName</span><span class="java_separator">(</span><span class="java_type">String</span><span class="java_plain">&nbsp;name</span><span class="java_separator">)</span><span class="java_plain">&nbsp;</span><span class="java_separator">{</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="java_keyword">this</span><span class="java_separator">.</span><span class="java_plain">name&nbsp;</span><span class="java_operator">=</span><span class="java_plain">&nbsp;name</span><span class="java_separator">;</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="java_separator">}</span>
+</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;&nbsp;&nbsp;@</span><span class="java_type">ManyToOne</span><span class="java_separator">(</span><span class="java_plain">fetch</span><span class="java_operator">=</span><span class="java_plain">&nbsp;</span><span class="java_type">FetchType</span><span class="java_separator">.</span><span class="java_plain">LAZY</span><span class="java_separator">)</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;&nbsp;&nbsp;@</span><span class="java_type">JoinColumns</span><span class="java_separator">(</span><span class="java_plain">&nbsp;</span><span class="java_separator">{</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;@</span><span class="java_type">JoinColumn</span><span class="java_separator">(</span><span class="java_plain">name</span><span class="java_operator">=</span><span class="java_literal">&quot;fname&quot;</span><span class="java_separator">,</span><span class="java_plain">&nbsp;referencedColumnName&nbsp;</span><span class="java_operator">=</span><span class="java_plain">&nbsp;</span><span class="java_literal">&quot;firstname&quot;</span><span class="java_separator">),</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;@</span><span class="java_type">JoinColumn</span><span class="java_separator">(</span><span class="java_plain">name</span><span class="java_operator">=</span><span class="java_literal">&quot;lname&quot;</span><span class="java_separator">,</span><span class="java_plain">&nbsp;referencedColumnName&nbsp;</span><span class="java_operator">=</span><span class="java_plain">&nbsp;</span><span class="java_literal">&quot;lastname&quot;</span><span class="java_separator">)</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="java_separator">}</span><span class="java_plain">&nbsp;</span><span class="java_separator">)</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="java_keyword">public</span><span class="java_plain">&nbsp;</span><span class="java_type">Captain</span><span class="java_plain">&nbsp;getCaptain</span><span class="java_separator">()</span><span class="java_plain">&nbsp;</span><span class="java_separator">{</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="java_keyword">return</span><span class="java_plain">&nbsp;captain</span><span class="java_separator">;</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="java_separator">}</span>
+</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="java_keyword">public</span><span class="java_plain">&nbsp;</span><span class="java_type">void</span><span class="java_plain">&nbsp;setCaptain</span><span class="java_separator">(</span><span class="java_type">Captain</span><span class="java_plain">&nbsp;captain</span><span class="java_separator">)</span><span class="java_plain">&nbsp;</span><span class="java_separator">{</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="java_keyword">this</span><span class="java_separator">.</span><span class="java_plain">captain&nbsp;</span><span class="java_operator">=</span><span class="java_plain">&nbsp;captain</span><span class="java_separator">;</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="java_separator">}</span>
+</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="java_keyword">public</span><span class="java_plain">&nbsp;</span><span class="java_type">String</span><span class="java_plain">&nbsp;getModel</span><span class="java_separator">()</span><span class="java_plain">&nbsp;</span><span class="java_separator">{</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="java_keyword">return</span><span class="java_plain">&nbsp;model</span><span class="java_separator">;</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="java_separator">}</span>
+</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="java_keyword">public</span><span class="java_plain">&nbsp;</span><span class="java_type">void</span><span class="java_plain">&nbsp;setModel</span><span class="java_separator">(</span><span class="java_type">String</span><span class="java_plain">&nbsp;model</span><span class="java_separator">)</span><span class="java_plain">&nbsp;</span><span class="java_separator">{</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="java_keyword">this</span><span class="java_separator">.</span><span class="java_plain">model&nbsp;</span><span class="java_operator">=</span><span class="java_plain">&nbsp;model</span><span class="java_separator">;</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="java_separator">}</span>
+</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="java_keyword">public</span><span class="java_plain">&nbsp;</span><span class="java_type">double</span><span class="java_plain">&nbsp;getSpeed</span><span class="java_separator">()</span><span class="java_plain">&nbsp;</span><span class="java_separator">{</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="java_keyword">return</span><span class="java_plain">&nbsp;speed</span><span class="java_separator">;</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="java_separator">}</span>
+</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="java_keyword">public</span><span class="java_plain">&nbsp;</span><span class="java_type">void</span><span class="java_plain">&nbsp;setSpeed</span><span class="java_separator">(</span><span class="java_type">double</span><span class="java_plain">&nbsp;speed</span><span class="java_separator">)</span><span class="java_plain">&nbsp;</span><span class="java_separator">{</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="java_keyword">this</span><span class="java_separator">.</span><span class="java_plain">speed&nbsp;</span><span class="java_operator">=</span><span class="java_plain">&nbsp;speed</span><span class="java_separator">;</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="java_separator">}</span>
+</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="java_keyword">public</span><span class="java_plain">&nbsp;</span><span class="java_type">Dimensions</span><span class="java_plain">&nbsp;getDimensions</span><span class="java_separator">()</span><span class="java_plain">&nbsp;</span><span class="java_separator">{</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="java_keyword">return</span><span class="java_plain">&nbsp;dimensions</span><span class="java_separator">;</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="java_separator">}</span>
+</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="java_keyword">public</span><span class="java_plain">&nbsp;</span><span class="java_type">void</span><span class="java_plain">&nbsp;setDimensions</span><span class="java_separator">(</span><span class="java_type">Dimensions</span><span class="java_plain">&nbsp;dimensions</span><span class="java_separator">)</span><span class="java_plain">&nbsp;</span><span class="java_separator">{</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="java_keyword">this</span><span class="java_separator">.</span><span class="java_plain">dimensions&nbsp;</span><span class="java_operator">=</span><span class="java_plain">&nbsp;dimensions</span><span class="java_separator">;</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="java_separator">}</span>
+<!--  --><br/><span class="java_separator">}</span>
+</span>
+<!--  --><br/><span class="java_plain">@</span><span class="java_type">Entity</span>
+<!--  --><br/><span class="java_plain">@</span><span class="java_type">IdClass</span><span class="java_separator">(</span><span class="java_type">Identity</span><span class="java_separator">.</span><span class="java_keyword">class</span><span class="java_separator">)</span>
+<!--  --><br/><span class="java_keyword">public</span><span class="java_plain">&nbsp;</span><span class="java_keyword">class</span><span class="java_plain">&nbsp;</span><span class="java_type">Captain</span><span class="java_plain">&nbsp;</span><span class="java_keyword">implements</span><span class="java_plain">&nbsp;</span><span class="java_type">Serializable</span><span class="java_plain">&nbsp;</span><span class="java_separator">{</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="java_keyword">private</span><span class="java_plain">&nbsp;</span><span class="java_type">String</span><span class="java_plain">&nbsp;firstname</span><span class="java_separator">;</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="java_keyword">private</span><span class="java_plain">&nbsp;</span><span class="java_type">String</span><span class="java_plain">&nbsp;lastname</span><span class="java_separator">;</span>
+</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;&nbsp;&nbsp;@</span><span class="java_type">Id</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="java_keyword">public</span><span class="java_plain">&nbsp;</span><span class="java_type">String</span><span class="java_plain">&nbsp;getFirstname</span><span class="java_separator">()</span><span class="java_plain">&nbsp;</span><span class="java_separator">{</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="java_keyword">return</span><span class="java_plain">&nbsp;firstname</span><span class="java_separator">;</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="java_separator">}</span>
+</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="java_keyword">public</span><span class="java_plain">&nbsp;</span><span class="java_type">void</span><span class="java_plain">&nbsp;setFirstname</span><span class="java_separator">(</span><span class="java_type">String</span><span class="java_plain">&nbsp;firstname</span><span class="java_separator">)</span><span class="java_plain">&nbsp;</span><span class="java_separator">{</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="java_keyword">this</span><span class="java_separator">.</span><span class="java_plain">firstname&nbsp;</span><span class="java_operator">=</span><span class="java_plain">&nbsp;firstname</span><span class="java_separator">;</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="java_separator">}</span>
+</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;&nbsp;&nbsp;@</span><span class="java_type">Id</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="java_keyword">public</span><span class="java_plain">&nbsp;</span><span class="java_type">String</span><span class="java_plain">&nbsp;getLastname</span><span class="java_separator">()</span><span class="java_plain">&nbsp;</span><span class="java_separator">{</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="java_keyword">return</span><span class="java_plain">&nbsp;lastname</span><span class="java_separator">;</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="java_separator">}</span>
+</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="java_keyword">public</span><span class="java_plain">&nbsp;</span><span class="java_type">void</span><span class="java_plain">&nbsp;setLastname</span><span class="java_separator">(</span><span class="java_type">String</span><span class="java_plain">&nbsp;lastname</span><span class="java_separator">)</span><span class="java_plain">&nbsp;</span><span class="java_separator">{</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="java_keyword">this</span><span class="java_separator">.</span><span class="java_plain">lastname&nbsp;</span><span class="java_operator">=</span><span class="java_plain">&nbsp;lastname</span><span class="java_separator">;</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="java_separator">}</span>
+<!--  --><br/><span class="java_separator">}</span>
+</pre>
+    </div></div><br class="example-break"/>
+
+    <div xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="tip" style="margin-left: 0.5in; margin-right: 0.5in;"><h2>Tip</h2>
+      <p>If you retrieve a single entity using the default mapping, you can
+      specify the <code class="literal">resultClass</code> attribute instead of
+      <code class="literal">resultSetMapping</code>:</p>
+
+      <pre xmlns="" class="JAVA"><!-- <br/> --><span class="java_plain">@</span><!-- <br/> --><span class="java_type">NamedNativeQuery</span><!-- <br/> --><span class="java_separator">(</span><!-- <br/> --><span class="java_plain">name</span><!-- <br/> --><span class="java_operator">=</span><!-- <br/> --><span class="java_literal">&quot;implicitSample&quot;</span><!-- <br/> --><span class="java_separator">,</span><!-- <br/> --><span class="java_plain">&nbsp;query</span><!-- <br/> --><span class="java_operator">=</span><!-- <br/> --><span class="java_literal">&quot;select&nbsp;*&nbsp;from&nbsp;SpaceShip&quot;</span><!-- <br/> --><span class="java_separator">,</span><!-- <br/> --><span class="java_plain">&nbsp;resultClass</span><!-- <br/> --><span class="java_operator">=</span><!-- <br/> --><span class="java_type">SpaceShip</span><!-- <br/> --><span class="java_separator">.</span><!-- <br/> --><span class="java_keyword">class</span><!-- <br/> --><span class="java_separator">)</span>
+<!--  --><br/><span class="java_keyword">public</span><span class="java_plain">&nbsp;</span><span class="java_keyword">class</span><span class="java_plain">&nbsp;</span><span class="java_type">SpaceShip</span><span class="java_plain">&nbsp;</span><span class="java_separator">{</span></pre>
+    </div>
+
+    <p>In some of your native queries, you'll have to return scalar values,
+    for example when building report queries. You can map them in the
+    <code class="literal">@SqlResultsetMapping</code> through
+    <code class="literal">@ColumnResult</code>. You actually can even mix, entities and
+    scalar returns in the same native query (this is probably not that common
+    though).</p>
+
+    <div class="example"><a id="d5e3813"/><p class="title"><strong>Example 13.10. Scalar values via <code class="classname">@ColumnResult</code></strong></p><div class="example-contents">
+      
+
+      <pre xmlns="" xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="JAVA"><!-- <br/> --><span class="java_plain">@</span><!-- <br/> --><span class="java_type">SqlResultSetMapping</span><!-- <br/> --><span class="java_separator">(</span><!-- <br/> --><span class="java_plain">name</span><!-- <br/> --><span class="java_operator">=</span><!-- <br/> --><span class="java_literal">&quot;scalar&quot;</span><!-- <br/> --><span class="java_separator">,</span><!-- <br/> --><span class="java_plain">&nbsp;columns</span><!-- <br/> --><span class="java_operator">=</span><!-- <br/> --><span class="java_plain">@</span><!-- <br/> --><span class="java_type">ColumnResult</span><!-- <br/> --><span class="java_separator">(</span><!-- <br/> --><span class="java_plain">name</span><!-- <br/> --><span class="java_operator">=</span><!-- <br/> --><span class="java_literal">&quot;dimension&quot;</span><!-- <br/> --><span class="java_separator">))</span>
+<!--  --><br/><span class="java_plain">@</span><span class="java_type">NamedNativeQuery</span><span class="java_separator">(</span><span class="java_plain">name</span><span class="java_operator">=</span><span class="java_literal">&quot;scalar&quot;</span><span class="java_separator">,</span><span class="java_plain">&nbsp;query</span><span class="java_operator">=</span><span class="java_literal">&quot;select&nbsp;length*width&nbsp;as&nbsp;dimension&nbsp;from&nbsp;SpaceShip&quot;</span><span class="java_separator">,</span><span class="java_plain">&nbsp;resultSetMapping</span><span class="java_operator">=</span><span class="java_literal">&quot;scalar&quot;</span><span class="java_separator">)</span></pre>
+    </div></div><br class="example-break"/>
+
+    <p>An other query hint specific to native queries has been introduced:
+    <code class="literal">org.hibernate.callable</code> which can be true or false
+    depending on whether the query is a stored procedure or not.</p>
+
+    <div class="section" title="13.2.1. Using return-property to explicitly specify column/alias names"><div class="titlepage"><div><div><h3 class="title"><a id="propertyresults"/>13.2.1. Using return-property to explicitly specify column/alias
+      names</h3></div></div></div>
+      
+
+      <p>You can explicitly tell Hibernate what column aliases to use with
+      <code class="literal">&lt;return-property&gt;</code>, instead of using the
+      <code class="literal">{}</code>-syntax to let Hibernate inject its own aliases.For
+      example:</p>
+
+      <pre xmlns="" xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="">&lt;sql-query name="mySqlQuery"&gt;
+    &lt;return alias="person" class="eg.Person"&gt;
+        &lt;return-property name="name" column="myName"/&gt;
+        &lt;return-property name="age" column="myAge"/&gt;
+        &lt;return-property name="sex" column="mySex"/&gt;
+    &lt;/return&gt;
+    SELECT person.NAME AS myName,
+           person.AGE AS myAge,
+           person.SEX AS mySex,
+    FROM PERSON person WHERE person.NAME LIKE :name
+&lt;/sql-query&gt;
+</pre>
+
+      <p><code class="literal">&lt;return-property&gt;</code> also works with
+      multiple columns. This solves a limitation with the
+      <code class="literal">{}</code>-syntax which cannot allow fine grained control of
+      multi-column properties.</p>
+
+      <pre xmlns="" xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="">&lt;sql-query name="organizationCurrentEmployments"&gt;
+    &lt;return alias="emp" class="Employment"&gt;
+        &lt;return-property name="salary"&gt;
+            &lt;return-column name="VALUE"/&gt;
+            &lt;return-column name="CURRENCY"/&gt;
+        &lt;/return-property&gt;
+        &lt;return-property name="endDate" column="myEndDate"/&gt;
+    &lt;/return&gt;
+        SELECT EMPLOYEE AS {emp.employee}, EMPLOYER AS {emp.employer},
+        STARTDATE AS {emp.startDate}, ENDDATE AS {emp.endDate},
+        REGIONCODE as {emp.regionCode}, EID AS {emp.id}, VALUE, CURRENCY
+        FROM EMPLOYMENT
+        WHERE EMPLOYER = :id AND ENDDATE IS NULL
+        ORDER BY STARTDATE ASC
+&lt;/sql-query&gt;</pre>
+
+      <p>In this example <code class="literal">&lt;return-property&gt;</code> was
+      used in combination with the <code class="literal">{}</code>-syntax for injection.
+      This allows users to choose how they want to refer column and
+      properties.</p>
+
+      <p>If your mapping has a discriminator you must use
+      <code class="literal">&lt;return-discriminator&gt;</code> to specify the
+      discriminator column.</p>
+    </div>
+
+    <div class="section" title="13.2.2. Using stored procedures for querying"><div class="titlepage"><div><div><h3 class="title"><a id="sp_query"/>13.2.2. Using stored procedures for querying</h3></div></div></div>
+      
+
+      <p>Hibernate provides support for queries via stored procedures and
+      functions. Most of the following documentation is equivalent for both.
+      The stored procedure/function must return a resultset as the first
+      out-parameter to be able to work with Hibernate. An example of such a
+      stored function in Oracle 9 and higher is as follows:</p>
+
+      <pre xmlns="" xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="">CREATE OR REPLACE FUNCTION selectAllEmployments
+    RETURN SYS_REFCURSOR
+AS
+    st_cursor SYS_REFCURSOR;
+BEGIN
+    OPEN st_cursor FOR
+ SELECT EMPLOYEE, EMPLOYER,
+ STARTDATE, ENDDATE,
+ REGIONCODE, EID, VALUE, CURRENCY
+ FROM EMPLOYMENT;
+      RETURN  st_cursor;
+ END;</pre>
+
+      <p>To use this query in Hibernate you need to map it via a named
+      query.</p>
+
+      <pre xmlns="" xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="">&lt;sql-query name="selectAllEmployees_SP" callable="true"&gt;
+    &lt;return alias="emp" class="Employment"&gt;
+        &lt;return-property name="employee" column="EMPLOYEE"/&gt;
+        &lt;return-property name="employer" column="EMPLOYER"/&gt;
+        &lt;return-property name="startDate" column="STARTDATE"/&gt;
+        &lt;return-property name="endDate" column="ENDDATE"/&gt;
+        &lt;return-property name="regionCode" column="REGIONCODE"/&gt;
+        &lt;return-property name="id" column="EID"/&gt;
+        &lt;return-property name="salary"&gt;
+            &lt;return-column name="VALUE"/&gt;
+            &lt;return-column name="CURRENCY"/&gt;
+        &lt;/return-property&gt;
+    &lt;/return&gt;
+    { ? = call selectAllEmployments() }
+&lt;/sql-query&gt;</pre>
+
+      <p>Stored procedures currently only return scalars and entities.
+      <code class="literal">&lt;return-join&gt;</code> and
+      <code class="literal">&lt;load-collection&gt;</code> are not supported.</p>
+
+      <div class="section" title="13.2.2.1. Rules/limitations for using stored procedures"><div class="titlepage"><div><div><h4 class="title"><a id="querysql-limits-storedprocedures"/>13.2.2.1. Rules/limitations for using stored procedures</h4></div></div></div>
+        
+
+        <p>You cannot use stored procedures with Hibernate unless you
+        follow some procedure/function rules. If they do not follow those
+        rules they are not usable with Hibernate. If you still want to use
+        these procedures you have to execute them via
+        <code class="literal">session.connection()</code>. The rules are different for
+        each database, since database vendors have different stored procedure
+        semantics/syntax.</p>
+
+        <p>Stored procedure queries cannot be paged with
+        <code class="literal">setFirstResult()/setMaxResults()</code>.</p>
+
+        <p>The recommended call form is standard SQL92: <code class="literal">{ ? = call
+        functionName(&lt;parameters&gt;) }</code> or <code class="literal">{ ? = call
+        procedureName(&lt;parameters&gt;}</code>. Native call syntax is not
+        supported.</p>
+
+        <p>For Oracle the following rules apply:</p>
+
+        <div class="itemizedlist"><ul class="itemizedlist" compact="compact"><li class="listitem">
+            <p>A function must return a result set. The first parameter of
+            a procedure must be an <code class="literal">OUT</code> that returns a
+            result set. This is done by using a
+            <code class="literal">SYS_REFCURSOR</code> type in Oracle 9 or 10. In Oracle
+            you need to define a <code class="literal">REF CURSOR</code> type. See
+            Oracle literature for further information.</p>
+          </li></ul></div>
+
+        <p>For Sybase or MS SQL server the following rules apply:</p>
+
+        <div class="itemizedlist"><ul class="itemizedlist" compact="compact"><li class="listitem">
+            <p>The procedure must return a result set. Note that since
+            these servers can return multiple result sets and update counts,
+            Hibernate will iterate the results and take the first result that
+            is a result set as its return value. Everything else will be
+            discarded.</p>
+          </li><li class="listitem">
+            <p>If you can enable <code class="literal">SET NOCOUNT ON</code> in your
+            procedure it will probably be more efficient, but this is not a
+            requirement.</p>
+          </li></ul></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section" title="13.3. Custom SQL for create, update and delete"><div class="titlepage"><div><div><h2 class="title"><a id="querysql-cud"/>13.3. Custom SQL for create, update and delete</h2></div></div></div>
+    
+
+    <p>Hibernate can use custom SQL for create, update, and delete
+    operations. The SQL can be overridden at the statement level or
+    inidividual column level. This section describes statement overrides. For
+    columns, see <a class="xref" href="">???</a>. <a class="xref" href="ch13.html#example-custom-crdu-via-annotations" title="Example 13.11. Custom CRUD via annotations">Example 13.11, “Custom CRUD via annotations”</a> shows how to define
+    custom SQL operatons using annotations.</p>
+
+    <div class="example"><a id="example-custom-crdu-via-annotations"/><p class="title"><strong>Example 13.11. Custom CRUD via annotations</strong></p><div class="example-contents">
+      
+
+      <pre xmlns="" xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="JAVA"><!-- <br/> --><span class="java_plain">@</span><!-- <br/> --><span class="java_type">Entity</span>
+<!--  --><br/><span class="java_plain">@</span><span class="java_type">Table</span><span class="java_separator">(</span><span class="java_plain">name</span><span class="java_operator">=</span><span class="java_literal">&quot;CHAOS&quot;</span><span class="java_separator">)</span>
+<!--  --><br/><span class="java_plain">@</span><span class="java_type">SQLInsert</span><span class="java_separator">(</span><span class="java_plain">&nbsp;sql</span><span class="java_operator">=</span><span class="java_literal">&quot;INSERT&nbsp;INTO&nbsp;CHAOS(size,&nbsp;name,&nbsp;nickname,&nbsp;id)&nbsp;VALUES(?,upper(?),?,?)&quot;</span><span class="java_separator">)</span>
+<!--  --><br/><span class="java_plain">@</span><span class="java_type">SQLUpdate</span><span class="java_separator">(</span><span class="java_plain">&nbsp;sql</span><span class="java_operator">=</span><span class="java_literal">&quot;UPDATE&nbsp;CHAOS&nbsp;SET&nbsp;size&nbsp;=&nbsp;?,&nbsp;name&nbsp;=&nbsp;upper(?),&nbsp;nickname&nbsp;=&nbsp;?&nbsp;WHERE&nbsp;id&nbsp;=&nbsp;?&quot;</span><span class="java_separator">)</span>
+<!--  --><br/><span class="java_plain">@</span><span class="java_type">SQLDelete</span><span class="java_separator">(</span><span class="java_plain">&nbsp;sql</span><span class="java_operator">=</span><span class="java_literal">&quot;DELETE&nbsp;CHAOS&nbsp;WHERE&nbsp;id&nbsp;=&nbsp;?&quot;</span><span class="java_separator">)</span>
+<!--  --><br/><span class="java_plain">@</span><span class="java_type">SQLDeleteAll</span><span class="java_separator">(</span><span class="java_plain">&nbsp;sql</span><span class="java_operator">=</span><span class="java_literal">&quot;DELETE&nbsp;CHAOS&quot;</span><span class="java_separator">)</span>
+<!--  --><br/><span class="java_plain">@</span><span class="java_type">Loader</span><span class="java_separator">(</span><span class="java_plain">namedQuery&nbsp;</span><span class="java_operator">=</span><span class="java_plain">&nbsp;</span><span class="java_literal">&quot;chaos&quot;</span><span class="java_separator">)</span>
+<!--  --><br/><span class="java_plain">@</span><span class="java_type">NamedNativeQuery</span><span class="java_separator">(</span><span class="java_plain">name</span><span class="java_operator">=</span><span class="java_literal">&quot;chaos&quot;</span><span class="java_separator">,</span><span class="java_plain">&nbsp;query</span><span class="java_operator">=</span><span class="java_literal">&quot;select&nbsp;id,&nbsp;size,&nbsp;name,&nbsp;lower(&nbsp;nickname&nbsp;)&nbsp;as&nbsp;nickname&nbsp;from&nbsp;CHAOS&nbsp;where&nbsp;id=&nbsp;?&quot;</span><span class="java_separator">,</span><span class="java_plain">&nbsp;resultClass&nbsp;</span><span class="java_operator">=</span><span class="java_plain">&nbsp;</span><span class="java_type">Chaos</span><span class="java_separator">.</span><span class="java_keyword">class</span><span class="java_separator">)</span>
+<!--  --><br/><span class="java_keyword">public</span><span class="java_plain">&nbsp;</span><span class="java_keyword">class</span><span class="java_plain">&nbsp;</span><span class="java_type">Chaos</span><span class="java_plain">&nbsp;</span><span class="java_separator">{</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;&nbsp;&nbsp;@</span><span class="java_type">Id</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="java_keyword">private</span><span class="java_plain">&nbsp;</span><span class="java_type">Long</span><span class="java_plain">&nbsp;id</span><span class="java_separator">;</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="java_keyword">private</span><span class="java_plain">&nbsp;</span><span class="java_type">Long</span><span class="java_plain">&nbsp;size</span><span class="java_separator">;</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="java_keyword">private</span><span class="java_plain">&nbsp;</span><span class="java_type">String</span><span class="java_plain">&nbsp;name</span><span class="java_separator">;</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="java_keyword">private</span><span class="java_plain">&nbsp;</span><span class="java_type">String</span><span class="java_plain">&nbsp;nickname</span><span class="java_separator">;</span></pre>
+    </div></div><br class="example-break"/>
+
+    <p><code class="literal">@SQLInsert</code>, <code class="literal">@SQLUpdate</code>,
+    <code class="literal">@SQLDelete</code>, <code class="literal">@SQLDeleteAll</code>
+    respectively override the INSERT, UPDATE, DELETE, and DELETE all
+    statement. The same can be achieved using Hibernate mapping files and the
+    <code class="literal">&lt;sql-insert&gt;</code>,
+    <code class="literal">&lt;sql-update&gt;</code> and
+    <code class="literal">&lt;sql-delete&gt;</code> nodes. This can be seen in <a class="xref" href="ch13.html#example-custom-crdu-via-xml" title="Example 13.12. Custom CRUD XML">Example 13.12, “Custom CRUD XML”</a>.</p>
+
+    <div class="example"><a id="example-custom-crdu-via-xml"/><p class="title"><strong>Example 13.12. Custom CRUD XML</strong></p><div class="example-contents">
+      
+
+      <pre xmlns="" xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="">&lt;class name="Person"&gt;
+    &lt;id name="id"&gt;
+        &lt;generator class="increment"/&gt;
+    &lt;/id&gt;
+    &lt;property name="name" not-null="true"/&gt;
+    &lt;sql-insert&gt;INSERT INTO PERSON (NAME, ID) VALUES ( UPPER(?), ? )&lt;/sql-insert&gt;
+    &lt;sql-update&gt;UPDATE PERSON SET NAME=UPPER(?) WHERE ID=?&lt;/sql-update&gt;
+    &lt;sql-delete&gt;DELETE FROM PERSON WHERE ID=?&lt;/sql-delete&gt;
+&lt;/class&gt;</pre>
+    </div></div><br class="example-break"/>
+
+    <p>If you expect to call a store procedure, be sure to set the
+    <code class="literal">callable</code> attribute to <code class="constant">true</code>. In
+    annotations as well as in xml. </p>
+
+    <p>To check that the execution happens correctly, Hibernate allows you
+    to define one of those three strategies:</p>
+
+    <div class="itemizedlist"><ul class="itemizedlist"><li class="listitem">
+        <p>none: no check is performed: the store procedure is expected to
+        fail upon issues</p>
+      </li><li class="listitem">
+        <p>count: use of rowcount to check that the update is
+        successful</p>
+      </li><li class="listitem">
+        <p>param: like COUNT but using an output parameter rather that the
+        standard mechanism</p>
+      </li></ul></div>
+
+    <p>To define the result check style, use the <code class="literal">check</code>
+    parameter which is again available in annoations as well as in xml.</p>
+
+    <p>You can use the exact same set of annotations respectively xml nodes
+    to override the collection related statements -see <a class="xref" href="ch13.html#example-overriding-sql-collections-annotations" title="Example 13.13. Overriding SQL statements for collections using annotations">Example 13.13, “Overriding SQL statements for collections using
+      annotations”</a>.</p>
+
+    <div class="example"><a id="example-overriding-sql-collections-annotations"/><p class="title"><strong>Example 13.13. Overriding SQL statements for collections using
+      annotations</strong></p><div class="example-contents">
+      
+
+      <pre xmlns="" xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="JAVA"><!-- <br/> --><span class="java_plain">@</span><!-- <br/> --><span class="java_type">OneToMany</span>
+<!--  --><br/><span class="java_plain">@</span><span class="java_type">JoinColumn</span><span class="java_separator">(</span><span class="java_plain">name</span><span class="java_operator">=</span><span class="java_literal">&quot;chaos_fk&quot;</span><span class="java_separator">)</span>
+<!--  --><br/><span class="java_plain">@</span><span class="java_type">SQLInsert</span><span class="java_separator">(</span><span class="java_plain">&nbsp;sql</span><span class="java_operator">=</span><span class="java_literal">&quot;UPDATE&nbsp;CASIMIR_PARTICULE&nbsp;SET&nbsp;chaos_fk&nbsp;=&nbsp;?&nbsp;where&nbsp;id&nbsp;=&nbsp;?&quot;</span><span class="java_separator">)</span>
+<!--  --><br/><span class="java_plain">@</span><span class="java_type">SQLDelete</span><span class="java_separator">(</span><span class="java_plain">&nbsp;sql</span><span class="java_operator">=</span><span class="java_literal">&quot;UPDATE&nbsp;CASIMIR_PARTICULE&nbsp;SET&nbsp;chaos_fk&nbsp;=&nbsp;null&nbsp;where&nbsp;id&nbsp;=&nbsp;?&quot;</span><span class="java_separator">)</span>
+<!--  --><br/><span class="java_keyword">private</span><span class="java_plain">&nbsp;</span><span class="java_type">Set</span><span class="java_operator">&lt;</span><span class="java_type">CasimirParticle</span><span class="java_operator">&gt;</span><span class="java_plain">&nbsp;particles&nbsp;</span><span class="java_operator">=</span><span class="java_plain">&nbsp;</span><span class="java_keyword">new</span><span class="java_plain">&nbsp;</span><span class="java_type">HashSet</span><span class="java_operator">&lt;</span><span class="java_type">CasimirParticle</span><span class="java_operator">&gt;</span><span class="java_separator">();</span></pre>
+    </div></div><br class="example-break"/>
+
+    <div xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="tip" style="margin-left: 0.5in; margin-right: 0.5in;"><h2>Tip</h2>
+      <p>The parameter order is important and is defined by the order
+      Hibernate handles properties. You can see the expected order by enabling
+      debug logging for the <code class="literal">org.hibernate.persister.entity</code>
+      level. With this level enabled Hibernate will print out the static SQL
+      that is used to create, update, delete etc. entities. (To see the
+      expected sequence, remember to not include your custom SQL through
+      annotations or mapping files as that will override the Hibernate
+      generated static sql)</p>
+    </div>
+
+    <p>Overriding SQL statements for secondary tables is also possible
+    using <code class="literal">@org.hibernate.annotations.Table</code> and either (or
+    all) attributes <code class="literal">sqlInsert</code>,
+    <code class="literal">sqlUpdate</code>, <code class="literal">sqlDelete</code>:</p>
+
+    <div class="example"><a id="d5e3912"/><p class="title"><strong>Example 13.14. Overriding SQL statements for secondary tables</strong></p><div class="example-contents">
+      
+
+      <pre xmlns="" xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="JAVA"><!-- <br/> --><span class="java_plain">@</span><!-- <br/> --><span class="java_type">Entity</span>
+<!--  --><br/><span class="java_plain">@</span><span class="java_type">SecondaryTables</span><span class="java_separator">({</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;&nbsp;&nbsp;@</span><span class="java_type">SecondaryTable</span><span class="java_separator">(</span><span class="java_plain">name&nbsp;</span><span class="java_operator">=</span><span class="java_plain">&nbsp;</span><span class="java_literal">&quot;`Cat&nbsp;nbr1`&quot;</span><span class="java_separator">),</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;&nbsp;&nbsp;@</span><span class="java_type">SecondaryTable</span><span class="java_separator">(</span><span class="java_plain">name&nbsp;</span><span class="java_operator">=</span><span class="java_plain">&nbsp;</span><span class="java_literal">&quot;Cat2&quot;</span><span class="java_separator">})</span>
+<!--  --><br/><span class="java_plain">@org</span><span class="java_separator">.</span><span class="java_plain">hibernate</span><span class="java_separator">.</span><span class="java_plain">annotations</span><span class="java_separator">.</span><span class="java_type">Tables</span><span class="java_separator">(</span><span class="java_plain">&nbsp;</span><span class="java_separator">{</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;&nbsp;&nbsp;@</span><span class="java_type">Table</span><span class="java_separator">(</span><span class="java_plain">appliesTo&nbsp;</span><span class="java_operator">=</span><span class="java_plain">&nbsp;</span><span class="java_literal">&quot;Cat&quot;</span><span class="java_separator">,</span><span class="java_plain">&nbsp;comment&nbsp;</span><span class="java_operator">=</span><span class="java_plain">&nbsp;</span><span class="java_literal">&quot;My&nbsp;cat&nbsp;table&quot;</span><span class="java_plain">&nbsp;</span><span class="java_separator">),</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;&nbsp;&nbsp;@</span><span class="java_type">Table</span><span class="java_separator">(</span><span class="java_plain">appliesTo&nbsp;</span><span class="java_operator">=</span><span class="java_plain">&nbsp;</span><span class="java_literal">&quot;Cat2&quot;</span><span class="java_separator">,</span><span class="java_plain">&nbsp;foreignKey&nbsp;</span><span class="java_operator">=</span><span class="java_plain">&nbsp;@</span><span class="java_type">ForeignKey</span><span class="java_separator">(</span><span class="java_plain">name</span><span class="java_operator">=</span><span class="java_literal">&quot;FK_CAT2_CAT&quot;</span><span class="java_separator">),</span><span class="java_plain">&nbsp;fetch&nbsp;</span><span class="java_operator">=</span><span class="java_plain">&nbsp;</span><span class="java_type">FetchMode</span><span class="java_separator">.</span><span class="java_plain">SELECT</span><span class="java_separator">,</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;sqlInsert</span><span class="java_operator">=</span><span class="java_plain">@</span><span class="java_type">SQLInsert</span><span class="java_separator">(</span><span class="java_plain">sql</span><span class="java_operator">=</span><span class="java_literal">&quot;insert&nbsp;into&nbsp;Cat2(storyPart2,&nbsp;id)&nbsp;values(upper(?),&nbsp;?)&quot;</span><span class="java_separator">)</span><span class="java_plain">&nbsp;</span><span class="java_separator">)</span>
+<!--  --><br/><span class="java_separator">}</span><span class="java_plain">&nbsp;</span><span class="java_separator">)</span>
+<!--  --><br/><span class="java_keyword">public</span><span class="java_plain">&nbsp;</span><span class="java_keyword">class</span><span class="java_plain">&nbsp;</span><span class="java_type">Cat</span><span class="java_plain">&nbsp;</span><span class="java_keyword">implements</span><span class="java_plain">&nbsp;</span><span class="java_type">Serializable</span><span class="java_plain">&nbsp;</span><span class="java_separator">{</span></pre>
+    </div></div><br class="example-break"/>
+
+    <p>The previous example also shows that you can give a comment to a
+    given table (primary or secondary): This comment will be used for DDL
+    generation.</p>
+
+    <div xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="tip" style="margin-left: 0.5in; margin-right: 0.5in;"><h2>Tip</h2>
+      <p>The SQL is directly executed in your database, so you can use any
+      dialect you like. This will, however, reduce the portability of your
+      mapping if you use database specific SQL.</p>
+    </div>
+
+    <p>Last but not least, stored procedures are in most cases required to
+    return the number of rows inserted, updated and deleted. Hibernate always
+    registers the first statement parameter as a numeric output parameter for
+    the CUD operations:</p>
+
+    <div class="example"><a id="d5e3919"/><p class="title"><strong>Example 13.15. Stored procedures and their return value</strong></p><div class="example-contents">
+      
+
+      <pre xmlns="" xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="">CREATE OR REPLACE FUNCTION updatePerson (uid IN NUMBER, uname IN VARCHAR2)
+    RETURN NUMBER IS
+BEGIN
+
+    update PERSON
+    set
+        NAME = uname,
+    where
+        ID = uid;
+
+    return SQL%ROWCOUNT;
+
+END updatePerson;</pre>
+    </div></div><br class="example-break"/>
+  </div>
+
+  <div class="section" title="13.4. Custom SQL for loading"><div class="titlepage"><div><div><h2 class="title"><a id="querysql-load"/>13.4. Custom SQL for loading</h2></div></div></div>
+    
+
+    <p>You can also declare your own SQL (or HQL) queries for entity
+    loading. As with inserts, updates, and deletes, this can be done at the
+    individual column level as described in <a class="xref" href="">???</a> or at the statement level. Here
+    is an example of a statement level override:</p>
+
+    <pre xmlns="" xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="">&lt;sql-query name="person"&gt;
+    &lt;return alias="pers" class="Person" lock-mode="upgrade"/&gt;
+    SELECT NAME AS {pers.name}, ID AS {pers.id}
+    FROM PERSON
+    WHERE ID=?
+    FOR UPDATE
+&lt;/sql-query&gt;</pre>
+
+    <p>This is just a named query declaration, as discussed earlier. You
+    can reference this named query in a class mapping:</p>
+
+    <pre xmlns="" xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="">&lt;class name="Person"&gt;
+    &lt;id name="id"&gt;
+        &lt;generator class="increment"/&gt;
+    &lt;/id&gt;
+    &lt;property name="name" not-null="true"/&gt;
+    &lt;loader query-ref="person"/&gt;
+&lt;/class&gt;</pre>
+
+    <p>This even works with stored procedures.</p>
+
+    <p>You can even define a query for collection loading:</p>
+
+    <pre xmlns="" xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="">&lt;set name="employments" inverse="true"&gt;
+    &lt;key/&gt;
+    &lt;one-to-many class="Employment"/&gt;
+    &lt;loader query-ref="employments"/&gt;
+&lt;/set&gt;</pre>
+
+    <pre xmlns="" xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="">&lt;sql-query name="employments"&gt;
+    &lt;load-collection alias="emp" role="Person.employments"/&gt;
+    SELECT {emp.*}
+    FROM EMPLOYMENT emp
+    WHERE EMPLOYER = :id
+    ORDER BY STARTDATE ASC, EMPLOYEE ASC
+&lt;/sql-query&gt;</pre>
+
+    <p>You can also define an entity loader that loads a collection by join
+    fetching:</p>
+
+    <pre xmlns="" xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="">&lt;sql-query name="person"&gt;
+    &lt;return alias="pers" class="Person"/&gt;
+    &lt;return-join alias="emp" property="pers.employments"/&gt;
+    SELECT NAME AS {pers.*}, {emp.*}
+    FROM PERSON pers
+    LEFT OUTER JOIN EMPLOYMENT emp
+        ON pers.ID = emp.PERSON_ID
+    WHERE ID=?
+&lt;/sql-query&gt;</pre>
+
+    <p>The annotation equivalent <code class="literal">&lt;loader&gt;</code> is the
+    @Loader annotation as seen in <a class="xref" href="ch13.html#example-custom-crdu-via-annotations" title="Example 13.11. Custom CRUD via annotations">Example 13.11, “Custom CRUD via annotations”</a>.</p>
+  </div>
+
+</div><hr xmlns="" xmlns:d="http://docbook.org/ns/docbook"/><a xmlns="" xmlns:d="http://docbook.org/ns/docbook" href="legalnotice.html"/><ul xmlns:d="http://docbook.org/ns/docbook" class="docnav"><li class="previous"><a accesskey="p" href="ch12.html"><strong>Prev</strong>Chapter 12. Criteria</a></li><li class="up"><a accesskey="u" href="#"><strong>Up</strong></a></li><li class="home"><a accesskey="h" href="index.html"><strong>Home</strong></a></li><li class="next"><a accesskey="n" href="ch14.html"><strong>Next</strong>Chapter 14. JMX</a></li></ul></body></html>

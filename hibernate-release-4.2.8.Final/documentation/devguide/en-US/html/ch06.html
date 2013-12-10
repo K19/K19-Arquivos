@@ -1,0 +1,416 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml"><head><title>Chapter 6. Caching</title><link rel="stylesheet" type="text/css" href="css/hibernate.css"/><meta name="generator" content="DocBook XSL Stylesheets V1.76.1"/><link rel="home" href="index.html" title="Hibernate Developer Guide"/><link rel="up" href="index.html" title="Hibernate Developer Guide"/><link rel="prev" href="ch05.html" title="Chapter 5. Locking"/><link rel="next" href="ch07.html" title="Chapter 7. Services"/><meta xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" http-equiv="Content-Type" content="text/html; charset=UTF-8"/></head><body><p xmlns:d="http://docbook.org/ns/docbook" id="title"><a href="http://www.hibernate.org" class="site_href"><strong>Hibernate.org</strong></a><a href="http://hibernate.org/Documentation/DocumentationOverview" class="doc_href"><strong>Community Documentation</strong></a></p><ul xmlns:d="http://docbook.org/ns/docbook" class="docnav"><li class="previous"><a accesskey="p" href="ch05.html"><strong>Prev</strong></a></li><li class="next"><a accesskey="n" href="ch07.html"><strong>Next</strong></a></li></ul><div class="chapter" title="Chapter 6. Caching"><div class="titlepage"><div><div><h2 class="title"><a id="d5e1322"/>Chapter 6. Caching</h2></div></div></div><div class="toc"><p><strong>Table of Contents</strong></p><dl><dt><span class="section"><a href="ch06.html#d5e1326">6.1. The query cache</a></span></dt><dd><dl><dt><span class="section"><a href="ch06.html#d5e1353">6.1.1. Query cache regions</a></span></dt></dl></dd><dt><span class="section"><a href="ch06.html#d5e1364">6.2. Second-level cache providers</a></span></dt><dd><dl><dt><span class="section"><a href="ch06.html#d5e1369">6.2.1. Configuring your cache providers</a></span></dt><dt><span class="section"><a href="ch06.html#caching-strategies-list">6.2.2. Caching strategies</a></span></dt><dt><span class="section"><a href="ch06.html#caching-provider-table">6.2.3. Second-level cache providers for Hibernate</a></span></dt></dl></dd><dt><span class="section"><a href="ch06.html#d5e1560">6.3. Managing the cache</a></span></dt><dd><dl><dt><span class="section"><a href="ch06.html#d5e1562">6.3.1. Moving items into and out of the cache</a></span></dt></dl></dd></dl></div>
+
+    
+
+  <div class="section" title="6.1. The query cache"><div class="titlepage"><div><div><h2 class="title"><a id="d5e1326"/>6.1. The query cache</h2></div></div></div>
+    
+    <p>
+      If you have queries that run over and over, with the same parameters, query caching provides performance gains.
+    </p>
+    <p>
+      Caching introduces overhead in the area of transactional processing. For example, if you cache results of a query
+      against an object, Hibernate needs to keep track of whether any changes have been committed against the object,
+      and invalidate the cache accordingly. In addition, the benefit from caching query results is limited, and highly
+      dependent on the usage patterns of your application. For these reasons, Hibernate disables the query cache by
+      default.
+    </p>
+    <div class="procedure" title="Procedure 6.1. Enabling the query cache"><a id="d5e1330"/><p class="title"><strong>Procedure 6.1. Enabling the query cache</strong></p><ol class="procedure" type="1"><li class="step" title="Set the hibernate.cache.use_query_cache property to true.">
+        <p class="title"><strong>Set the <span class="property">hibernate.cache.use_query_cache</span> property to <code class="literal">true</code>.</strong></p>
+        <p>
+          This setting creates two new cache regions:
+        </p>
+        <div class="itemizedlist"><ul class="itemizedlist"><li class="listitem">
+            <p>
+              <code class="code">org.hibernate.cache.internal.StandardQueryCache</code> holds the cached query results.
+            </p>
+          </li><li class="listitem">
+            <p>
+              <code class="code">org.hibernate.cache.spi.UpdateTimestampsCache</code> holds timestamps of the most recent updates to
+              queryable tables. These timestamps validate results served from the query cache.
+            </p>
+          </li></ul></div>
+      </li><li class="step" title="Adjust the cache timeout of the underlying cache region">
+        <p class="title"><strong>Adjust the cache timeout of the underlying cache region</strong></p>
+        <p>
+          If you configure your underlying cache implementation to use expiry or timeouts, set the cache timeout of the
+          underlying cache region for the <code class="code">UpdateTimestampsCache</code> to a higher value than the timeouts of any
+          of the query caches. It is possible, and recommended, to set the UpdateTimestampsCache region never to
+          expire. To be specific, a LRU (Least Recently Used) cache expiry policy is never appropriate.
+        </p>
+      </li><li class="step" title="Enable results caching for specific queries">
+        <p class="title"><strong>Enable results caching for specific queries</strong></p>
+        <p>
+          Since most queries do not benefit from caching of their results, you need to enable caching for individual
+          queries, e ven after enabling query caching overall. To enable results caching for a particular query, call
+          <code class="methodname">org.hibernate.Query.setCacheable(true)</code>. This call allows the query to look for
+          existing cache results or add its results to the cache when it is executed.
+        </p>
+      </li></ol></div>
+    <p>
+      The query cache does not cache the state of the actual entities in the cache. It caches identifier values and
+      results of value type. Therefore, always use the query cache in conjunction with the second-level
+      cache for those entities which should be cached as part of a query result cache.
+    </p>
+    
+    <div class="section" title="6.1.1. Query cache regions"><div class="titlepage"><div><div><h3 class="title"><a id="d5e1353"/>6.1.1. Query cache regions</h3></div></div></div>
+      
+      <p>
+        For fine-grained control over query cache expiration policies, specify a named cache region for a particular
+        query by calling <code class="methodname">Query.setCacheRegion()</code>.
+      </p>
+
+      <div class="example"><a id="d5e1357"/><p class="title"><strong>Example 6.1. Method <code class="methodname">setCacheRegion</code></strong></p><div class="example-contents">
+        
+        <pre xmlns="" xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="JAVA"><!-- <br/> --><span class="java_type">List</span><!-- <br/> --><span class="java_plain">&nbsp;blogs&nbsp;</span><!-- <br/> --><span class="java_operator">=</span><!-- <br/> --><span class="java_plain">&nbsp;sess</span><!-- <br/> --><span class="java_separator">.</span><!-- <br/> --><span class="java_plain">createQuery</span><!-- <br/> --><span class="java_separator">(</span><!-- <br/> --><span class="java_literal">&quot;from&nbsp;Blog&nbsp;blog&nbsp;where&nbsp;blog.blogger&nbsp;=&nbsp;:blogger&quot;</span><!-- <br/> --><span class="java_separator">)</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="java_separator">.</span><span class="java_plain">setEntity</span><span class="java_separator">(</span><span class="java_literal">&quot;blogger&quot;</span><span class="java_separator">,</span><span class="java_plain">&nbsp;blogger</span><span class="java_separator">)</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="java_separator">.</span><span class="java_plain">setMaxResults</span><span class="java_separator">(</span><span class="java_literal">15</span><span class="java_separator">)</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="java_separator">.</span><span class="java_plain">setCacheable</span><span class="java_separator">(</span><span class="java_literal">true</span><span class="java_separator">)</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="java_separator">.</span><span class="java_plain">setCacheRegion</span><span class="java_separator">(</span><span class="java_literal">&quot;frontpages&quot;</span><span class="java_separator">)</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="java_separator">.</span><span class="java_plain">list</span><span class="java_separator">();</span>
+</pre>
+      </div></div><br class="example-break"/>
+
+      <p>
+        To force the query cache to refresh one of its regions and disregard any cached results in the region, call
+        <code class="code">org.hibernate.Query.setCacheMode(CacheMode.REFRESH)</code>. In conjunction with the region defined for the
+        given query, Hibernate selectively refreshes the results cached in that particular region. This is much more
+        efficient than bulk eviction of the region via <code class="code">org.hibernate.SessionFactory.evictQueries()</code>.
+      </p>
+      
+    </div>
+
+  </div>
+  
+  <div class="section" title="6.2. Second-level cache providers"><div class="titlepage"><div><div><h2 class="title"><a id="d5e1364"/>6.2. Second-level cache providers</h2></div></div></div>
+    
+    <p>
+      Hibernate is compatible with several second-level cache providers. None of the providers support all of
+      Hibernate's possible caching strategies. <a class="xref" href="ch06.html#caching-provider-table" title="6.2.3. Second-level cache providers for Hibernate">Section 6.2.3, “Second-level cache providers for Hibernate”</a> lists the providers, along with
+      their interfaces and supported caching strategies. For definitions of caching strategies, see <a class="xref" href="ch06.html#caching-strategies-list" title="6.2.2. Caching strategies">Section 6.2.2, “Caching strategies”</a>.
+    </p>
+    
+    <div class="section" title="6.2.1. Configuring your cache providers"><div class="titlepage"><div><div><h3 class="title"><a id="d5e1369"/>6.2.1. Configuring your cache providers</h3></div></div></div>
+      
+      <p>
+        You can configure your cache providers using either annotations or mapping files.
+      </p>
+      <p title="Entities">
+        <strong>Entities. </strong>
+        
+          By default, entities are not part of the second-level cache, and their use is not recommended. If you
+          absolutely must use entities, set the <code class="code">shared-cache-mode</code> element in
+          <code class="filename">persistence.xml</code>, or use property <span class="property">javax.persistence.sharedCache.mode</span>
+          in your configuration. Use one of the values in <a class="xref" href="ch06.html#shared-cache-mode-values" title="Table 6.1. Possible values for Shared Cache Mode">Table 6.1, “Possible values for Shared Cache Mode”</a>.
+        
+      </p>
+      <div class="table"><a id="shared-cache-mode-values"/><p class="title"><strong>Table 6.1. Possible values for Shared Cache Mode</strong></p><div class="table-contents">
+        
+        <table summary="Possible values for Shared Cache Mode" border="1"><colgroup><col/><col/></colgroup><thead><tr><th>Value</th><th>Description</th></tr></thead><tbody><tr><td>ENABLE_SELECTIVE</td><td>
+                <p>
+                  Entities are not cached unless you explicitly mark them as cachable. This is the default and
+                  recommended value.
+                </p>
+              </td></tr><tr><td>DISABLE_SELECTIVE</td><td>
+                <p>
+                  Entities are cached unless you explicitly mark them as not cacheable.
+                </p>
+              </td></tr><tr><td>ALL</td><td>
+                <p>
+                  All entities are always cached even if you mark them as not cacheable.
+                </p>
+              </td></tr><tr><td>NONE</td><td>
+                <p>
+                  No entities are cached even if you mark them as cacheable. This option basically disables second-level
+                  caching.
+                </p>
+              </td></tr></tbody></table>
+      </div></div><br class="table-break"/>
+      <p>
+        Set the global default cache concurrency strategy The cache concurrency strategy with the
+        <span class="property">hibernate.cache.default_cache_concurrency_strategy</span> configuration property. See <a class="xref" href="ch06.html#caching-strategies-list" title="6.2.2. Caching strategies">Section 6.2.2, “Caching strategies”</a> for possible values.
+      </p>
+      <div xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="note" style="margin-left: 0.5in; margin-right: 0.5in;"><h2>Note</h2>
+        <p>
+          When possible, define the cache concurrency strategy per entity rather than globally. Use the
+          <code class="code">@org.hibernate.annotations.Cache</code> annotation.
+        </p>
+      </div>
+      <div class="example"><a id="configuring-cache-providers-annotations"/><p class="title"><strong>Example 6.2. Configuring cache providers using annotations</strong></p><div class="example-contents">
+        
+        <pre xmlns="" xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="JAVA"><!-- <br/> --><span class="java_plain">@</span><!-- <br/> --><span class="java_type">Entity</span><!-- <br/> --><span class="java_plain">&nbsp;</span>
+<!--  --><br/><span class="java_plain">@</span><span class="java_type">Cacheable</span>
+<!--  --><br/><span class="java_plain">@</span><span class="java_type">Cache</span><span class="java_separator">(</span><span class="java_plain">usage&nbsp;</span><span class="java_operator">=</span><span class="java_plain">&nbsp;</span><span class="java_type">CacheConcurrencyStrategy</span><span class="java_separator">.</span><span class="java_plain">NONSTRICT_READ_WRITE</span><span class="java_separator">)</span>
+<!--  --><br/><span class="java_keyword">public</span><span class="java_plain">&nbsp;</span><span class="java_keyword">class</span><span class="java_plain">&nbsp;</span><span class="java_type">Forest</span><span class="java_plain">&nbsp;</span><span class="java_separator">{</span><span class="java_plain">&nbsp;</span><span class="java_separator">...</span><span class="java_plain">&nbsp;</span><span class="java_separator">}</span></pre>
+        <p>
+          You can cache the content of a collection or the identifiers, if the collection contains other entities. Use
+          the <code class="code">@Cache</code> annotation on the Collection property.
+        </p>
+        <p>
+          <code class="code">@Cache</code> can take several attributes.
+        </p>
+        <div class="variablelist" title="Attributes of @Cache annotation"><p class="title"><strong>Attributes of <code class="code">@Cache</code> annotation</strong></p><dl><dt><span class="term">usage</span></dt><dd>
+              <p>
+                The given cache concurrency strategy, which may be:
+              </p>
+              <div class="itemizedlist"><ul class="itemizedlist"><li class="listitem">
+                  <p>
+                    <code class="literal">NONE</code>
+                  </p>
+                </li><li class="listitem">
+                  <p>
+                    <code class="literal">READ_ONLY</code>
+                  </p>
+                </li><li class="listitem">
+                  <p>
+                    <code class="literal">NONSTRICT_READ_WRITE</code>
+                  </p>
+                </li><li class="listitem">
+                  <p>
+                    <code class="literal">READ_WRITE</code>
+                  </p>
+                </li><li class="listitem">
+                  <p>
+                    <code class="literal">TRANSACTIONAL</code>
+                  </p>
+                </li></ul></div>
+            </dd><dt><span class="term">region</span></dt><dd>
+              <p>
+                The cache region. This attribute is optional, and defaults to the fully-qualified class name of the
+                class, or the qually-qualified role name of the collection.
+              </p>
+            </dd><dt><span class="term">include</span></dt><dd>
+              <p>
+                Whether or not to include all properties.. Optional, and can take one of two possible values.
+              </p>
+              <div class="itemizedlist"><ul class="itemizedlist"><li class="listitem">
+                  <p>
+                    A value of <code class="literal">all</code> includes all properties. This is the default.
+                  </p>
+                </li><li class="listitem">
+                  <p>
+                    A value of <code class="literal">non-lazy</code> only includes non-lazy properties.
+                  </p>
+                </li></ul></div>
+            </dd></dl></div>
+      </div></div><br class="example-break"/>
+
+      <div class="example"><a id="d5e1454"/><p class="title"><strong>Example 6.3. Configuring cache providers using mapping files</strong></p><div class="example-contents">
+        
+        <pre xmlns="" xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="XML"><!-- XML : generated by JHighlight v1.0 (http://jhighlight.dev.java.net) -->
+<span class="xml_tag_symbols">&lt;</span><span class="xml_tag_name">cache</span><span class="xml_plain"></span><br />
+<span class="xml_plain">&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="xml_attribute_name">usage</span><span class="xml_tag_symbols">=</span><span class="xml_attribute_value">&quot;transactional&quot;</span><span class="xml_plain"></span><br />
+<span class="xml_plain">&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="xml_attribute_name">region</span><span class="xml_tag_symbols">=</span><span class="xml_attribute_value">&quot;RegionName&quot;</span><span class="xml_plain"></span><br />
+<span class="xml_plain">&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="xml_attribute_name">include</span><span class="xml_tag_symbols">=</span><span class="xml_attribute_value">&quot;all&quot;</span><span class="xml_plain"></span><br />
+<span class="xml_tag_symbols">/&gt;</span><span class="xml_plain"></span><br />
+</pre>
+        <p>
+          Just as in the <a class="xref" href="ch06.html#configuring-cache-providers-annotations" title="Example 6.2. Configuring cache providers using annotations">Example 6.2, “Configuring cache providers using annotations”</a>, you can provide attributes in the
+          mapping file. There are some specific differences in the syntax for the attributes in a mapping file.
+        </p>
+        <div class="variablelist"><dl><dt><span class="term">usage</span></dt><dd>
+              <p>
+                The caching strategy. This attribute is required, and can be any of the following values.
+              </p>
+              <div class="itemizedlist"><ul class="itemizedlist"><li class="listitem"><p>transactional</p></li><li class="listitem"><p>read-write</p></li><li class="listitem"><p>nonstrict-read-write</p></li><li class="listitem"><p>read-only</p></li></ul></div>
+            </dd><dt><span class="term">region</span></dt><dd>
+              <p>
+                The name of the second-level cache region. This optional attribute defaults to the class or collection
+                role name.
+              </p>
+            </dd><dt><span class="term">include</span></dt><dd>
+              <p>
+                Whether properties of the entity mapped with <code class="literal">lazy=true</code> can be cached when
+                attribute-level lazy fetching is enabled. Defaults to <code class="literal">all</code> and can also be
+                <code class="literal">non-lazy</code>.
+              </p>
+            </dd></dl></div>
+        <p>
+          Instead of <code class="code">&lt;cache&gt;</code>, you can use <code class="code">&lt;class-cache&gt;</code> and
+          <code class="code">&lt;collection-cache&gt;</code> elements in <code class="filename">hibernate.cfg.xml</code>.
+        </p>
+      </div></div><br class="example-break"/>
+    </div>
+    <div class="section" title="6.2.2. Caching strategies"><div class="titlepage"><div><div><h3 class="title"><a id="caching-strategies-list"/>6.2.2. Caching strategies</h3></div></div></div>
+      
+      <div class="variablelist"><dl><dt><span class="term">read-only</span></dt><dd>
+            <p>
+              A read-only cache is good for data that needs to be read often but not modified. It is simple, performs
+              well, and is safe to use in a clustered environment.
+            </p>
+          </dd><dt><span class="term">nonstrict read-write</span></dt><dd>
+            <p>
+              Some applications only rarely need to modify data. This is the case if two transactions are unlikely to
+              try to update the same item simultaneously. In this case, you do not need strict transaction isolation,
+              and a nonstrict-read-write cache might be appropriate. If the cache is used in a JTA environment, you must
+              specify <code class="classname">hibernate.transaction.manager_lookup_class</code>. In other environments, ensore
+              that the transaction is complete before you call <code class="methodname">Session.close()</code> or
+              <code class="methodname">Session.disconnect()</code>.
+            </p>
+          </dd><dt><span class="term">read-write</span></dt><dd>
+            <p>
+              A read-write cache is appropriate for an application which needs to update data regularly. Do not use a
+              read-write strategy if you need serializable transaction isolation. In a JTA environment, specify a
+              strategy for obtaining the JTA TransactionManager by setting the property
+              <span class="property">hibernate.transaction.manager_lookup_class</span>. In non-JTA environments, be sure the
+              transaction is complete before you call <code class="methodname">Session.close()</code> or
+              <code class="methodname">Session.disconnect()</code>.
+            </p>
+            <div xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="note" style="margin-left: 0.5in; margin-right: 0.5in;"><h2>Note</h2>
+              <p>
+                To use the read-write strategy in a clustered environment, the underlying cache implementation must
+                support locking. The build-in cache providers do not support locking.
+              </p>
+            </div>
+          </dd><dt><span class="term">transactional</span></dt><dd>
+            <p>
+              The transactional cache strategy provides support for transactional cache providers such as JBoss
+              TreeCache. You can only use such a cache in a JTA environment, and you must first specify
+              <code class="classname">hibernate.transaction.manager_lookup_class</code>.
+            </p>
+          </dd></dl></div>
+    </div>
+    <div class="section" title="6.2.3. Second-level cache providers for Hibernate"><div class="titlepage"><div><div><h3 class="title"><a id="caching-provider-table"/>6.2.3. Second-level cache providers for Hibernate</h3></div></div></div>
+      
+      <div class="informaltable">
+        <table border="1"><colgroup><col/><col/><col/><col/><col/></colgroup><thead><tr><th>Cache</th><th>Interface</th><th>Supported strategies</th><td class="auto-generated"> </td><td class="auto-generated"> </td></tr></thead><tbody><tr><td>HashTable (testing only)</td><td> </td><td>
+                <div class="itemizedlist"><ul class="itemizedlist"><li class="listitem"><p>read-only</p></li><li class="listitem"><p>nonstrict read-write</p></li><li class="listitem"><p>read-write</p></li></ul></div>
+              </td><td class="auto-generated"> </td><td class="auto-generated"> </td></tr><tr><td>EHCache</td><td> </td><td>
+                <div class="itemizedlist"><ul class="itemizedlist"><li class="listitem"><p>read-only</p></li><li class="listitem"><p>nonstrict read-write</p></li><li class="listitem"><p>read-write</p></li><li class="listitem"><p>transactional</p></li></ul></div>
+              </td><td class="auto-generated"> </td><td class="auto-generated"> </td></tr><tr><td>Infinispan</td><td> </td><td>
+                <div class="itemizedlist"><ul class="itemizedlist"><li class="listitem"><p>read-only</p></li><li class="listitem"><p>transactional</p></li></ul></div>
+              </td><td class="auto-generated"> </td><td class="auto-generated"> </td></tr></tbody></table>
+      </div>
+    </div>
+  </div>
+
+  <div class="section" title="6.3. Managing the cache"><div class="titlepage"><div><div><h2 class="title"><a id="d5e1560"/>6.3. Managing the cache</h2></div></div></div>
+    
+    
+    <div class="section" title="6.3.1. Moving items into and out of the cache"><div class="titlepage"><div><div><h3 class="title"><a id="d5e1562"/>6.3.1. Moving items into and out of the cache</h3></div></div></div>
+      
+      <div class="variablelist" title="Actions that add an item to internal cache of the Session"><p class="title"><strong>Actions that add an item to internal cache of the Session</strong></p><dl><dt><span class="term">Saving or updating an item</span></dt><dd>
+            <div class="itemizedlist"><ul class="itemizedlist"><li class="listitem">
+                <p>
+                  <code class="methodname">save()</code>
+                </p>
+              </li><li class="listitem">
+                <p>
+                  <code class="methodname">update()</code>
+                </p>
+              </li><li class="listitem">
+                <p>
+                  <code class="methodname">saveOrUpdate()</code>
+                </p>
+              </li></ul></div>
+          </dd><dt><span class="term">Retrieving an item</span></dt><dd>
+            <div class="itemizedlist"><ul class="itemizedlist"><li class="listitem">
+                <p>
+                  <code class="methodname">load()</code>
+                </p>
+              </li><li class="listitem">
+                <p>
+                  <code class="methodname">get()</code>
+                </p>
+              </li><li class="listitem">
+                <p>
+                  <code class="methodname">list()</code>
+                </p>
+              </li><li class="listitem">
+                <p>
+                  <code class="methodname">iterate()</code>
+                </p>
+              </li><li class="listitem">
+                <p>
+                  <code class="methodname">scroll()</code>
+                </p>
+              </li></ul></div>
+          </dd></dl></div>
+      <p title="Syncing or removing a cached item">
+        <strong>Syncing or removing a cached item. </strong>
+        
+          The state of an object is synchronized with the database when you call method
+          <code class="methodname">flush()</code>. To avoid this synchronization, you can remove the object and all collections
+          from the first-level cache with the <code class="methodname">evict()</code> method. To remove all items from the
+          Session cache, use method <code class="methodname">Session.clear()</code>.
+        
+      </p>
+      <div class="example"><a id="d5e1604"/><p class="title"><strong>Example 6.4. Evicting an item from the first-level cache</strong></p><div class="example-contents">
+        
+        <pre xmlns="" xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="JAVA"><!-- <br/> --><span class="java_type">ScrollableResult</span><!-- <br/> --><span class="java_plain">&nbsp;cats&nbsp;</span><!-- <br/> --><span class="java_operator">=</span><!-- <br/> --><span class="java_plain">&nbsp;sess</span><!-- <br/> --><span class="java_separator">.</span><!-- <br/> --><span class="java_plain">createQuery</span><!-- <br/> --><span class="java_separator">(</span><!-- <br/> --><span class="java_literal">&quot;from&nbsp;Cat&nbsp;as&nbsp;cat&quot;</span><!-- <br/> --><span class="java_separator">).</span><!-- <br/> --><span class="java_plain">scroll</span><!-- <br/> --><span class="java_separator">();</span><!-- <br/> --><span class="java_plain">&nbsp;</span><!-- <br/> --><span class="java_operator">//</span><!-- <br/> --><span class="java_plain">a&nbsp;huge&nbsp;result&nbsp;set</span>
+<!--  --><br/><span class="java_keyword">while</span><span class="java_plain">&nbsp;</span><span class="java_separator">(</span><span class="java_plain">&nbsp;cats</span><span class="java_separator">.</span><span class="java_plain">next</span><span class="java_separator">()</span><span class="java_plain">&nbsp;</span><span class="java_separator">)</span><span class="java_plain">&nbsp;</span><span class="java_separator">{</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="java_type">Cat</span><span class="java_plain">&nbsp;cat&nbsp;</span><span class="java_operator">=</span><span class="java_plain">&nbsp;</span><span class="java_separator">(</span><span class="java_type">Cat</span><span class="java_separator">)</span><span class="java_plain">&nbsp;cats</span><span class="java_separator">.</span><span class="java_plain">get</span><span class="java_separator">(</span><span class="java_literal">0</span><span class="java_separator">);</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;&nbsp;&nbsp;doSomethingWithACat</span><span class="java_separator">(</span><span class="java_plain">cat</span><span class="java_separator">);</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;&nbsp;&nbsp;sess</span><span class="java_separator">.</span><span class="java_plain">evict</span><span class="java_separator">(</span><span class="java_plain">cat</span><span class="java_separator">);</span>
+<!--  --><br/><span class="java_separator">}</span></pre>
+      </div></div><br class="example-break"/>
+      <p title="Determining whether an item belongs to the Session cache">
+        <strong>Determining whether an item belongs to the Session cache. </strong>
+        
+          The Session provides a <code class="methodname">contains()</code> method to determine if an instance belongs to the
+          session cache.
+        
+      </p>
+      
+      <div class="example"><a id="d5e1611"/><p class="title"><strong>Example 6.5. Second-level cache eviction</strong></p><div class="example-contents">
+        
+        <p>
+          You can evict the cached state of an instance, entire class, collection instance or entire collection role,
+          using methods of <code class="classname">SessionFactory</code>.
+        </p>
+        <pre xmlns="" xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="JAVA"><!-- <br/> --><span class="java_plain">sessionFactory</span><!-- <br/> --><span class="java_separator">.</span><!-- <br/> --><span class="java_plain">getCache</span><!-- <br/> --><span class="java_separator">().</span><!-- <br/> --><span class="java_plain">containsEntity</span><!-- <br/> --><span class="java_separator">(</span><!-- <br/> --><span class="java_type">Cat</span><!-- <br/> --><span class="java_separator">.</span><!-- <br/> --><span class="java_keyword">class</span><!-- <br/> --><span class="java_separator">,</span><!-- <br/> --><span class="java_plain">&nbsp;catId</span><!-- <br/> --><span class="java_separator">);</span><!-- <br/> --><span class="java_plain">&nbsp;</span><!-- <br/> --><span class="java_operator">//</span><!-- <br/> --><span class="java_plain">&nbsp;is&nbsp;</span><!-- <br/> --><span class="java_keyword">this</span><!-- <br/> --><span class="java_plain">&nbsp;particular&nbsp;</span><!-- <br/> --><span class="java_type">Cat</span><!-- <br/> --><span class="java_plain">&nbsp;currently&nbsp;in&nbsp;the&nbsp;cache</span>
+</span>
+<!--  --><br/><span class="java_plain">sessionFactory</span><span class="java_separator">.</span><span class="java_plain">getCache</span><span class="java_separator">().</span><span class="java_plain">evictEntity</span><span class="java_separator">(</span><span class="java_type">Cat</span><span class="java_separator">.</span><span class="java_keyword">class</span><span class="java_separator">,</span><span class="java_plain">&nbsp;catId</span><span class="java_separator">);</span><span class="java_plain">&nbsp;</span><span class="java_operator">//</span><span class="java_plain">&nbsp;evict&nbsp;a&nbsp;particular&nbsp;</span><span class="java_type">Cat</span>
+</span>
+<!--  --><br/><span class="java_plain">sessionFactory</span><span class="java_separator">.</span><span class="java_plain">getCache</span><span class="java_separator">().</span><span class="java_plain">evictEntityRegion</span><span class="java_separator">(</span><span class="java_type">Cat</span><span class="java_separator">.</span><span class="java_keyword">class</span><span class="java_separator">);</span><span class="java_plain">&nbsp;&nbsp;</span><span class="java_operator">//</span><span class="java_plain">&nbsp;evict&nbsp;all&nbsp;</span><span class="java_type">Cats</span>
+</span>
+<!--  --><br/><span class="java_plain">sessionFactory</span><span class="java_separator">.</span><span class="java_plain">getCache</span><span class="java_separator">().</span><span class="java_plain">evictEntityRegions</span><span class="java_separator">();</span><span class="java_plain">&nbsp;&nbsp;</span><span class="java_operator">//</span><span class="java_plain">&nbsp;evict&nbsp;all&nbsp;entity&nbsp;data</span>
+</span>
+<!--  --><br/><span class="java_plain">sessionFactory</span><span class="java_separator">.</span><span class="java_plain">getCache</span><span class="java_separator">().</span><span class="java_plain">containsCollection</span><span class="java_separator">(</span><span class="java_literal">&quot;Cat.kittens&quot;</span><span class="java_separator">,</span><span class="java_plain">&nbsp;catId</span><span class="java_separator">);</span><span class="java_plain">&nbsp;</span><span class="java_operator">//</span><span class="java_plain">&nbsp;is&nbsp;</span><span class="java_keyword">this</span><span class="java_plain">&nbsp;particular&nbsp;collection&nbsp;currently&nbsp;in&nbsp;the&nbsp;cache</span>
+</span>
+<!--  --><br/><span class="java_plain">sessionFactory</span><span class="java_separator">.</span><span class="java_plain">getCache</span><span class="java_separator">().</span><span class="java_plain">evictCollection</span><span class="java_separator">(</span><span class="java_literal">&quot;Cat.kittens&quot;</span><span class="java_separator">,</span><span class="java_plain">&nbsp;catId</span><span class="java_separator">);</span><span class="java_plain">&nbsp;</span><span class="java_operator">//</span><span class="java_plain">&nbsp;evict&nbsp;a&nbsp;particular&nbsp;collection&nbsp;of&nbsp;kittens</span>
+</span>
+<!--  --><br/><span class="java_plain">sessionFactory</span><span class="java_separator">.</span><span class="java_plain">getCache</span><span class="java_separator">().</span><span class="java_plain">evictCollectionRegion</span><span class="java_separator">(</span><span class="java_literal">&quot;Cat.kittens&quot;</span><span class="java_separator">);</span><span class="java_plain">&nbsp;</span><span class="java_operator">//</span><span class="java_plain">&nbsp;evict&nbsp;all&nbsp;kitten&nbsp;collections</span>
+</span>
+<!--  --><br/><span class="java_plain">sessionFactory</span><span class="java_separator">.</span><span class="java_plain">getCache</span><span class="java_separator">().</span><span class="java_plain">evictCollectionRegions</span><span class="java_separator">();</span><span class="java_plain">&nbsp;</span><span class="java_operator">//</span><span class="java_plain">&nbsp;evict&nbsp;all&nbsp;collection&nbsp;data</span></pre>
+      </div></div><br class="example-break"/>       
+      <div class="section" title="6.3.1.1. Interactions between a Session and the second-level cache"><div class="titlepage"><div><div><h4 class="title"><a id="d5e1616"/>6.3.1.1. Interactions between a Session and the second-level cache</h4></div></div></div>
+        
+        <p>
+          The CacheMode controls how a particular session interacts with the second-level cache.
+        </p>
+        <div class="informaltable">
+          <table border="1"><colgroup><col/><col/></colgroup><tbody><tr><td>CacheMode.NORMAL</td><td>reads items from and writes them to the second-level cache.</td></tr><tr><td>CacheMode.GET</td><td>reads items from the second-level cache, but does not write to the second-level cache except to
+                update data.</td></tr><tr><td>CacheMode.PUT</td><td>writes items to the second-level cache. It does not read from the second-level cache. It bypasses
+                the effect of <span class="property">hibernate.cache.use_minimal_puts</span> and forces a refresh of the
+                second-level cache for all items read from the database.</td></tr></tbody></table>
+        </div>
+      </div>
+      
+      <div class="section" title="6.3.1.2. Browsing the contents of a second-level or query cache region"><div class="titlepage"><div><div><h4 class="title"><a id="d5e1632"/>6.3.1.2. Browsing the contents of a second-level or query cache region</h4></div></div></div>
+        
+        <p>
+          After enabling statistics, you can browse the contents of a second-level cache or query cache region.
+        </p>
+        <div class="procedure" title="Procedure 6.2. Enabling Statistics"><a id="d5e1635"/><p class="title"><strong>Procedure 6.2. Enabling Statistics</strong></p><ol class="procedure" type="1"><li class="step" title="Step 1">
+            <p>
+              Set <code class="code">hibernate.generate_statistics</code> to <code class="literal">true</code>.
+            </p>
+          </li><li class="step" title="Step 2">
+            <p>
+              Optionally, set <code class="code">hibernate.cache.use_structured_entries</code> to <code class="literal">true</code>, to cause
+              Hibernate to store the cache entries in a human-readable format.
+            </p>
+          </li></ol></div>
+        <div class="example"><a id="d5e1645"/><p class="title"><strong>Example 6.6. Browsing the second-level cache entries via the Statistics API</strong></p><div class="example-contents">
+            
+            <pre xmlns="" xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="JAVA"><!-- <br/> --><span class="java_type">Map</span><!-- <br/> --><span class="java_plain">&nbsp;cacheEntries&nbsp;</span><!-- <br/> --><span class="java_operator">=</span><!-- <br/> --><span class="java_plain">&nbsp;sessionFactory</span><!-- <br/> --><span class="java_separator">.</span><!-- <br/> --><span class="java_plain">getStatistics</span><!-- <br/> --><span class="java_separator">()</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="java_separator">.</span><span class="java_plain">getSecondLevelCacheStatistics</span><span class="java_separator">(</span><span class="java_plain">regionName</span><span class="java_separator">)</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="java_separator">.</span><span class="java_plain">getEntries</span><span class="java_separator">();</span></pre>
+        </div></div><br class="example-break"/>
+      </div>
+    </div>
+  </div>
+</div><hr xmlns="" xmlns:d="http://docbook.org/ns/docbook"/><a xmlns="" xmlns:d="http://docbook.org/ns/docbook" href="legalnotice.html"/><ul xmlns:d="http://docbook.org/ns/docbook" class="docnav"><li class="previous"><a accesskey="p" href="ch05.html"><strong>Prev</strong>Chapter 5. Locking</a></li><li class="up"><a accesskey="u" href="#"><strong>Up</strong></a></li><li class="home"><a accesskey="h" href="index.html"><strong>Home</strong></a></li><li class="next"><a accesskey="n" href="ch07.html"><strong>Next</strong>Chapter 7. Services</a></li></ul></body></html>

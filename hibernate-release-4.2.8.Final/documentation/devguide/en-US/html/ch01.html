@@ -1,0 +1,441 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml"><head><title>Chapter 1. Database access</title><link rel="stylesheet" type="text/css" href="css/hibernate.css"/><meta name="generator" content="DocBook XSL Stylesheets V1.76.1"/><link rel="home" href="index.html" title="Hibernate Developer Guide"/><link rel="up" href="index.html" title="Hibernate Developer Guide"/><link rel="prev" href="pr01.html" title="Preface"/><link rel="next" href="ch02.html" title="Chapter 2. Transactions and concurrency control"/><meta xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" http-equiv="Content-Type" content="text/html; charset=UTF-8"/></head><body><p xmlns:d="http://docbook.org/ns/docbook" id="title"><a href="http://www.hibernate.org" class="site_href"><strong>Hibernate.org</strong></a><a href="http://hibernate.org/Documentation/DocumentationOverview" class="doc_href"><strong>Community Documentation</strong></a></p><ul xmlns:d="http://docbook.org/ns/docbook" class="docnav"><li class="previous"><a accesskey="p" href="pr01.html"><strong>Prev</strong></a></li><li class="next"><a accesskey="n" href="ch02.html"><strong>Next</strong></a></li></ul><div class="chapter" title="Chapter 1. Database access"><div class="titlepage"><div><div><h2 class="title"><a id="d5e58"/>Chapter 1. Database access</h2></div></div></div><div class="toc"><p><strong>Table of Contents</strong></p><dl><dt><span class="section"><a href="ch01.html#d5e60">1.1. Connecting</a></span></dt><dd><dl><dt><span class="section"><a href="ch01.html#d5e83">1.1.1. Configuration</a></span></dt><dt><span class="section"><a href="ch01.html#d5e127">1.1.2. Obtaining a JDBC connection</a></span></dt></dl></dd><dt><span class="section"><a href="ch01.html#d5e150">1.2. Connection pooling</a></span></dt><dd><dl><dt><span class="section"><a href="ch01.html#d5e154">1.2.1. c3p0 connection pool</a></span></dt><dt><span class="section"><a href="ch01.html#d5e170">1.2.2. Proxool connection pool</a></span></dt><dt><span class="section"><a href="ch01.html#d5e199">1.2.3. Obtaining connections from an application server, using JNDI</a></span></dt><dt><span class="section"><a href="ch01.html#d5e216">1.2.4. Other connection-specific configuration</a></span></dt><dt><span class="section"><a href="ch01.html#d5e224">1.2.5. Optional configuration properties</a></span></dt></dl></dd><dt><span class="section"><a href="ch01.html#configuring-dialects">1.3. Dialects</a></span></dt><dd><dl><dt><span class="section"><a href="ch01.html#d5e321">1.3.1. Specifying the Dialect to use</a></span></dt><dt><span class="section"><a href="ch01.html#d5e326">1.3.2. Dialect resolution</a></span></dt></dl></dd><dt><span class="section"><a href="ch01.html#d5e339">1.4. Automatic schema generation with SchemaExport</a></span></dt><dd><dl><dt><span class="section"><a href="ch01.html#d5e347">1.4.1. Customizing the mapping files</a></span></dt><dt><span class="section"><a href="ch01.html#d5e470">1.4.2. Running the SchemaExport tool</a></span></dt></dl></dd></dl></div>
+
+    
+
+    <div class="section" title="1.1. Connecting"><div class="titlepage"><div><div><h2 class="title"><a id="d5e60"/>1.1. Connecting</h2></div></div></div>
+        
+        <p>
+            Hibernate connects to databases on behalf of your application. It can connect through a variety of mechanisms,
+            including:
+        </p>
+        <div class="itemizedlist"><ul class="itemizedlist"><li class="listitem"><p>Stand-alone built-in connection pool</p></li><li class="listitem"><p><code class="classname">javax.sql.DataSource</code></p></li><li class="listitem"><p>Connection pools, including support for two different third-party opensource JDBC connection pools:</p>
+                <div class="itemizedlist"><ul class="itemizedlist"><li class="listitem"><p>c3p0</p></li><li class="listitem"><p>proxool</p></li></ul></div>
+            </li><li class="listitem">
+                <p>Application-supplied JDBC connections.  This is not a recommended approach and exists for legacy reasons</p>
+            </li></ul></div>
+
+        <div xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="note" style="margin-left: 0.5in; margin-right: 0.5in;"><h2>Note</h2>
+            <p>The built-in connection pool is not intended for production environments.</p>
+        </div>
+
+        <p>
+            Hibernate obtains JDBC connections as needed though the
+            <code class="interfacename">org.hibernate.service.jdbc.connections.spi.ConnectionProvider</code> interface
+            which is a service contract.  Applications may also supply their own
+            <code class="interfacename">org.hibernate.service.jdbc.connections.spi.ConnectionProvider</code> implementation
+            to define a custom approach for supplying connections to Hibernate (from a different connection pool
+            implementation, for example).
+        </p>
+
+        
+
+        <div class="section" title="1.1.1. Configuration"><div class="titlepage"><div><div><h3 class="title"><a id="d5e83"/>1.1.1. Configuration</h3></div></div></div>
+            
+            <p>
+                You can configure database connections using a properties file, an XML deployment descriptor or
+                programmatically.
+              </p>
+                <div class="example"><a id="d5e86"/><p class="title"><strong>Example 1.1. <code class="filename">hibernate.properties</code> for a c3p0 connection pool</strong></p><div class="example-contents">
+                    
+                    <pre xmlns="" xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="">hibernate.connection.driver_class = org.postgresql.Driver
+hibernate.connection.url = jdbc:postgresql://localhost/mydatabase
+hibernate.connection.username = myuser
+hibernate.connection.password = secret
+hibernate.c3p0.min_size=5
+hibernate.c3p0.max_size=20
+hibernate.c3p0.timeout=1800
+hibernate.c3p0.max_statements=50
+hibernate.dialect = org.hibernate.dialect.PostgreSQL82Dialect</pre>
+                </div></div><br class="example-break"/>
+                <div class="example"><a id="d5e90"/><p class="title"><strong>Example 1.2. <code class="filename">hibernate.cfg.xml</code> for a connection to the bundled HSQL database</strong></p><div class="example-contents">
+                    
+                    <pre xmlns="" xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="XML"><!-- XML : generated by JHighlight v1.0 (http://jhighlight.dev.java.net) -->
+<span class="xml_processing_instruction">&lt;?xml&nbsp;version='1.0'&nbsp;encoding='utf-8'?&gt;</span><span class="xml_plain"></span><br />
+<span class="xml_plain"></span><br />
+<span class="xml_tag_symbols">&lt;</span><span class="xml_tag_name">hibernate-configuration</span><span class="xml_plain"></span><br />
+<span class="xml_plain">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="xml_attribute_name">xmlns</span><span class="xml_tag_symbols">=</span><span class="xml_attribute_value">&quot;http://www.hibernate.org/xsd/hibernate-configuration&quot;</span><span class="xml_plain"></span><br />
+<span class="xml_plain">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="xml_attribute_name">xsi:schemaLocation</span><span class="xml_tag_symbols">=</span><span class="xml_attribute_value">&quot;http://www.hibernate.org/xsd/hibernate-configuration&nbsp;hibernate-configuration-4.0.xsd&quot;</span><span class="xml_plain"></span><br />
+<span class="xml_plain">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="xml_attribute_name">xmlns:xsi</span><span class="xml_tag_symbols">=</span><span class="xml_attribute_value">&quot;http://www.w3.org/2001/XMLSchema-instance&quot;</span><span class="xml_tag_symbols">&gt;</span><span class="xml_plain"></span><br />
+<span class="xml_plain">&nbsp;&nbsp;</span><span class="xml_tag_symbols">&lt;</span><span class="xml_tag_name">session-factory</span><span class="xml_tag_symbols">&gt;</span><span class="xml_plain"></span><br />
+<span class="xml_plain">&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="xml_comment">&lt;!--&nbsp;Database&nbsp;connection&nbsp;settings&nbsp;--&gt;</span><span class="xml_plain"></span><br />
+<span class="xml_plain">&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="xml_tag_symbols">&lt;</span><span class="xml_tag_name">property</span><span class="xml_plain">&nbsp;</span><span class="xml_attribute_name">name</span><span class="xml_tag_symbols">=</span><span class="xml_attribute_value">&quot;connection.driver_class&quot;</span><span class="xml_tag_symbols">&gt;</span><span class="xml_plain">org.hsqldb.jdbcDriver</span><span class="xml_tag_symbols">&lt;/</span><span class="xml_tag_name">property</span><span class="xml_tag_symbols">&gt;</span><span class="xml_plain"></span><br />
+<span class="xml_plain">&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="xml_tag_symbols">&lt;</span><span class="xml_tag_name">property</span><span class="xml_plain">&nbsp;</span><span class="xml_attribute_name">name</span><span class="xml_tag_symbols">=</span><span class="xml_attribute_value">&quot;connection.url&quot;</span><span class="xml_tag_symbols">&gt;</span><span class="xml_plain">jdbc:hsqldb:hsql://localhost</span><span class="xml_tag_symbols">&lt;/</span><span class="xml_tag_name">property</span><span class="xml_tag_symbols">&gt;</span><span class="xml_plain"></span><br />
+<span class="xml_plain">&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="xml_tag_symbols">&lt;</span><span class="xml_tag_name">property</span><span class="xml_plain">&nbsp;</span><span class="xml_attribute_name">name</span><span class="xml_tag_symbols">=</span><span class="xml_attribute_value">&quot;connection.username&quot;</span><span class="xml_tag_symbols">&gt;</span><span class="xml_plain">sa</span><span class="xml_tag_symbols">&lt;/</span><span class="xml_tag_name">property</span><span class="xml_tag_symbols">&gt;</span><span class="xml_plain"></span><br />
+<span class="xml_plain">&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="xml_tag_symbols">&lt;</span><span class="xml_tag_name">property</span><span class="xml_plain">&nbsp;</span><span class="xml_attribute_name">name</span><span class="xml_tag_symbols">=</span><span class="xml_attribute_value">&quot;connection.password&quot;</span><span class="xml_tag_symbols">&gt;&lt;/</span><span class="xml_tag_name">property</span><span class="xml_tag_symbols">&gt;</span><span class="xml_plain"></span><br />
+<span class="xml_plain"></span><br />
+<span class="xml_plain">&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="xml_comment">&lt;!--&nbsp;JDBC&nbsp;connection&nbsp;pool&nbsp;(use&nbsp;the&nbsp;built-in)&nbsp;--&gt;</span><span class="xml_plain"></span><br />
+<span class="xml_plain">&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="xml_tag_symbols">&lt;</span><span class="xml_tag_name">property</span><span class="xml_plain">&nbsp;</span><span class="xml_attribute_name">name</span><span class="xml_tag_symbols">=</span><span class="xml_attribute_value">&quot;connection.pool_size&quot;</span><span class="xml_tag_symbols">&gt;</span><span class="xml_plain">1</span><span class="xml_tag_symbols">&lt;/</span><span class="xml_tag_name">property</span><span class="xml_tag_symbols">&gt;</span><span class="xml_plain"></span><br />
+<span class="xml_plain"></span><br />
+<span class="xml_plain">&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="xml_comment">&lt;!--&nbsp;SQL&nbsp;dialect&nbsp;--&gt;</span><span class="xml_plain"></span><br />
+<span class="xml_plain">&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="xml_tag_symbols">&lt;</span><span class="xml_tag_name">property</span><span class="xml_plain">&nbsp;</span><span class="xml_attribute_name">name</span><span class="xml_tag_symbols">=</span><span class="xml_attribute_value">&quot;dialect&quot;</span><span class="xml_tag_symbols">&gt;</span><span class="xml_plain">org.hibernate.dialect.HSQLDialect</span><span class="xml_tag_symbols">&lt;/</span><span class="xml_tag_name">property</span><span class="xml_tag_symbols">&gt;</span><span class="xml_plain"></span><br />
+<span class="xml_plain"></span><br />
+<span class="xml_plain">&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="xml_comment">&lt;!--&nbsp;Enable&nbsp;Hibernate's&nbsp;automatic&nbsp;session&nbsp;context&nbsp;management&nbsp;--&gt;</span><span class="xml_plain"></span><br />
+<span class="xml_plain">&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="xml_tag_symbols">&lt;</span><span class="xml_tag_name">property</span><span class="xml_plain">&nbsp;</span><span class="xml_attribute_name">name</span><span class="xml_tag_symbols">=</span><span class="xml_attribute_value">&quot;current_session_context_class&quot;</span><span class="xml_tag_symbols">&gt;</span><span class="xml_plain">thread</span><span class="xml_tag_symbols">&lt;/</span><span class="xml_tag_name">property</span><span class="xml_tag_symbols">&gt;</span><span class="xml_plain"></span><br />
+<span class="xml_plain"></span><br />
+<span class="xml_plain">&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="xml_comment">&lt;!--&nbsp;Disable&nbsp;the&nbsp;second-level&nbsp;cache&nbsp;&nbsp;--&gt;</span><span class="xml_plain"></span><br />
+<span class="xml_plain">&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="xml_tag_symbols">&lt;</span><span class="xml_tag_name">property</span><span class="xml_plain">&nbsp;</span><span class="xml_attribute_name">name</span><span class="xml_tag_symbols">=</span><span class="xml_attribute_value">&quot;cache.provider_class&quot;</span><span class="xml_tag_symbols">&gt;</span><span class="xml_plain">org.hibernate.cache.internal.NoCacheProvider</span><span class="xml_tag_symbols">&lt;/</span><span class="xml_tag_name">property</span><span class="xml_tag_symbols">&gt;</span><span class="xml_plain"></span><br />
+<span class="xml_plain"></span><br />
+<span class="xml_plain">&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="xml_comment">&lt;!--&nbsp;Echo&nbsp;all&nbsp;executed&nbsp;SQL&nbsp;to&nbsp;stdout&nbsp;--&gt;</span><span class="xml_plain"></span><br />
+<span class="xml_plain">&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="xml_tag_symbols">&lt;</span><span class="xml_tag_name">property</span><span class="xml_plain">&nbsp;</span><span class="xml_attribute_name">name</span><span class="xml_tag_symbols">=</span><span class="xml_attribute_value">&quot;show_sql&quot;</span><span class="xml_tag_symbols">&gt;</span><span class="xml_plain">true</span><span class="xml_tag_symbols">&lt;/</span><span class="xml_tag_name">property</span><span class="xml_tag_symbols">&gt;</span><span class="xml_plain"></span><br />
+<span class="xml_plain"></span><br />
+<span class="xml_plain">&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="xml_comment">&lt;!--&nbsp;Drop&nbsp;and&nbsp;re-create&nbsp;the&nbsp;database&nbsp;schema&nbsp;on&nbsp;startup&nbsp;--&gt;</span><span class="xml_plain"></span><br />
+<span class="xml_plain">&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="xml_tag_symbols">&lt;</span><span class="xml_tag_name">property</span><span class="xml_plain">&nbsp;</span><span class="xml_attribute_name">name</span><span class="xml_tag_symbols">=</span><span class="xml_attribute_value">&quot;hbm2ddl.auto&quot;</span><span class="xml_tag_symbols">&gt;</span><span class="xml_plain">update</span><span class="xml_tag_symbols">&lt;/</span><span class="xml_tag_name">property</span><span class="xml_tag_symbols">&gt;</span><span class="xml_plain"></span><br />
+<span class="xml_plain">&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="xml_tag_symbols">&lt;</span><span class="xml_tag_name">mapping</span><span class="xml_plain">&nbsp;</span><span class="xml_attribute_name">resource</span><span class="xml_tag_symbols">=</span><span class="xml_attribute_value">&quot;org/hibernate/tutorial/domain/Event.hbm.xml&quot;</span><span class="xml_tag_symbols">/&gt;</span><span class="xml_plain"></span><br />
+<span class="xml_plain">&nbsp;&nbsp;</span><span class="xml_tag_symbols">&lt;/</span><span class="xml_tag_name">session-factory</span><span class="xml_tag_symbols">&gt;</span><span class="xml_plain"></span><br />
+<span class="xml_tag_symbols">&lt;/</span><span class="xml_tag_name">hibernate-configuration</span><span class="xml_tag_symbols">&gt;</span><span class="xml_plain"></span><br />
+</pre>
+                </div></div><br class="example-break"/>
+
+      <div class="section" title="1.1.1.1. Programatic configuration"><div class="titlepage"><div><div><h4 class="title"><a id="d5e94"/>1.1.1.1. Programatic configuration</h4></div></div></div>
+        
+        <p>
+          An instance of object <code class="classname">org.hibernate.cfg.Configuration</code> represents an entire set of
+          mappings of an application's Java types to an SQL database. The
+          <code class="classname">org.hibernate.cfg.Configuration</code> builds an immutable
+          <code class="classname">org.hibernate.SessionFactory</code>, and compiles the mappings from various XML mapping
+          files. You can specify the mapping files directly, or Hibernate can find them for you.
+        </p>
+        <div class="example"><a id="d5e100"/><p class="title"><strong>Example 1.3. Specifying the mapping files directly</strong></p><div class="example-contents">
+          
+          <p>
+            You can obtain a <code class="classname">org.hibernate.cfg.Configuration</code> instance by instantiating it
+            directly and specifying XML mapping documents. If the mapping files are in the classpath, use method
+            <code class="methodname">addResource()</code>.
+          </p>
+          <pre xmlns="" xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="JAVA"><!-- <br/> --><span class="java_type">Configuration</span><!-- <br/> --><span class="java_plain">&nbsp;cfg&nbsp;</span><!-- <br/> --><span class="java_operator">=</span><!-- <br/> --><span class="java_plain">&nbsp;</span><!-- <br/> --><span class="java_keyword">new</span><!-- <br/> --><span class="java_plain">&nbsp;</span><!-- <br/> --><span class="java_type">Configuration</span><!-- <br/> --><span class="java_separator">()</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="java_separator">.</span><span class="java_plain">addResource</span><span class="java_separator">(</span><span class="java_literal">&quot;Item.hbm.xml&quot;</span><span class="java_separator">)</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="java_separator">.</span><span class="java_plain">addResource</span><span class="java_separator">(</span><span class="java_literal">&quot;Bid.hbm.xml&quot;</span><span class="java_separator">);</span></pre>
+        </div></div><br class="example-break"/>
+        <div class="example"><a id="d5e106"/><p class="title"><strong>Example 1.4. Letting Hibernate find the mapping files for you</strong></p><div class="example-contents">
+          
+          <p>
+            The <code class="methodname">addClass()</code> method directs Hibernate to search the CLASSPATH for the mapping
+            files, eliminating hard-coded file names. In the following example, it searches for
+            <code class="filename">org/hibernate/auction/Item.hbm.xml</code> and
+            <code class="filename">org/hibernate/auction/Bid.hbm.xml</code>.
+          </p>
+          <pre xmlns="" xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="JAVA"><!-- <br/> --><span class="java_type">Configuration</span><!-- <br/> --><span class="java_plain">&nbsp;cfg&nbsp;</span><!-- <br/> --><span class="java_operator">=</span><!-- <br/> --><span class="java_plain">&nbsp;</span><!-- <br/> --><span class="java_keyword">new</span><!-- <br/> --><span class="java_plain">&nbsp;</span><!-- <br/> --><span class="java_type">Configuration</span><!-- <br/> --><span class="java_separator">()</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="java_separator">.</span><span class="java_plain">addClass</span><span class="java_separator">(</span><span class="java_plain">org</span><span class="java_separator">.</span><span class="java_plain">hibernate</span><span class="java_separator">.</span><span class="java_plain">auction</span><span class="java_separator">.</span><span class="java_type">Item</span><span class="java_separator">.</span><span class="java_keyword">class</span><span class="java_separator">)</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="java_separator">.</span><span class="java_plain">addClass</span><span class="java_separator">(</span><span class="java_plain">org</span><span class="java_separator">.</span><span class="java_plain">hibernate</span><span class="java_separator">.</span><span class="java_plain">auction</span><span class="java_separator">.</span><span class="java_type">Bid</span><span class="java_separator">.</span><span class="java_keyword">class</span><span class="java_separator">);</span></pre>
+        </div></div><br class="example-break"/>
+        <div class="example"><a id="d5e113"/><p class="title"><strong>Example 1.5. Specifying configuration properties</strong></p><div class="example-contents">
+          
+          <pre xmlns="" xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="JAVA"><!-- <br/> --><span class="java_type">Configuration</span><!-- <br/> --><span class="java_plain">&nbsp;cfg&nbsp;</span><!-- <br/> --><span class="java_operator">=</span><!-- <br/> --><span class="java_plain">&nbsp;</span><!-- <br/> --><span class="java_keyword">new</span><!-- <br/> --><span class="java_plain">&nbsp;</span><!-- <br/> --><span class="java_type">Configuration</span><!-- <br/> --><span class="java_separator">()</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="java_separator">.</span><span class="java_plain">addClass</span><span class="java_separator">(</span><span class="java_plain">org</span><span class="java_separator">.</span><span class="java_plain">hibernate</span><span class="java_separator">.</span><span class="java_plain">auction</span><span class="java_separator">.</span><span class="java_type">Item</span><span class="java_separator">.</span><span class="java_keyword">class</span><span class="java_separator">)</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="java_separator">.</span><span class="java_plain">addClass</span><span class="java_separator">(</span><span class="java_plain">org</span><span class="java_separator">.</span><span class="java_plain">hibernate</span><span class="java_separator">.</span><span class="java_plain">auction</span><span class="java_separator">.</span><span class="java_type">Bid</span><span class="java_separator">.</span><span class="java_keyword">class</span><span class="java_separator">)</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="java_separator">.</span><span class="java_plain">setProperty</span><span class="java_separator">(</span><span class="java_literal">&quot;hibernate.dialect&quot;</span><span class="java_separator">,</span><span class="java_plain">&nbsp;</span><span class="java_literal">&quot;org.hibernate.dialect.MySQLInnoDBDialect&quot;</span><span class="java_separator">)</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="java_separator">.</span><span class="java_plain">setProperty</span><span class="java_separator">(</span><span class="java_literal">&quot;hibernate.connection.datasource&quot;</span><span class="java_separator">,</span><span class="java_plain">&nbsp;</span><span class="java_literal">&quot;java:comp/env/jdbc/test&quot;</span><span class="java_separator">)</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="java_separator">.</span><span class="java_plain">setProperty</span><span class="java_separator">(</span><span class="java_literal">&quot;hibernate.order_updates&quot;</span><span class="java_separator">,</span><span class="java_plain">&nbsp;</span><span class="java_literal">&quot;true&quot;</span><span class="java_separator">);</span></pre>
+        </div></div><br class="example-break"/>
+        <div class="itemizedlist" title="Other ways to configure Hibernate programmatically"><p class="title"><strong>Other ways to configure Hibernate programmatically</strong></p><ul class="itemizedlist"><li class="listitem">
+            <p>
+              Pass an instance of <code class="classname">java.util.Properties</code> to
+              <code class="classname">Configuration.setProperties()</code>.
+            </p>
+          </li><li class="listitem">
+            <p>
+              Set System properties using <span class="command"><strong>java
+              -D<em class="replaceable"><code>property</code></em>=<em class="replaceable"><code>value</code></em></strong></span>
+            </p>
+          </li></ul></div>
+      </div>
+    </div>
+    
+    <div class="section" title="1.1.2. Obtaining a JDBC connection"><div class="titlepage"><div><div><h3 class="title"><a id="d5e127"/>1.1.2. Obtaining a JDBC connection</h3></div></div></div>
+        
+        <p>
+            After you configure the <a class="xref" href="ch01.html#hibernate-jdbc-properties" title="Most important Hibernate JDBC properties">Most important Hibernate JDBC properties</a>, you can use method
+            <code class="methodname">openSession</code> of class <code class="classname">org.hibernate.SessionFactory</code> to open
+            sessions.  Sessions will obtain JDBC connections as needed based on the provided configuration.
+        </p>
+        <div class="example"><a id="d5e133"/><p class="title"><strong>Example 1.6. Specifying configuration properties</strong></p><div class="example-contents">
+            
+            <pre xmlns="" xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="JAVA"><!-- <br/> --><span class="java_type">Session</span><!-- <br/> --><span class="java_plain">&nbsp;session&nbsp;</span><!-- <br/> --><span class="java_operator">=</span><!-- <br/> --><span class="java_plain">&nbsp;sessions</span><!-- <br/> --><span class="java_separator">.</span><!-- <br/> --><span class="java_plain">openSession</span><!-- <br/> --><span class="java_separator">();</span></pre>
+        </div></div><br class="example-break"/>
+        <div class="itemizedlist" title="Most important Hibernate JDBC properties"><a id="hibernate-jdbc-properties"/><p class="title"><strong>Most important Hibernate JDBC properties</strong></p><ul class="itemizedlist"><li class="listitem"><p>hibernate.connection.driver_class</p></li><li class="listitem"><p>hibernate.connection.url</p></li><li class="listitem"><p>hibernate.connection.username</p></li><li class="listitem"><p>hibernate.connection.password</p></li><li class="listitem"><p>hibernate.connection.pool_size</p></li></ul></div>
+        <p>
+            All available Hibernate settings are defined as constants and discussed on the
+            <code class="interfacename">org.hibernate.cfg.AvailableSettings</code> interface.  See its source code or
+            JavaDoc for details.
+        </p>
+    </div>
+  </div>
+  
+  <div class="section" title="1.2. Connection pooling"><div class="titlepage"><div><div><h2 class="title"><a id="d5e150"/>1.2. Connection pooling</h2></div></div></div>
+    
+    <p>
+      Hibernate's internal connection pooling algorithm is rudimentary, and is provided for development and testing
+      purposes. Use a third-party pool for best performance and stability. To use a third-party pool, replace the
+      <span class="property">hibernate.connection.pool_size property</span> with settings specific to your connection pool of
+      choice. This disables Hibernate's internal connection pool.
+    </p>
+    
+    <div class="section" title="1.2.1. c3p0 connection pool"><div class="titlepage"><div><div><h3 class="title"><a id="d5e154"/>1.2.1. c3p0 connection pool</h3></div></div></div>
+      
+      <p>
+        C3P0 is an open source JDBC connection pool distributed along with Hibernate in the <code class="filename">lib/</code>
+        directory. Hibernate uses its <code class="classname">org.hibernate.service.jdbc.connections.internal.C3P0ConnectionProvider</code> for
+        connection pooling if you set the <span class="property">hibernate.c3p0.*</span> properties.  properties.
+      </p>
+      <div class="itemizedlist" title="Important configuration properties for the c3p0 connection pool"><p class="title"><strong>Important configuration properties for the c3p0 connection pool</strong></p><ul class="itemizedlist"><li class="listitem"><p>hibernate.c3p0.min_size</p></li><li class="listitem"><p>hibernate.c3p0.max_size</p></li><li class="listitem"><p>hibernate.c3p0.timeout</p></li><li class="listitem"><p>hibernate.c3p0.max_statements</p></li></ul></div>
+    </div>
+    
+    <div class="section" title="1.2.2. Proxool connection pool"><div class="titlepage"><div><div><h3 class="title"><a id="d5e170"/>1.2.2. Proxool connection pool</h3></div></div></div>
+      
+      <p>
+        Proxool is another open source JDBC connection pool distributed along with Hibernate in the
+        <code class="filename">lib/</code> directory. Hibernate uses its
+        <code class="classname">org.hibernate.service.jdbc.connections.internal.ProxoolConnectionProvider</code> for connection pooling if you set the
+        <span class="property">hibernate.proxool.*</span> properties. Unlike c3p0, proxool requires some additional configuration
+        parameters, as described by the Proxool documentation available at <a class="ulink" href="http://proxool.sourceforge.net/configure.html">http://proxool.sourceforge.net/configure.html</a>.
+      </p>
+      <div class="table"><a id="d5e177"/><p class="title"><strong>Table 1.1. Important configuration properties for the Proxool connection pool</strong></p><div class="table-contents">
+        
+        <table summary="Important configuration properties for the Proxool connection pool" border="1"><colgroup><col width="120px"/><col width="320px"/></colgroup><thead><tr><th>Property</th><th>Description</th></tr></thead><tbody><tr><td>hibernate.proxool.xml</td><td>Configure Proxool provider using an XML file (.xml is appended automatically)</td></tr><tr><td>hibernate.proxool.properties</td><td>Configure the Proxool provider using a properties file (.properties is appended
+              automatically)</td></tr><tr><td>hibernate.proxool.existing_pool</td><td>Whether to configure the Proxool provider from an existing pool</td></tr><tr><td>hibernate.proxool.pool_alias</td><td>Proxool pool alias to use. Required.</td></tr></tbody></table>
+      </div></div><br class="table-break"/>
+    </div>
+
+    
+    <div class="section" title="1.2.3. Obtaining connections from an application server, using JNDI"><div class="titlepage"><div><div><h3 class="title"><a id="d5e199"/>1.2.3. Obtaining connections from an application server, using JNDI</h3></div></div></div>
+      
+      <p>
+        To use Hibernate inside an application server, configure Hibernate to obtain connections from an application
+        server <code class="classname">javax.sql.Datasource</code> registered in JNDI, by setting at least one of the following
+        properties:
+      </p>
+      <div class="itemizedlist" title="Important Hibernate properties for JNDI datasources"><p class="title"><strong>Important Hibernate properties for JNDI datasources</strong></p><ul class="itemizedlist"><li class="listitem"><p>hibernate.connection.datasource (required)</p></li><li class="listitem"><p>hibernate.jndi.url</p></li><li class="listitem"><p>hibernate.jndi.class</p></li><li class="listitem"><p>hibernate.connection.username</p></li><li class="listitem"><p>hibernate.connection.password</p></li></ul></div>
+      <p>
+        JDBC connections obtained from a JNDI datasource automatically participate in the container-managed transactions
+        of the application server.
+      </p>
+    </div>
+    
+    <div class="section" title="1.2.4. Other connection-specific configuration"><div class="titlepage"><div><div><h3 class="title"><a id="d5e216"/>1.2.4. Other connection-specific configuration</h3></div></div></div>
+      
+      <p>
+        You can pass arbitrary connection properties by prepending <code class="literal">hibernate.connection</code> to the
+        connection property name. For example, specify a charSet connection property as
+        <span class="property">hibernate.connection.charSet</span>.
+      </p>
+      <p>
+        You can define your own plugin strategy for obtaining JDBC connections by implementing the interface
+        <code class="interfacename">org.hibernate.service.jdbc.connections.spi.ConnectionProvider</code> and specifying your custom
+        implementation with the <span class="property">hibernate.connection.provider_class</span> property.
+      </p>
+    </div>
+    
+    <div class="section" title="1.2.5. Optional configuration properties"><div class="titlepage"><div><div><h3 class="title"><a id="d5e224"/>1.2.5. Optional configuration properties</h3></div></div></div>
+      
+      <p>
+        In addition to the properties mentioned in the previous sections, Hibernate includes many other optional
+        properties. See <a class="xref" href="">???</a> for a more complete list.
+      </p>
+    </div>
+  </div>
+  
+  <div class="section" title="1.3. Dialects"><div class="titlepage"><div><div><h2 class="title"><a id="configuring-dialects"/>1.3. Dialects</h2></div></div></div>
+    
+    <p>
+        Although SQL is relatively standardized, each database vendor uses a subset of supported syntax. This is referred
+        to as a <em class="firstterm">dialect</em>.  Hibernate handles variations across these dialects through its
+        <code class="classname">org.hibernate.dialect.Dialect</code> class and the various subclasses for each vendor dialect.
+    </p>
+
+    <div class="table"><a id="d5e233"/><p class="title"><strong>Table 1.2. Supported database dialects</strong></p><div class="table-contents">
+      
+      <table summary="Supported database dialects" border="1"><colgroup><col width="120px"/><col width="320px"/></colgroup><thead><tr><th>Database</th><th>Dialect</th></tr></thead><tbody><tr><td>DB2</td><td>org.hibernate.dialect.DB2Dialect</td></tr><tr><td>DB2 AS/400</td><td>org.hibernate.dialect.DB2400Dialect</td></tr><tr><td>DB2 OS390</td><td>org.hibernate.dialect.DB2390Dialect</td></tr><tr><td>Firebird</td><td>org.hibernate.dialect.FirebirdDialect</td></tr><tr><td>FrontBase</td><td>org.hibernate.dialect.FrontbaseDialect</td></tr><tr><td>HypersonicSQL</td><td>org.hibernate.dialect.HSQLDialect</td></tr><tr><td>Informix</td><td>org.hibernate.dialect.InformixDialect</td></tr><tr><td>Interbase</td><td>org.hibernate.dialect.InterbaseDialect</td></tr><tr><td>Ingres</td><td>org.hibernate.dialect.IngresDialect</td></tr><tr><td>Microsoft SQL Server 2005</td><td>org.hibernate.dialect.SQLServer2005Dialect</td></tr><tr><td>Microsoft SQL Server 2008</td><td>org.hibernate.dialect.SQLServer2008Dialect</td></tr><tr><td>Mckoi SQL</td><td>org.hibernate.dialect.MckoiDialect</td></tr><tr><td>MySQL</td><td>org.hibernate.dialect.MySQLDialect</td></tr><tr><td>MySQL with InnoDB</td><td>org.hibernate.dialect.MySQL5InnoDBDialect</td></tr><tr><td>MySQL with MyISAM</td><td>org.hibernate.dialect.MySQLMyISAMDialect</td></tr><tr><td>Oracle 8i</td><td>org.hibernate.dialect.Oracle8iDialect</td></tr><tr><td>Oracle 9i</td><td>org.hibernate.dialect.Oracle9iDialect</td></tr><tr><td>Oracle 10g</td><td>org.hibernate.dialect.Oracle10gDialect</td></tr><tr><td>Pointbase</td><td>org.hibernate.dialect.PointbaseDialect</td></tr><tr><td>PostgreSQL 8.1</td><td>org.hibernate.dialect.PostgreSQL81Dialect</td></tr><tr><td>PostgreSQL 8.2 and later</td><td>org.hibernate.dialect.PostgreSQL82Dialect</td></tr><tr><td>Progress</td><td>org.hibernate.dialect.ProgressDialect</td></tr><tr><td>SAP DB</td><td>org.hibernate.dialect.SAPDBDialect</td></tr><tr><td>Sybase ASE 15.5</td><td>org.hibernate.dialect.SybaseASE15Dialect</td></tr><tr><td>Sybase ASE 15.7</td><td>org.hibernate.dialect.SybaseASE157Dialect</td></tr><tr><td>Sybase Anywhere</td><td>org.hibernate.dialect.SybaseAnywhereDialect</td></tr></tbody></table>
+    </div></div><br class="table-break"/>
+
+      <div class="section" title="1.3.1. Specifying the Dialect to use"><div class="titlepage"><div><div><h3 class="title"><a id="d5e321"/>1.3.1. Specifying the Dialect to use</h3></div></div></div>
+          
+          <p>
+              The developer may manually specify the Dialect to use by setting the
+              <span class="property">hibernate.dialect</span> configuration property to the name of a specific
+              <code class="classname">org.hibernate.dialect.Dialect</code> class to use.
+          </p>
+      </div>
+
+      <div class="section" title="1.3.2. Dialect resolution"><div class="titlepage"><div><div><h3 class="title"><a id="d5e326"/>1.3.2. Dialect resolution</h3></div></div></div>
+          
+          <p>
+              Assuming a <code class="interfacename">org.hibernate.service.jdbc.connections.spi.ConnectionProvider</code> has been
+              set up, Hibernate will attempt to automatically determine the Dialect to use based on the
+              <code class="interfacename">java.sql.DatabaseMetaData</code> reported by a
+              <code class="interfacename">java.sql.Connection</code> obtained from that
+              <code class="interfacename">org.hibernate.service.jdbc.connections.spi.ConnectionProvider</code>.
+          </p>
+          <p>
+                This functionality is provided by a series of
+                <code class="interfacename">org.hibernate.service.jdbc.dialect.spi.DialectResolver</code> instances registered
+                with Hibernate internally.  Hibernate comes with a standard set of recognitions.  If your application
+                requires extra Dialect resolution capabilities, it would simply register a custom implementation
+                of <code class="interfacename">org.hibernate.service.jdbc.dialect.spi.DialectResolver</code> as follows:
+          </p>
+          
+            <p>
+                Registered <code class="interfacename">org.hibernate.service.jdbc.dialect.spi.DialectResolver</code> are
+                <span class="emphasis"><em>prepended</em></span> to an internal list of resolvers, so they take precedence
+                before any already registered resolvers including the standard one.
+            </p>
+      </div>
+  </div>
+
+  <div class="section" title="1.4. Automatic schema generation with SchemaExport"><div class="titlepage"><div><div><h2 class="title"><a id="d5e339"/>1.4. Automatic schema generation with SchemaExport</h2></div></div></div>
+    
+    <p>
+      SchemaExport is a Hibernate utility which generates DDL from your mapping files. The generated schema includes
+      referential integrity constraints, primary and foreign keys, for entity and collection tables. It also creates
+      tables and sequences for mapped identifier generators.
+    </p>
+    <div xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="note" style="margin-left: 0.5in; margin-right: 0.5in;"><h2>Note</h2>
+      <p>
+        You must specify a SQL Dialect via the <span class="property">hibernate.dialect</span> property when using this tool,
+        because DDL is highly vendor-specific. See <a class="xref" href="ch01.html#configuring-dialects" title="1.3. Dialects">Section 1.3, “Dialects”</a> for information.
+      </p>
+    </div>
+    <p>
+      Before Hibernate can generate your schema, you must customize your mapping files.
+    </p>
+    
+    <div class="section" title="1.4.1. Customizing the mapping files"><div class="titlepage"><div><div><h3 class="title"><a id="d5e347"/>1.4.1. Customizing the mapping files</h3></div></div></div>
+      
+      <p>
+        Hibernate provides several elements and attributes to customize your mapping files. They are listed in <a class="xref" href="ch01.html#tab-customizing-schema" title="Table 1.3. Elements and attributes provided for customizing mapping files">Table 1.3, “Elements and attributes provided for customizing mapping files”</a>, and a logical order of customization is presented in <a class="xref" href="ch01.html#proc-customizing-schema" title="Procedure 1.1. Customizing the schema">Procedure 1.1, “Customizing the schema”</a>.
+      </p>
+      <div class="table"><a id="tab-customizing-schema"/><p class="title"><strong>Table 1.3. Elements and attributes provided for customizing mapping files</strong></p><div class="table-contents">
+        
+        <table summary="Elements and attributes provided for customizing mapping files" border="1"><colgroup><col width="80px"/><col width="80px"/><col width="280px"/></colgroup><thead><tr><th>Name</th><th>Type of value</th><th>Description</th></tr></thead><tbody><tr><td>length</td><td>number</td><td>Column length</td></tr><tr><td>precision</td><td>number</td><td>Decimal precision of column</td></tr><tr><td>scale</td><td>number</td><td>Decimal scale of column</td></tr><tr><td>not-null</td><td><p><code class="literal">true</code> or <code class="literal">false</code></p></td><td>Whether a column is allowed to hold null values</td></tr><tr><td>unique</td><td><p><code class="literal">true</code> or <code class="literal">false</code></p></td><td>Whether values in the column must be unique</td></tr><tr><td>index</td><td>string</td><td>The name of a multi-column index</td></tr><tr><td>unique-key</td><td>string</td><td>The name of a multi-column unique constraint</td></tr><tr><td>foreign-key</td><td>string</td><td>The name of the foreign key constraint generated for an association. This applies to
+              &lt;one-to-one&gt;, &lt;many-to-one&gt;, &lt;key&gt;, and &lt;many-to-many&gt; mapping
+              elements. <code class="literal">inverse="true"</code> sides are skipped by SchemaExport.</td></tr><tr><td>sql-type</td><td>string</td><td>Overrides the default column type. This applies to the &lt;column&gt; element only.</td></tr><tr><td>default</td><td>string</td><td>Default value for the column</td></tr><tr><td>check</td><td>string</td><td>An SQL check constraint on either a column or atable</td></tr></tbody></table>
+      </div></div><br class="table-break"/>
+      <div class="procedure" title="Procedure 1.1. Customizing the schema"><a id="proc-customizing-schema"/><p class="title"><strong>Procedure 1.1. Customizing the schema</strong></p><ol class="procedure" type="1"><li class="step" title="Set the length, precision, and scale of mapping elements.">
+          <p class="title"><strong>Set the length, precision, and scale of mapping elements.</strong></p>
+          <p>
+            Many Hibernate mapping elements define optional attributes named <code class="option">length</code>,
+            <code class="option">precision</code>, and <code class="option">scale</code>.
+          </p>
+          <pre xmlns="" xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="XML"><!-- XML : generated by JHighlight v1.0 (http://jhighlight.dev.java.net) -->
+<span class="xml_tag_symbols">&lt;</span><span class="xml_tag_name">property</span><span class="xml_plain">&nbsp;</span><span class="xml_attribute_name">name</span><span class="xml_tag_symbols">=</span><span class="xml_attribute_value">&quot;zip&quot;</span><span class="xml_plain">&nbsp;</span><span class="xml_attribute_name">length</span><span class="xml_tag_symbols">=</span><span class="xml_attribute_value">&quot;5&quot;</span><span class="xml_tag_symbols">/&gt;</span><span class="xml_plain"></span><br />
+<span class="xml_tag_symbols">&lt;</span><span class="xml_tag_name">property</span><span class="xml_plain">&nbsp;</span><span class="xml_attribute_name">name</span><span class="xml_tag_symbols">=</span><span class="xml_attribute_value">&quot;balance&quot;</span><span class="xml_plain">&nbsp;</span><span class="xml_attribute_name">precision</span><span class="xml_tag_symbols">=</span><span class="xml_attribute_value">&quot;12&quot;</span><span class="xml_plain">&nbsp;</span><span class="xml_attribute_name">scale</span><span class="xml_tag_symbols">=</span><span class="xml_attribute_value">&quot;2&quot;</span><span class="xml_tag_symbols">/&gt;</span><span class="xml_plain"></span><br />
+</pre>
+        </li><li class="step" title="Set the not-null, UNIQUE, unique-key attributes.">
+          <p class="title"><strong>Set the <code class="option">not-null</code>, <code class="option">UNIQUE</code>, <code class="option">unique-key</code> attributes.</strong></p>
+          <p>
+            The <code class="option">not-null</code> and <code class="option">UNIQUE</code> attributes generate constraints on table columns.
+          </p>
+          <p>
+            The unique-key attribute groups columns in a single, unique key constraint. The attribute overrides
+            the name of any generated unique key constraint.
+          </p>
+          <pre xmlns="" xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="XML"><!-- XML : generated by JHighlight v1.0 (http://jhighlight.dev.java.net) -->
+<span class="xml_tag_symbols">&lt;</span><span class="xml_tag_name">many-to-one</span><span class="xml_plain">&nbsp;</span><span class="xml_attribute_name">name</span><span class="xml_tag_symbols">=</span><span class="xml_attribute_value">&quot;bar&quot;</span><span class="xml_plain">&nbsp;</span><span class="xml_attribute_name">column</span><span class="xml_tag_symbols">=</span><span class="xml_attribute_value">&quot;barId&quot;</span><span class="xml_plain">&nbsp;</span><span class="xml_attribute_name">not-null</span><span class="xml_tag_symbols">=</span><span class="xml_attribute_value">&quot;true&quot;</span><span class="xml_tag_symbols">/&gt;</span><span class="xml_plain"></span><br />
+<span class="xml_tag_symbols">&lt;</span><span class="xml_tag_name">element</span><span class="xml_plain">&nbsp;</span><span class="xml_attribute_name">column</span><span class="xml_tag_symbols">=</span><span class="xml_attribute_value">&quot;serialNumber&quot;</span><span class="xml_plain">&nbsp;</span><span class="xml_attribute_name">type</span><span class="xml_tag_symbols">=</span><span class="xml_attribute_value">&quot;long&quot;</span><span class="xml_plain">&nbsp;</span><span class="xml_attribute_name">not-null</span><span class="xml_tag_symbols">=</span><span class="xml_attribute_value">&quot;true&quot;</span><span class="xml_plain">&nbsp;</span><span class="xml_attribute_name">unique</span><span class="xml_tag_symbols">=</span><span class="xml_attribute_value">&quot;true&quot;</span><span class="xml_tag_symbols">/&gt;</span><span class="xml_plain"></span><br />
+<span class="xml_plain"></span><br />
+<span class="xml_tag_symbols">&lt;</span><span class="xml_tag_name">many-to-one</span><span class="xml_plain">&nbsp;</span><span class="xml_attribute_name">name</span><span class="xml_tag_symbols">=</span><span class="xml_attribute_value">&quot;org&quot;</span><span class="xml_plain">&nbsp;</span><span class="xml_attribute_name">column</span><span class="xml_tag_symbols">=</span><span class="xml_attribute_value">&quot;orgId&quot;</span><span class="xml_plain">&nbsp;</span><span class="xml_attribute_name">unique-key</span><span class="xml_tag_symbols">=</span><span class="xml_attribute_value">&quot;OrgEmployeeId&quot;</span><span class="xml_tag_symbols">/&gt;</span><span class="xml_plain"></span><br />
+<span class="xml_tag_symbols">&lt;</span><span class="xml_tag_name">property</span><span class="xml_plain">&nbsp;</span><span class="xml_attribute_name">name</span><span class="xml_tag_symbols">=</span><span class="xml_attribute_value">&quot;employeeId&quot;</span><span class="xml_plain">&nbsp;</span><span class="xml_attribute_name">unique-key</span><span class="xml_tag_symbols">=</span><span class="xml_attribute_value">&quot;OrgEmployee&quot;</span><span class="xml_tag_symbols">/&gt;</span><span class="xml_plain"></span><br />
+</pre>
+        </li><li class="step" title="Set the index and foreign-key attributes.">
+          <p class="title"><strong>Set the <code class="option">index</code> and <code class="option">foreign-key</code> attributes.</strong></p>
+          <p>
+            The <code class="option">index</code> attribute specifies the name of an index for Hibernate to create using the mapped
+            column or columns. You can group multiple columns into the same index by assigning them the same index name.
+          </p>
+          <p>
+            A foreign-key attribute overrides the name of any generated foreign key constraint.
+          </p>
+          <pre xmlns="" xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="XML"><!-- XML : generated by JHighlight v1.0 (http://jhighlight.dev.java.net) -->
+<span class="xml_tag_symbols">&lt;</span><span class="xml_tag_name">many-to-one</span><span class="xml_plain">&nbsp;</span><span class="xml_attribute_name">name</span><span class="xml_tag_symbols">=</span><span class="xml_attribute_value">&quot;bar&quot;</span><span class="xml_plain">&nbsp;</span><span class="xml_attribute_name">column</span><span class="xml_tag_symbols">=</span><span class="xml_attribute_value">&quot;barId&quot;</span><span class="xml_plain">&nbsp;</span><span class="xml_attribute_name">foreign-key</span><span class="xml_tag_symbols">=</span><span class="xml_attribute_value">&quot;FKFooBar&quot;</span><span class="xml_tag_symbols">/&gt;</span><span class="xml_plain"></span><br />
+</pre>
+        </li><li class="step" title="Set child &lt;column&gt; elements.">
+          <p class="title"><strong>Set child <code class="option">&lt;column&gt;</code> elements.</strong></p>
+          <p>
+            Many mapping elements accept one or more child &lt;column&gt; elements. This is particularly useful for
+            mapping types involving multiple columns.
+          </p>
+          <pre xmlns="" xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="XML"><!-- XML : generated by JHighlight v1.0 (http://jhighlight.dev.java.net) -->
+<span class="xml_tag_symbols">&lt;</span><span class="xml_tag_name">property</span><span class="xml_plain">&nbsp;</span><span class="xml_attribute_name">name</span><span class="xml_tag_symbols">=</span><span class="xml_attribute_value">&quot;name&quot;</span><span class="xml_plain">&nbsp;</span><span class="xml_attribute_name">type</span><span class="xml_tag_symbols">=</span><span class="xml_attribute_value">&quot;my.customtypes.Name&quot;</span><span class="xml_tag_symbols">/&gt;</span><span class="xml_plain"></span><br />
+<span class="xml_plain">&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="xml_tag_symbols">&lt;</span><span class="xml_tag_name">column</span><span class="xml_plain">&nbsp;</span><span class="xml_attribute_name">name</span><span class="xml_tag_symbols">=</span><span class="xml_attribute_value">&quot;last&quot;</span><span class="xml_plain">&nbsp;</span><span class="xml_attribute_name">not-null</span><span class="xml_tag_symbols">=</span><span class="xml_attribute_value">&quot;true&quot;</span><span class="xml_plain">&nbsp;</span><span class="xml_attribute_name">index</span><span class="xml_tag_symbols">=</span><span class="xml_attribute_value">&quot;bar_idx&quot;</span><span class="xml_plain">&nbsp;</span><span class="xml_attribute_name">length</span><span class="xml_tag_symbols">=</span><span class="xml_attribute_value">&quot;30&quot;</span><span class="xml_tag_symbols">/&gt;</span><span class="xml_plain"></span><br />
+<span class="xml_plain">&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="xml_tag_symbols">&lt;</span><span class="xml_tag_name">column</span><span class="xml_plain">&nbsp;</span><span class="xml_attribute_name">name</span><span class="xml_tag_symbols">=</span><span class="xml_attribute_value">&quot;first&quot;</span><span class="xml_plain">&nbsp;</span><span class="xml_attribute_name">not-null</span><span class="xml_tag_symbols">=</span><span class="xml_attribute_value">&quot;true&quot;</span><span class="xml_plain">&nbsp;</span><span class="xml_attribute_name">index</span><span class="xml_tag_symbols">=</span><span class="xml_attribute_value">&quot;bar_idx&quot;</span><span class="xml_plain">&nbsp;</span><span class="xml_attribute_name">length</span><span class="xml_tag_symbols">=</span><span class="xml_attribute_value">&quot;20&quot;</span><span class="xml_tag_symbols">/&gt;</span><span class="xml_plain"></span><br />
+<span class="xml_plain">&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="xml_tag_symbols">&lt;</span><span class="xml_tag_name">column</span><span class="xml_plain">&nbsp;</span><span class="xml_attribute_name">name</span><span class="xml_tag_symbols">=</span><span class="xml_attribute_value">&quot;initial&quot;</span><span class="xml_tag_symbols">/&gt;</span><span class="xml_plain"></span><br />
+<span class="xml_tag_symbols">&lt;/</span><span class="xml_tag_name">property</span><span class="xml_tag_symbols">&gt;</span><span class="xml_plain"></span><br />
+</pre>
+        </li><li class="step" title="Set the default attribute.">
+          <p class="title"><strong>Set the <code class="option">default</code> attribute.</strong></p>
+          <p>
+            The <code class="option">default</code> attribute represents a default value for a column. Assign the same value to the
+            mapped property before saving a new instance of the mapped class.
+          </p>
+          <pre xmlns="" xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="XML"><!-- XML : generated by JHighlight v1.0 (http://jhighlight.dev.java.net) -->
+<span class="xml_tag_symbols">&lt;</span><span class="xml_tag_name">property</span><span class="xml_plain">&nbsp;</span><span class="xml_attribute_name">name</span><span class="xml_tag_symbols">=</span><span class="xml_attribute_value">&quot;credits&quot;</span><span class="xml_plain">&nbsp;</span><span class="xml_attribute_name">type</span><span class="xml_tag_symbols">=</span><span class="xml_attribute_value">&quot;integer&quot;</span><span class="xml_plain">&nbsp;</span><span class="xml_attribute_name">insert</span><span class="xml_tag_symbols">=</span><span class="xml_attribute_value">&quot;false&quot;</span><span class="xml_tag_symbols">&gt;</span><span class="xml_plain"></span><br />
+<span class="xml_plain">&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="xml_tag_symbols">&lt;</span><span class="xml_tag_name">column</span><span class="xml_plain">&nbsp;</span><span class="xml_attribute_name">name</span><span class="xml_tag_symbols">=</span><span class="xml_attribute_value">&quot;credits&quot;</span><span class="xml_plain">&nbsp;</span><span class="xml_attribute_name">default</span><span class="xml_tag_symbols">=</span><span class="xml_attribute_value">&quot;10&quot;</span><span class="xml_tag_symbols">/&gt;</span><span class="xml_plain"></span><br />
+<span class="xml_tag_symbols">&lt;/</span><span class="xml_tag_name">property</span><span class="xml_tag_symbols">&gt;</span><span class="xml_plain"></span><br />
+<span class="xml_tag_symbols">&lt;</span><span class="xml_tag_name">version</span><span class="xml_plain">&nbsp;</span><span class="xml_attribute_name">name</span><span class="xml_tag_symbols">=</span><span class="xml_attribute_value">&quot;version&quot;</span><span class="xml_plain">&nbsp;</span><span class="xml_attribute_name">type</span><span class="xml_tag_symbols">=</span><span class="xml_attribute_value">&quot;integer&quot;</span><span class="xml_plain">&nbsp;</span><span class="xml_attribute_name">insert</span><span class="xml_tag_symbols">=</span><span class="xml_attribute_value">&quot;false&quot;</span><span class="xml_tag_symbols">&gt;</span><span class="xml_plain"></span><br />
+<span class="xml_plain">&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="xml_tag_symbols">&lt;</span><span class="xml_tag_name">column</span><span class="xml_plain">&nbsp;</span><span class="xml_attribute_name">name</span><span class="xml_tag_symbols">=</span><span class="xml_attribute_value">&quot;version&quot;</span><span class="xml_plain">&nbsp;</span><span class="xml_attribute_name">default</span><span class="xml_tag_symbols">=</span><span class="xml_attribute_value">&quot;0&quot;</span><span class="xml_tag_symbols">/&gt;</span><span class="xml_plain"></span><br />
+<span class="xml_tag_symbols">&lt;/</span><span class="xml_tag_name">property</span><span class="xml_tag_symbols">&gt;</span><span class="xml_plain"></span><br />
+</pre>
+        </li><li class="step" title="Set the sql-type attribure.">
+          <p class="title"><strong>Set the <code class="option">sql-type</code> attribure.</strong></p>
+          <p>
+            Use the <code class="option">sql-type</code> attribute to override the default mapping of a Hibernate type to SQL
+            datatype.
+          </p>
+          <pre xmlns="" xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="XML"><!-- XML : generated by JHighlight v1.0 (http://jhighlight.dev.java.net) -->
+<span class="xml_tag_symbols">&lt;</span><span class="xml_tag_name">property</span><span class="xml_plain">&nbsp;</span><span class="xml_attribute_name">name</span><span class="xml_tag_symbols">=</span><span class="xml_attribute_value">&quot;balance&quot;</span><span class="xml_plain">&nbsp;</span><span class="xml_attribute_name">type</span><span class="xml_tag_symbols">=</span><span class="xml_attribute_value">&quot;float&quot;</span><span class="xml_tag_symbols">&gt;</span><span class="xml_plain"></span><br />
+<span class="xml_plain">&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="xml_tag_symbols">&lt;</span><span class="xml_tag_name">column</span><span class="xml_plain">&nbsp;</span><span class="xml_attribute_name">name</span><span class="xml_tag_symbols">=</span><span class="xml_attribute_value">&quot;balance&quot;</span><span class="xml_plain">&nbsp;</span><span class="xml_attribute_name">sql-type</span><span class="xml_tag_symbols">=</span><span class="xml_attribute_value">&quot;decimal(13,3)&quot;</span><span class="xml_tag_symbols">/&gt;</span><span class="xml_plain"></span><br />
+<span class="xml_tag_symbols">&lt;/</span><span class="xml_tag_name">property</span><span class="xml_tag_symbols">&gt;</span><span class="xml_plain"></span><br />
+</pre>
+        </li><li class="step" title="Set the check attribute.">
+          <p class="title"><strong>Set the <code class="option">check</code> attribute.</strong></p>
+          <p>
+            use the <code class="option">check</code> attribute to specify a <em class="wordasword">check</em> constraint.
+          </p>
+          <pre xmlns="" xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="XML"><!-- XML : generated by JHighlight v1.0 (http://jhighlight.dev.java.net) -->
+<span class="xml_tag_symbols">&lt;</span><span class="xml_tag_name">property</span><span class="xml_plain">&nbsp;</span><span class="xml_attribute_name">name</span><span class="xml_tag_symbols">=</span><span class="xml_attribute_value">&quot;foo&quot;</span><span class="xml_plain">&nbsp;</span><span class="xml_attribute_name">type</span><span class="xml_tag_symbols">=</span><span class="xml_attribute_value">&quot;integer&quot;</span><span class="xml_tag_symbols">&gt;</span><span class="xml_plain"></span><br />
+<span class="xml_plain">&nbsp;&nbsp;</span><span class="xml_tag_symbols">&lt;</span><span class="xml_tag_name">column</span><span class="xml_plain">&nbsp;</span><span class="xml_attribute_name">name</span><span class="xml_tag_symbols">=</span><span class="xml_attribute_value">&quot;foo&quot;</span><span class="xml_plain">&nbsp;</span><span class="xml_attribute_name">check</span><span class="xml_tag_symbols">=</span><span class="xml_attribute_value">&quot;foo&nbsp;</span><span class="xml_tag_symbols">&gt;</span><span class="xml_plain">&nbsp;10</span><span class="xml_attribute_value">&quot;/</span><span class="xml_tag_symbols">&gt;</span><span class="xml_plain"></span><br />
+<span class="xml_plain">&lt;/</span><span class="xml_attribute_name">property</span><span class="xml_tag_symbols">&gt;</span><span class="xml_plain"></span><br />
+<span class="xml_tag_symbols">&lt;</span><span class="xml_tag_name">class</span><span class="xml_plain">&nbsp;</span><span class="xml_attribute_name">name</span><span class="xml_tag_symbols">=</span><span class="xml_attribute_value">&quot;Foo&quot;</span><span class="xml_plain">&nbsp;</span><span class="xml_attribute_name">table</span><span class="xml_tag_symbols">=</span><span class="xml_attribute_value">&quot;foos&quot;</span><span class="xml_plain">&nbsp;</span><span class="xml_attribute_name">check</span><span class="xml_tag_symbols">=</span><span class="xml_attribute_value">&quot;bar&nbsp;</span><span class="xml_tag_symbols">&lt;</span><span class="xml_plain">&nbsp;100.0</span><span class="xml_attribute_value">&quot;</span><span class="xml_tag_symbols">&gt;</span><span class="xml_plain"></span><br />
+<span class="xml_plain">&nbsp;&nbsp;...</span><br />
+<span class="xml_plain">&nbsp;&nbsp;&lt;</span><span class="xml_attribute_name">property</span><span class="xml_plain">&nbsp;</span><span class="xml_attribute_name">name</span><span class="xml_tag_symbols">=</span><span class="xml_attribute_value">&quot;bar&quot;</span><span class="xml_plain">&nbsp;</span><span class="xml_attribute_name">type</span><span class="xml_tag_symbols">=</span><span class="xml_attribute_value">&quot;float&quot;</span><span class="xml_tag_symbols">/&gt;</span><span class="xml_plain"></span><br />
+<span class="xml_tag_symbols">&lt;/</span><span class="xml_tag_name">class</span><span class="xml_tag_symbols">&gt;</span><span class="xml_plain"></span><br />
+</pre>
+        </li><li class="step" title="Add &lt;comment&gt; elements to your schema.">
+          <p class="title"><strong>Add &lt;comment&gt; elements to your schema.</strong></p>
+          <p>
+            Use the &lt;comment&gt; element to specify comments for the generated schema.
+          </p>
+          <pre xmlns="" xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="XML"><!-- XML : generated by JHighlight v1.0 (http://jhighlight.dev.java.net) -->
+<span class="xml_tag_symbols">&lt;</span><span class="xml_tag_name">class</span><span class="xml_plain">&nbsp;</span><span class="xml_attribute_name">name</span><span class="xml_tag_symbols">=</span><span class="xml_attribute_value">&quot;Customer&quot;</span><span class="xml_plain">&nbsp;</span><span class="xml_attribute_name">table</span><span class="xml_tag_symbols">=</span><span class="xml_attribute_value">&quot;CurCust&quot;</span><span class="xml_tag_symbols">&gt;</span><span class="xml_plain"></span><br />
+<span class="xml_plain">&nbsp;&nbsp;</span><span class="xml_tag_symbols">&lt;</span><span class="xml_tag_name">comment</span><span class="xml_tag_symbols">&gt;</span><span class="xml_plain">Current&nbsp;customers&nbsp;only</span><span class="xml_tag_symbols">&lt;/</span><span class="xml_tag_name">comment</span><span class="xml_tag_symbols">&gt;</span><span class="xml_plain"></span><br />
+<span class="xml_plain">&nbsp;&nbsp;...</span><br />
+<span class="xml_tag_symbols">&lt;/</span><span class="xml_tag_name">class</span><span class="xml_tag_symbols">&gt;</span><span class="xml_plain"></span><br />
+</pre>
+        </li></ol></div>
+    </div>
+
+    <div class="section" title="1.4.2. Running the SchemaExport tool"><div class="titlepage"><div><div><h3 class="title"><a id="d5e470"/>1.4.2. Running the SchemaExport tool</h3></div></div></div>
+      
+      <p>
+        The SchemaExport tool writes a DDL script to standard output, executes the DDL statements, or both.
+      </p>
+      <div class="example"><a id="d5e473"/><p class="title"><strong>Example 1.7. SchemaExport syntax</strong></p><div class="example-contents">
+        
+        <pre class="screen">
+          java -cp hibernate_classpaths org.hibernate.tool.hbm2ddl.SchemaExport <em class="replaceable"><code>options</code></em> <em class="replaceable"><code>mapping_files</code></em> 
+        </pre>
+      </div></div><br class="example-break"/>
+      <div class="table"><a id="d5e478"/><p class="title"><strong>Table 1.4. SchemaExport Options</strong></p><div class="table-contents">
+        
+        <table summary="SchemaExport Options" border="1"><colgroup><col width="120px"/><col width="320px"/></colgroup><thead><tr><th>Option</th><th>Description</th></tr></thead><tbody><tr><td>--quiet</td><td>do not output the script to standard output</td></tr><tr><td>--drop</td><td>only drop the tables</td></tr><tr><td>--create</td><td>only create the tables</td></tr><tr><td>--text</td><td>do not export to the database</td></tr><tr><td><p>--output=<em class="replaceable"><code>my_schema.ddl</code></em></p></td><td>output the ddl script to a file</td></tr><tr><td><p>--naming=<em class="replaceable"><code>eg.MyNamingStrategy</code></em></p></td><td>select a NamingStrategy</td></tr><tr><td><p>--config=<em class="replaceable"><code>hibernate.cfg.xml</code></em></p></td><td>read Hibernate configuration from an XML file</td></tr><tr><td><p>--properties=<em class="replaceable"><code>hibernate.properties</code></em></p></td><td>read database properties from a file</td></tr><tr><td>--format</td><td>format the generated SQL nicely in the script</td></tr><tr><td><p>--delimiter=<em class="replaceable"><code>;</code></em></p></td><td>set an end-of-line delimiter for the script</td></tr></tbody></table>
+      </div></div><br class="table-break"/>
+      <div class="example"><a id="d5e528"/><p class="title"><strong>Example 1.8. Embedding SchemaExport into your application</strong></p><div class="example-contents">
+        
+        <pre xmlns="" xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="JAVA"><!-- <br/> --><span class="java_type">Configuration</span><!-- <br/> --><span class="java_plain">&nbsp;cfg&nbsp;</span><!-- <br/> --><span class="java_operator">=</span><!-- <br/> --><span class="java_plain">&nbsp;</span><!-- <br/> --><span class="java_separator">....;</span>
+<!--  --><br/><span class="java_keyword">new</span><span class="java_plain">&nbsp;</span><span class="java_type">SchemaExport</span><span class="java_separator">(</span><span class="java_plain">cfg</span><span class="java_separator">).</span><span class="java_plain">create</span><span class="java_separator">(</span><span class="java_literal">false</span><span class="java_separator">,</span><span class="java_plain">&nbsp;</span><span class="java_literal">true</span><span class="java_separator">);</span></pre>
+      </div></div><br class="example-break"/>
+    </div>
+  </div>
+</div><hr xmlns="" xmlns:d="http://docbook.org/ns/docbook"/><a xmlns="" xmlns:d="http://docbook.org/ns/docbook" href="legalnotice.html"/><ul xmlns:d="http://docbook.org/ns/docbook" class="docnav"><li class="previous"><a accesskey="p" href="pr01.html"><strong>Prev</strong>Preface</a></li><li class="up"><a accesskey="u" href="#"><strong>Up</strong></a></li><li class="home"><a accesskey="h" href="index.html"><strong>Home</strong></a></li><li class="next"><a accesskey="n" href="ch02.html"><strong>Next</strong>Chapter 2. Transactions and concurrency control</a></li></ul></body></html>

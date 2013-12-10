@@ -1,0 +1,1796 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml"><head><title>Chapter 11. HQL and JPQL</title><link rel="stylesheet" type="text/css" href="css/hibernate.css"/><meta name="generator" content="DocBook XSL Stylesheets V1.76.1"/><link rel="home" href="index.html" title="Hibernate Developer Guide"/><link rel="up" href="index.html" title="Hibernate Developer Guide"/><link rel="prev" href="ch10.html" title="Chapter 10. Mapping associations"/><link rel="next" href="ch12.html" title="Chapter 12. Criteria"/><meta xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" http-equiv="Content-Type" content="text/html; charset=UTF-8"/></head><body><p xmlns:d="http://docbook.org/ns/docbook" id="title"><a href="http://www.hibernate.org" class="site_href"><strong>Hibernate.org</strong></a><a href="http://hibernate.org/Documentation/DocumentationOverview" class="doc_href"><strong>Community Documentation</strong></a></p><ul xmlns:d="http://docbook.org/ns/docbook" class="docnav"><li class="previous"><a accesskey="p" href="ch10.html"><strong>Prev</strong></a></li><li class="next"><a accesskey="n" href="ch12.html"><strong>Next</strong></a></li></ul><div class="chapter" title="Chapter 11. HQL and JPQL"><div class="titlepage"><div><div><h2 class="title"><a id="d5e2575"/>Chapter 11. HQL and JPQL</h2></div></div></div><div class="toc"><p><strong>Table of Contents</strong></p><dl><dt><span class="section"><a href="ch11.html#d5e2580">11.1. Case Sensitivity</a></span></dt><dt><span class="section"><a href="ch11.html#d5e2592">11.2. Statement types</a></span></dt><dd><dl><dt><span class="section"><a href="ch11.html#d5e2608">11.2.1. Select statements</a></span></dt><dt><span class="section"><a href="ch11.html#d5e2621">11.2.2. Update statements</a></span></dt><dt><span class="section"><a href="ch11.html#d5e2656">11.2.3. Delete statements</a></span></dt><dt><span class="section"><a href="ch11.html#d5e2666">11.2.4. Insert statements</a></span></dt></dl></dd><dt><span class="section"><a href="ch11.html#ql-from-clause">11.3. The <code class="literal">FROM</code> clause</a></span></dt><dd><dl><dt><span class="section"><a href="ch11.html#d5e2703">11.3.1. Identification variables</a></span></dt><dt><span class="section"><a href="ch11.html#d5e2710">11.3.2. Root entity references</a></span></dt><dt><span class="section"><a href="ch11.html#d5e2734">11.3.3. Explicit joins</a></span></dt><dt><span class="section"><a href="ch11.html#d5e2777">11.3.4. Implicit joins (path expressions)</a></span></dt><dt><span class="section"><a href="ch11.html#ql-collection-valued-associations">11.3.5. Collection member references</a></span></dt><dt><span class="section"><a href="ch11.html#d5e2847">11.3.6. Polymorphism</a></span></dt></dl></dd><dt><span class="section"><a href="ch11.html#ql-expressions">11.4. Expressions</a></span></dt><dd><dl><dt><span class="section"><a href="ch11.html#d5e2866">11.4.1. Identification variable</a></span></dt><dt><span class="section"><a href="ch11.html#d5e2870">11.4.2. Path expressions</a></span></dt><dt><span class="section"><a href="ch11.html#d5e2874">11.4.3. Literals</a></span></dt><dt><span class="section"><a href="ch11.html#d5e2900">11.4.4. Parameters</a></span></dt><dt><span class="section"><a href="ch11.html#d5e2923">11.4.5. Arithmetic</a></span></dt><dt><span class="section"><a href="ch11.html#d5e2945">11.4.6. Concatenation (operation)</a></span></dt><dt><span class="section"><a href="ch11.html#d5e2956">11.4.7. Aggregate functions</a></span></dt><dt><span class="section"><a href="ch11.html#ql-exp-functions">11.4.8. Scalar functions</a></span></dt><dt><span class="section"><a href="ch11.html#ql-collection-expressions">11.4.9. Collection-related expressions</a></span></dt><dt><span class="section"><a href="ch11.html#ql-entity-type-exp">11.4.10. Entity type</a></span></dt><dt><span class="section"><a href="ch11.html#d5e3155">11.4.11. CASE expressions</a></span></dt></dl></dd><dt><span class="section"><a href="ch11.html#ql-select-clause">11.5. The <code class="literal">SELECT</code> clause</a></span></dt><dt><span class="section"><a href="ch11.html#ql-conditional-expressions">11.6. Predicates</a></span></dt><dd><dl><dt><span class="section"><a href="ch11.html#d5e3217">11.6.1. Relational comparisons</a></span></dt><dt><span class="section"><a href="ch11.html#d5e3232">11.6.2. Nullness predicate</a></span></dt><dt><span class="section"><a href="ch11.html#d5e3238">11.6.3. Like predicate</a></span></dt><dt><span class="section"><a href="ch11.html#d5e3260">11.6.4. Between predicate</a></span></dt><dt><span class="section"><a href="ch11.html#d5e3266">11.6.5. In predicate</a></span></dt><dt><span class="section"><a href="ch11.html#d5e3291">11.6.6. Exists predicate</a></span></dt><dt><span class="section"><a href="ch11.html#d5e3294">11.6.7. Empty collection predicate</a></span></dt><dt><span class="section"><a href="ch11.html#d5e3301">11.6.8. Member-of collection predicate</a></span></dt><dt><span class="section"><a href="ch11.html#d5e3308">11.6.9. NOT predicate operator</a></span></dt><dt><span class="section"><a href="ch11.html#d5e3312">11.6.10. AND predicate operator</a></span></dt><dt><span class="section"><a href="ch11.html#d5e3316">11.6.11. OR predicate operator</a></span></dt></dl></dd><dt><span class="section"><a href="ch11.html#ql-where-clause">11.7. The <code class="literal">WHERE</code> clause</a></span></dt><dt><span class="section"><a href="ch11.html#ql-grouping">11.8. Grouping</a></span></dt><dt><span class="section"><a href="ch11.html#ql-ordering">11.9. Ordering</a></span></dt><dt><span class="section"><a href="ch11.html#ql-api">11.10. Query API</a></span></dt></dl></div>
+
+    
+
+    <p>
+        The Hibernate Query Language (HQL) and Java Persistence Query Language (JPQL) are both object model
+        focused query languages similar in nature to SQL.  JPQL is a heavily-inspired-by subset of HQL.  A JPQL
+        query is always a valid HQL query, the reverse is not true however.
+    </p>
+
+    <p>
+        Both HQL and JPQL are non-type-safe ways to perform query operations.  Criteria queries offer a
+        type-safe approach to querying.  See <a class="xref" href="">???</a> for more information.
+    </p>
+
+    <div class="section" title="11.1. Case Sensitivity"><div class="titlepage"><div><div><h2 class="title"><a id="d5e2580"/>11.1. Case Sensitivity</h2></div></div></div>
+        
+
+        <p>
+            With the exception of names of Java classes and properties, queries are case-insensitive.
+            So <code class="literal">SeLeCT</code> is the same as <code class="literal">sELEct</code> is the same as
+            <code class="literal">SELECT</code>, but
+            <code class="literal">org.hibernate.eg.FOO</code> and <code class="literal">org.hibernate.eg.Foo</code> are different, as are
+            <code class="literal">foo.barSet</code> and <code class="literal">foo.BARSET</code>.
+        </p>
+
+        <div xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="note" style="margin-left: 0.5in; margin-right: 0.5in;"><h2>Note</h2>
+            <p>
+                This documentation uses lowercase keywords as convention in examples.
+            </p>
+        </div>
+    </div>
+
+    <div class="section" title="11.2. Statement types"><div class="titlepage"><div><div><h2 class="title"><a id="d5e2592"/>11.2. Statement types</h2></div></div></div>
+        
+        <p>
+            Both HQL and JPQL allow <code class="literal">SELECT</code>, <code class="literal">UPDATE</code> and <code class="literal">DELETE</code>
+            statements to be performed.  HQL additionally allows <code class="literal">INSERT</code> statements, in a form
+            similar to a SQL <code class="literal">INSERT-SELECT</code>.
+        </p>
+
+        <div xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="important" style="margin-left: 0.5in; margin-right: 0.5in;"><h2>Important</h2>
+            <p>
+                Care should be taken as to when a <code class="literal">UPDATE</code> or <code class="literal">DELETE</code> statement is
+                executed.
+            </p>
+            <div class="blockquote"><table border="0" width="100%" cellspacing="0" cellpadding="0" class="blockquote" summary="Block quote"><tr><td width="10%" valign="top"> </td><td width="80%" valign="top"><p>
+                    Caution should be used when executing bulk update or delete operations because they may result in
+                    inconsistencies between the database and the entities in the active persistence context. In general, bulk
+                    update and delete operations should only be performed within a transaction in a new persistence con-
+                    text or before fetching or accessing entities whose state might be affected by such operations.
+                </p></td><td width="10%" valign="top"> </td></tr><tr><td width="10%" valign="top"> </td><td colspan="2" align="right" valign="top">--<span class="attribution"><em class="citetitle">Section 4.10 of the JPA 2.0 Specification</em></span></td></tr></table></div>
+        </div>
+
+        <div class="section" title="11.2.1. Select statements"><div class="titlepage"><div><div><h3 class="title"><a id="d5e2608"/>11.2.1. Select statements</h3></div></div></div>
+            
+            <p>
+                The BNF for <code class="literal">SELECT</code> statements in HQL is:
+            </p>
+            <pre xmlns="" xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="">select_statement :: =
+        [select_clause]
+        from_clause
+        [where_clause]
+        [groupby_clause]
+        [having_clause]
+        [orderby_clause]</pre>
+            <p>
+                The simplest possible HQL <code class="literal">SELECT</code> statement is of the form:
+            </p>
+            <pre xmlns="" xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="">from com.acme.Cat</pre>
+            <p>
+                The select statement in JPQL is exactly the same as for HQL except that JPQL requires a
+                <code class="literal">select_clause</code>, whereas HQL does not.  Even though HQL does not require the presence
+                of a <code class="literal">select_clause</code>, it is generally good practice to include one.  For simple queries
+                the intent is clear and so the intended result of the <code class="literal">select_clause</code> is east to
+                infer.  But on more complex queries that is not always the case.  It is usually better to explicitly
+                specify intent.  Hibernate does not actually enforce that a <code class="literal">select_clause</code> be present
+                even when parsing JPQL queries, however applications interested in JPA portability should take heed of
+                this.
+            </p>
+        </div>
+
+        <div class="section" title="11.2.2. Update statements"><div class="titlepage"><div><div><h3 class="title"><a id="d5e2621"/>11.2.2. Update statements</h3></div></div></div>
+            
+            <p>
+                The BNF for <code class="literal">UPDATE</code> statements is the same in HQL and JPQL:
+            </p>
+            <pre xmlns="" xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="">update_statement ::= update_clause [where_clause]
+
+update_clause ::= UPDATE entity_name [[AS] identification_variable]
+        SET update_item {, update_item}*
+
+update_item ::= [identification_variable.]{state_field | single_valued_object_field}
+        = new_value
+
+new_value ::= scalar_expression |
+                simple_entity_expression |
+                NULL
+</pre>
+            <p>
+                <code class="literal">UPDATE</code> statements, by default, do not effect the <code class="literal">version</code>
+                or the <code class="literal">timestamp</code> attribute values for the affected entities. However,
+                you can force Hibernate to set the <code class="literal">version</code> or <code class="literal">timestamp</code> attribute
+                values through the use of a <code class="literal">versioned update</code>.  This is achieved by adding the
+                <code class="literal">VERSIONED</code> keyword after the <code class="literal">UPDATE</code> keyword.  Note, however, that
+                this is a Hibernate specific feature and will not work in a portable manner.  Custom version types,
+                <code class="interfacename">org.hibernate.usertype.UserVersionType</code>, are not allowed in conjunction
+                with a <code class="literal">update versioned</code> statement.
+            </p>
+            <p>
+                An <code class="literal">UPDATE</code> statement is executed using the <code class="methodname">executeUpdate</code>
+                of either <code class="interfacename">org.hibernate.Query</code> or
+                <code class="interfacename">javax.persistence.Query</code>.  The method is named for those familiar with
+                the JDBC <code class="methodname">executeUpdate</code> on <code class="interfacename">java.sql.PreparedStatement</code>.
+                The <code class="literal">int</code> value returned by the <code class="methodname">executeUpdate()</code> method
+                indicates the number of entities effected by the operation.  This may or may not correlate to the number
+                of rows effected in the database.  An HQL bulk operation might result in multiple actual SQL statements
+                being executed (for joined-subclass, for example).  The returned number indicates the number of actual
+                entities affected by the statement.  Using a JOINED inheritance hierarchy, a delete against one of the
+                subclasses may actually result in deletes against not just the table to which that subclass is mapped,
+                but also the "root" table and tables <span class="quote">“<span class="quote">in between</span>”</span>
+            </p>
+            <div class="example"><a id="d5e2647"/><p class="title"><strong>Example 11.1. Example UPDATE query statements</strong></p><div class="example-contents">
+                
+                <pre xmlns="" xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="">String hqlUpdate =
+		"update Customer c " +
+		"set c.name = :newName " +
+		"where c.name = :oldName";
+int updatedEntities = session.createQuery( hqlUpdate )
+        .setString( "newName", newName )
+        .setString( "oldName", oldName )
+        .executeUpdate();
+</pre>
+                <pre xmlns="" xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="">String jpqlUpdate =
+		"update Customer c " +
+		"set c.name = :newName " +
+		"where c.name = :oldName";
+int updatedEntities = entityManager.createQuery( jpqlUpdate )
+        .setString( "newName", newName )
+        .setString( "oldName", oldName )
+        .executeUpdate();
+</pre>
+                <pre xmlns="" xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="">String hqlVersionedUpdate =
+		"update versioned Customer c " +
+		"set c.name = :newName " +
+		"where c.name = :oldName";
+int updatedEntities = s.createQuery( hqlUpdate )
+        .setString( "newName", newName )
+        .setString( "oldName", oldName )
+        .executeUpdate();</pre>
+            </div></div><br class="example-break"/>
+        </div>
+
+        <div xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="important" style="margin-left: 0.5in; margin-right: 0.5in;"><h2>Important</h2>
+            <p>
+                Neither <code class="literal">UPDATE</code> nor <code class="literal">DELETE</code> statements are allowed to
+                result in what is called an implicit join.  Their form already disallows explicit joins.
+            </p>
+        </div>
+
+        <div class="section" title="11.2.3. Delete statements"><div class="titlepage"><div><div><h3 class="title"><a id="d5e2656"/>11.2.3. Delete statements</h3></div></div></div>
+            
+            <p>
+                The BNF for <code class="literal">DELETE</code> statements is the same in HQL and JPQL:
+            </p>
+            <pre xmlns="" xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="">delete_statement ::= delete_clause [where_clause]
+
+delete_clause ::= DELETE FROM entity_name [[AS] identification_variable]
+</pre>
+            <p>
+                A <code class="literal">DELETE</code> statement is also executed using the <code class="methodname">executeUpdate</code>
+                method of either <code class="interfacename">org.hibernate.Query</code> or
+                <code class="interfacename">javax.persistence.Query</code>.
+            </p>
+        </div>
+
+        <div class="section" title="11.2.4. Insert statements"><div class="titlepage"><div><div><h3 class="title"><a id="d5e2666"/>11.2.4. Insert statements</h3></div></div></div>
+            
+            <p>
+                HQL adds the ability to define <code class="literal">INSERT</code> statements as well.  There is no JPQL
+                equivalent to this.  The BNF for an HQL <code class="literal">INSERT</code> statement is:
+            </p>
+            <pre xmlns="" xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="">insert_statement ::= insert_clause select_statement
+
+insert_clause ::= INSERT INTO entity_name (attribute_list)
+
+attribute_list ::= state_field[, state_field ]*</pre>
+            <p>
+                The <code class="literal">attribute_list</code> is analogous to the <code class="literal">column specification</code> in the
+                SQL <code class="literal">INSERT</code> statement.  For entities involved in mapped inheritance, only attributes
+                directly defined on the named entity can be used in the <code class="literal">attribute_list</code>.  Superclass
+                properties are not allowed and subclass properties do not make sense.  In other words,
+                <code class="literal">INSERT</code> statements are inherently non-polymorphic.
+            </p>
+            <p>
+                <code class="literal">select_statement</code> can be any valid HQL select query, with the caveat that the return
+                types must match the types expected by the insert.  Currently, this is checked during query
+                compilation rather than allowing the check to relegate to the database.  This may cause problems
+                between Hibernate Types which are <span class="emphasis"><em>equivalent</em></span> as opposed to
+                <span class="emphasis"><em>equal</em></span>.  For example, this might cause lead to issues with mismatches between an
+                attribute mapped as a <code class="classname">org.hibernate.type.DateType</code> and an attribute defined as
+                a <code class="classname">org.hibernate.type.TimestampType</code>, even though the database might not make a
+                distinction or might be able to handle the conversion.
+            </p>
+            <p>
+                For the id attribute, the insert statement gives you two options.  You can either explicitly specify
+                the id property in the <code class="literal">attribute_list</code>, in which case its value is taken from the
+                corresponding select expression, or omit it from the <code class="literal">attribute_list</code> in which case a
+                generated value is used.  This latter option is only available when using id generators that operate
+                <span class="quote">“<span class="quote">in the database</span>”</span>; attempting to use this option with any <span class="quote">“<span class="quote">in memory</span>”</span> type
+                generators will cause an exception during parsing.
+            </p>
+            <p>
+                For optimistic locking attributes, the insert statement again gives you two options.  You can either
+                specify the attribute in the <code class="literal">attribute_list</code> in which case its value is taken from
+                the corresponding select expressions, or omit it from the <code class="literal">attribute_list</code> in which
+                case the <code class="literal">seed value</code> defined by the corresponding
+                <code class="interfacename">org.hibernate.type.VersionType</code> is used.
+            </p>
+            <div class="example"><a id="d5e2694"/><p class="title"><strong>Example 11.2. Example INSERT query statements</strong></p><div class="example-contents">
+                
+                <pre xmlns="" xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="">String hqlInsert = "insert into DelinquentAccount (id, name) select c.id, c.name from Customer c where ...";
+int createdEntities = s.createQuery( hqlInsert ).executeUpdate();</pre>
+            </div></div><br class="example-break"/>
+        </div>
+    </div>
+
+    <div class="section" title="11.3. The FROM clause"><div class="titlepage"><div><div><h2 class="title"><a id="ql-from-clause"/>11.3. The <code class="literal">FROM</code> clause</h2></div></div></div>
+        
+        <p>
+            The <code class="literal">FROM</code> clause is responsible defining the scope of object model types available to
+            the rest of the query.  It also is responsible for defining all the <span class="quote">“<span class="quote">identification variables</span>”</span>
+            available to the rest of the query.
+        </p>
+        <div class="section" title="11.3.1. Identification variables"><div class="titlepage"><div><div><h3 class="title"><a id="d5e2703"/>11.3.1. Identification variables</h3></div></div></div>
+            
+            <p>
+                Identification variables are often referred to as aliases.  References to object model classes
+                in the FROM clause can be associated with an identification variable that can then be used to
+                refer to that type thoughout the rest of the query.
+            </p>
+            <p>
+                In most cases declaring an identification variable is optional, though it is usually good practice to
+                declare them.
+            </p>
+            <p>
+                An identification variable must follow the rules for Java identifier validity.
+            </p>
+            <p>
+                According to JPQL, identification variables must be treated as case insensitive.  Good practice
+                says you should use the same case throughout a query to refer to a given identification variable.  In
+                other words, JPQL says they <span class="emphasis"><em>can be</em></span> case insensitive and so Hibernate must
+                be able to treat them as such, but this does not make it good practice.
+            </p>
+        </div>
+        <div class="section" title="11.3.2. Root entity references"><div class="titlepage"><div><div><h3 class="title"><a id="d5e2710"/>11.3.2. Root entity references</h3></div></div></div>
+            
+            <p>
+                A root entity reference, or what JPA calls a <code class="literal">range variable declaration</code>, is
+                specifically a reference to a mapped entity type from the application.  It cannot name component/
+                embeddable types.  And associations, including collections, are handled in a different manner
+                discussed later.
+            </p>
+            <p>
+                The BNF for a root entity reference is:
+            </p>
+            <pre xmlns="" xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="">root_entity_reference ::= entity_name [AS] identification_variable</pre>
+            <div class="example"><a id="ql-simple-query-ex"/><p class="title"><strong>Example 11.3. Simple query example</strong></p><div class="example-contents">
+                
+                <pre xmlns="" xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="">select c from com.acme.Cat c</pre>
+            </div></div><br class="example-break"/>
+            <p>
+                We see that the query is defining a root entity reference to the <code class="classname">com.acme.Cat</code>
+                object model type.  Additionally, it declares an alias of <code class="literal">c</code> to that
+                <code class="classname">com.acme.Cat</code> reference; this is the identification variable.
+            </p>
+            <p>
+                Usually the root entity reference just names the <code class="literal">entity name</code> rather than the
+                entity class FQN.  By default the entity name is the unqualified entity class name,
+                here <code class="literal">Cat</code>
+            </p>
+            <div class="example"><a id="d5e2726"/><p class="title"><strong>Example 11.4. Simple query using entity name for root entity reference</strong></p><div class="example-contents">
+                
+                <pre xmlns="" xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="">select c from Cat c</pre>
+            </div></div><br class="example-break"/>
+            <p>
+                Multiple root entity references can also be specified.  Even naming the same entity!
+            </p>
+            <div class="example"><a id="d5e2730"/><p class="title"><strong>Example 11.5. Simple query using multiple root entity references</strong></p><div class="example-contents">
+                
+                <pre xmlns="" xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="">// build a product between customers and active mailing campaigns so we can spam!
+select distinct cust, camp
+from Customer cust, Campaign camp
+where camp.type = 'mail'
+  and current_timestamp() between camp.activeRange.start and camp.activeRange.end</pre>
+                <pre xmlns="" xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="">// retrieve all customers with headquarters in the same state as Acme's headquarters
+select distinct c1
+from Customer c1, Customer c2
+where c1.address.state = c2.address.state
+  and c2.name = 'Acme'</pre>
+            </div></div><br class="example-break"/>
+        </div>
+        <div class="section" title="11.3.3. Explicit joins"><div class="titlepage"><div><div><h3 class="title"><a id="d5e2734"/>11.3.3. Explicit joins</h3></div></div></div>
+            
+            <p>
+                The <code class="literal">FROM</code> clause can also contain explicit relationship joins using the
+                <code class="literal">join</code> keyword.  These joins can be either <code class="literal">inner</code>
+                or <code class="literal">left outer</code> style joins.
+            </p>
+            <div class="example"><a id="d5e2741"/><p class="title"><strong>Example 11.6. Explicit inner join examples</strong></p><div class="example-contents">
+                
+                <pre xmlns="" xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="">select c
+from Customer c
+    join c.chiefExecutive ceo
+where ceo.age &lt; 25
+
+// same query but specifying join type as 'inner' explicitly
+select c
+from Customer c
+    inner join c.chiefExecutive ceo
+where ceo.age &lt; 25
+</pre>
+            </div></div><br class="example-break"/>
+            <div class="example"><a id="d5e2744"/><p class="title"><strong>Example 11.7. Explicit left (outer) join examples</strong></p><div class="example-contents">
+                
+                <pre xmlns="" xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="">// get customers who have orders worth more than $5000
+// or who are in "preferred" status
+select distinct c
+from Customer c
+    left join c.orders o
+where o.value &gt; 5000.00
+  or c.status = 'preferred'
+
+// functionally the same query but using the
+// 'left outer' phrase
+select distinct c
+from Customer c
+    left outer join c.orders o
+where o.value &gt; 5000.00
+  or c.status = 'preferred'
+</pre>
+            </div></div><br class="example-break"/>
+            <p>
+                An important use case for explicit joins is to define <code class="literal">FETCH JOINS</code> which override
+                the laziness of the joined association.  As an example, given an entity named <code class="classname">Customer</code>
+                with a collection-valued association named <code class="literal">orders</code>
+            </p>
+            <div class="example"><a id="d5e2751"/><p class="title"><strong>Example 11.8. Fetch join example</strong></p><div class="example-contents">
+                
+                <pre xmlns="" xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="">select c
+from Customer c
+    left join fetch c.orders o</pre>
+            </div></div><br class="example-break"/>
+            <p>
+                As you can see from the example, a fetch join is specified by injecting the keyword <code class="literal">fetch</code>
+                after the keyword <code class="literal">join</code>.  In the example, we used a left outer join because we want
+                to return customers who have no orders also.  Inner joins can also be fetched.  But inner joins still
+                filter.  In the example, using an inner join instead would have resulted in customers without any orders
+                being filtered out of the result.
+            </p>
+            <div xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="important" style="margin-left: 0.5in; margin-right: 0.5in;"><h2>Important</h2>
+                <p>
+                    Fetch joins are not valid in sub-queries.
+                </p>
+                <p>
+                    Care should be taken when fetch joining a collection-valued association which is in any way further
+                    restricted; the fetched collection will be restricted too!  For this reason it is usually considered
+                    best practice to not assign an identification variable to fetched joins except for the purpose
+                    of specifying nested fetch joins.
+                </p>
+                <p>
+                    Fetch joins should not be used in paged queries (aka, <code class="methodname">setFirstResult</code>/
+                    <code class="methodname">setMaxResults</code>).  Nor should they be used with the HQL
+                    <code class="methodname">scroll</code> or <code class="methodname">iterate</code> features.
+                </p>
+            </div>
+            <p>
+                HQL also defines a <code class="literal">WITH</code> clause to qualify the join conditions.  Again, this is
+                specific to HQL; JPQL does not define this feature.
+            </p>
+            <div class="example"><a id="d5e2767"/><p class="title"><strong>Example 11.9. with-clause join example</strong></p><div class="example-contents">
+                
+                <pre xmlns="" xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="">select distinct c
+from Customer c
+    left join c.orders o
+        with o.value &gt; 5000.00</pre>
+            </div></div><br class="example-break"/>
+            <p>
+                The important distinction is that in the generated SQL the conditions of the
+                <code class="literal">with clause</code> are made part of the <code class="literal">on clause</code> in the generated SQL
+                as opposed to the other queries in this section where the HQL/JPQL conditions are made part of the
+                <code class="literal">where clause</code> in the generated SQL.  The distinction in this specific example is
+                probably not that significant.  The <code class="literal">with clause</code> is sometimes necessary in more
+                complicated queries.
+            </p>
+            <p>
+                Explicit joins may reference association or component/embedded attributes.  For further information
+                about collection-valued association references, see <a class="xref" href="ch11.html#ql-collection-valued-associations" title="11.3.5. Collection member references">Section 11.3.5, “Collection member references”</a>.
+                In the case of component/embedded attributes, the join is simply logical and does not correlate to a
+                physical (SQL) join.
+            </p>
+        </div>
+        <div class="section" title="11.3.4. Implicit joins (path expressions)"><div class="titlepage"><div><div><h3 class="title"><a id="d5e2777"/>11.3.4. Implicit joins (path expressions)</h3></div></div></div>
+            
+            <p>
+                Another means of adding to the scope of object model types available to the query is through the
+                use of implicit joins, or path expressions.
+            </p>
+            <div class="example"><a id="d5e2780"/><p class="title"><strong>Example 11.10. Simple implicit join example</strong></p><div class="example-contents">
+                
+                <pre xmlns="" xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="">select c
+from Customer c
+where c.chiefExecutive.age &lt; 25
+
+// same as
+select c
+from Customer c
+    inner join c.chiefExecutive ceo
+where ceo.age &lt; 25
+</pre>
+            </div></div><br class="example-break"/>
+            <p>
+                An implicit join always starts from an <code class="literal">identification variable</code>, followed by
+                the navigation operator (.), followed by an attribute for the object model type referenced by the
+                initial <code class="literal">identification variable</code>.  In the example, the initial
+                <code class="literal">identification variable</code> is <code class="literal">c</code> which refers to the
+                <code class="classname">Customer</code> entity.  The <code class="literal">c.chiefExecutive</code> reference then refers
+                to the <code class="methodname">chiefExecutive</code> attribute of the <code class="classname">Customer</code> entity.
+                <code class="methodname">chiefExecutive</code> is an association type so we further navigate to its
+                <code class="methodname">age</code> attribute.
+            </p>
+            <div xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="important" style="margin-left: 0.5in; margin-right: 0.5in;"><h2>Important</h2>
+                <p>
+                    If the attribute represents an entity association (non-collection) or a component/embedded, that
+                    reference can be further navigated.  Basic values and collection-valued associations cannot be
+                    further navigated.
+                </p>
+            </div>
+            <p>
+                As shown in the example, implicit joins can appear outside the <code class="literal">FROM clause</code>.  However,
+                they affect the <code class="literal">FROM clause</code>.  Implicit joins are always treated as inner joins.
+                Multiple references to the same implicit join always refer to the same logical and physical (SQL) join.
+            </p>
+            <div class="example"><a id="d5e2799"/><p class="title"><strong>Example 11.11. Reused implicit join</strong></p><div class="example-contents">
+                
+                <pre xmlns="" xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="">select c
+from Customer c
+where c.chiefExecutive.age &lt; 25
+   and c.chiefExecutive.address.state = 'TX'
+
+// same as
+select c
+from Customer c
+    inner join c.chiefExecutive ceo
+where ceo.age &lt; 25
+  and ceo.address.state = 'TX'
+
+// same as
+select c
+from Customer c
+    inner join c.chiefExecutive ceo
+    inner join ceo.address a
+where ceo.age &lt; 25
+  and a.state = 'TX'
+</pre>
+            </div></div><br class="example-break"/>
+            <p>
+                Just as with explicit joins, implicit joins may reference association or component/embedded attributes.
+                For further information about collection-valued association references, see
+                <a class="xref" href="ch11.html#ql-collection-valued-associations" title="11.3.5. Collection member references">Section 11.3.5, “Collection member references”</a>.  In the case of component/embedded attributes,
+                the join is simply logical and does not correlate to a physical (SQL) join.  Unlike explicit joins,
+                however, implicit joins may also reference basic state fields as long as the path expression ends
+                there.
+            </p>
+        </div>
+        <div class="section" title="11.3.5. Collection member references"><div class="titlepage"><div><div><h3 class="title"><a id="ql-collection-valued-associations"/>11.3.5. Collection member references</h3></div></div></div>
+            
+            <p>
+                References to collection-valued associations actually refer to the <span class="emphasis"><em>values</em></span> of
+                that collection.
+            </p>
+            <div class="example"><a id="d5e2808"/><p class="title"><strong>Example 11.12. Collection references example</strong></p><div class="example-contents">
+                
+                <pre xmlns="" xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="">select c
+from Customer c
+    join c.orders o
+    join o.lineItems l
+    join l.product p
+where o.status = 'pending'
+  and p.status = 'backorder'
+
+// alternate syntax
+select c
+from Customer c,
+    in(c.orders) o,
+    in(o.lineItems) l
+    join l.product p
+where o.status = 'pending'
+  and p.status = 'backorder'</pre>
+            </div></div><br class="example-break"/>
+            <p>
+                In the example, the identification variable <code class="literal">o</code> actually refers to the object model
+                type <code class="classname">Order</code> which is the type of the elements of the
+                <code class="methodname">Customer#orders</code> association.
+            </p>
+            <p>
+                The example also shows the alternate syntax for specifying collection association joins using the
+                <code class="literal">IN</code> syntax.  Both forms are equivalent.  Which form an application chooses to use is
+                simply a matter of taste.
+            </p>
+            <div class="section" title="11.3.5.1. Special case - qualified path expressions"><div class="titlepage"><div><div><h4 class="title"><a id="ql-collection-qualification"/>11.3.5.1. Special case - qualified path expressions</h4></div></div></div>
+                
+                <p>
+                    We said earlier that collection-valued associations actually refer to the <span class="emphasis"><em>values</em></span>
+                    of that collection.  Based on the type of collection, there are also available a set of
+                    explicit qualification expressions.
+                </p>
+                <div class="example"><a id="d5e2821"/><p class="title"><strong>Example 11.13. Qualified collection references example</strong></p><div class="example-contents">
+                    
+                    <pre xmlns="" xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="">// Product.images is a Map&lt;String,String&gt; : key = a name, value = file path
+
+// select all the image file paths (the map value) for Product#123
+select i
+from Product p
+    join p.images i
+where p.id = 123
+
+// same as above
+select value(i)
+from Product p
+    join p.images i
+where p.id = 123
+
+// select all the image names (the map key) for Product#123
+select key(i)
+from Product p
+    join p.images i
+where p.id = 123
+
+// select all the image names and file paths (the 'Map.Entry') for Product#123
+select entry(i)
+from Product p
+    join p.images i
+where p.id = 123
+
+// total the value of the initial line items for all orders for a customer
+select sum( li.amount )
+from Customer c
+        join c.orders o
+        join o.lineItems li
+where c.id = 123
+  and index(li) = 1</pre>
+                </div></div><br class="example-break"/>
+                <div class="variablelist"><dl><dt><span class="term">VALUE</span></dt><dd>
+                            <p>
+                                Refers to the collection value.  Same as not specifying a qualifier.  Useful to
+                                explicitly show intent.  Valid for any type of collection-valued reference.
+                            </p>
+                        </dd><dt><span class="term">INDEX</span></dt><dd>
+                            <p>
+                                According to HQL rules, this is valid for both Maps and Lists which specify a
+                                <code class="interfacename">javax.persistence.OrderColumn</code> annotation to refer to
+                                the Map key or the List position (aka the OrderColumn value).  JPQL however, reserves
+                                this for use in the List case and adds <code class="literal">KEY</code> for the MAP case.
+                                Applications interested in JPA provider portability should be aware of this
+                                distinction.
+                            </p>
+                        </dd><dt><span class="term">KEY</span></dt><dd>
+                            <p>
+                                Valid only for Maps.  Refers to the map's key.  If the key is itself an entity,
+                                can be further navigated.
+                            </p>
+                        </dd><dt><span class="term">ENTRY</span></dt><dd>
+                            <p>
+                                Only valid only for Maps.  Refers to the Map's logical
+                                <code class="interfacename">java.util.Map.Entry</code> tuple (the combination  of its key
+                                and value).  <code class="literal">ENTRY</code> is only valid as a terminal path and only valid
+                                in the select clause.
+                            </p>
+                        </dd></dl></div>
+                <p>
+                    See <a class="xref" href="ch11.html#ql-collection-expressions" title="11.4.9. Collection-related expressions">Section 11.4.9, “Collection-related expressions”</a> for additional details on collection related
+                    expressions.
+                </p>
+            </div>
+        </div>
+        <div class="section" title="11.3.6. Polymorphism"><div class="titlepage"><div><div><h3 class="title"><a id="d5e2847"/>11.3.6. Polymorphism</h3></div></div></div>
+            
+            <p>
+                HQL and JPQL queries are inherently polymorphic.
+            </p>
+            <pre xmlns="" xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="">select p from Payment p</pre>
+            <p>
+                This query names the <code class="classname">Payment</code> entity explicitly.  However, all subclasses of
+                <code class="classname">Payment</code> are also available to the query.  So if the
+                <code class="classname">CreditCardPayment</code> entity and <code class="classname">WireTransferPayment</code> entity
+                each extend from <code class="classname">Payment</code> all three types would be available to the query.  And
+                the query would return instances of all three.
+            </p>
+            <div xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="note" style="margin-left: 0.5in; margin-right: 0.5in;"><h2>The logical extreme</h2>
+                
+                <p>
+                    The HQL query <code class="literal">from java.lang.Object</code> is totally valid!  It returns every
+                    object of every type defined in your application. 
+                </p>
+            </div>
+            <p>
+                This can be altered by using either the
+                <code class="interfacename">org.hibernate.annotations.Polymorphism</code> annotation (global, and
+                Hibernate-specific) or limiting them using in the query itself using an entity type expression.
+            </p>
+        </div>
+    </div>
+
+    <div class="section" title="11.4. Expressions"><div class="titlepage"><div><div><h2 class="title"><a id="ql-expressions"/>11.4. Expressions</h2></div></div></div>
+        
+
+        <p>
+            Essentially expressions are references that resolve to basic or tuple values.
+        </p>
+
+        <div class="section" title="11.4.1. Identification variable"><div class="titlepage"><div><div><h3 class="title"><a id="d5e2866"/>11.4.1. Identification variable</h3></div></div></div>
+            
+            <p>
+                See <a class="xref" href="ch11.html#ql-from-clause" title="11.3. The FROM clause">Section 11.3, “The <code class="literal">FROM</code> clause”</a>.
+            </p>
+        </div>
+
+        <div class="section" title="11.4.2. Path expressions"><div class="titlepage"><div><div><h3 class="title"><a id="d5e2870"/>11.4.2. Path expressions</h3></div></div></div>
+            
+            <p>
+                Again, see <a class="xref" href="ch11.html#ql-from-clause" title="11.3. The FROM clause">Section 11.3, “The <code class="literal">FROM</code> clause”</a>.
+            </p>
+        </div>
+
+        <div class="section" title="11.4.3. Literals"><div class="titlepage"><div><div><h3 class="title"><a id="d5e2874"/>11.4.3. Literals</h3></div></div></div>
+            
+            <p>
+                String literals are enclosed in single-quotes.  To escape a single-quote within a string literal, use
+                double single-quotes.
+            </p>
+            <div class="example"><a id="d5e2877"/><p class="title"><strong>Example 11.14. String literal examples</strong></p><div class="example-contents">
+                
+                <pre xmlns="" xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="">select c
+from Customer c
+where c.name = 'Acme'
+
+select c
+from Customer c
+where c.name = 'Acme''s Pretzel Logic'
+
+</pre>
+            </div></div><br class="example-break"/>
+
+            <p>
+                Numeric literals are allowed in a few different forms.
+            </p>
+            <div class="example"><a id="d5e2881"/><p class="title"><strong>Example 11.15. Numeric literal examples</strong></p><div class="example-contents">
+                
+                <pre xmlns="" xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="">// simple integer literal
+select o
+from Order o
+where o.referenceNumber = 123
+
+// simple integer literal, typed as a long
+select o
+from Order o
+where o.referenceNumber = 123L
+
+// decimal notation
+select o
+from Order o
+where o.total &gt; 5000.00
+
+// decimal notation, typed as a float
+select o
+from Order o
+where o.total &gt; 5000.00F
+
+// scientific notation
+select o
+from Order o
+where o.total &gt; 5e+3
+
+// scientific notation, typed as a float
+select o
+from Order o
+where o.total &gt; 5e+3F</pre>
+            </div></div><br class="example-break"/>
+            <p>
+                In the scientific notation form, the <code class="literal">E</code> is case insensitive.
+            </p>
+            <p>
+                Specific typing can be achieved through the use of the same suffix approach specified by Java.  So,
+                <code class="literal">L</code> denotes a long; <code class="literal">D</code> denotes a double; <code class="literal">F</code>
+                denotes a float.  The actual suffix is case insensitive.
+            </p>
+
+            <p>
+                The boolean literals are <code class="literal">TRUE</code> and <code class="literal">FALSE</code>, again case-insensitive.
+            </p>
+
+            <p>
+                Enums can even be referenced as literals.  The fully-qualified enum class name must be used.  HQL
+                can also handle constants in the same manner, though JPQL does not define that as supported.
+            </p>
+
+            <p>
+                Entity names can also be used as literal.  See <a class="xref" href="ch11.html#ql-entity-type-exp" title="11.4.10. Entity type">Section 11.4.10, “Entity type”</a>.
+            </p>
+
+            <p>
+                Date/time literals can be specified using the JDBC escape syntax: <code class="literal">{d 'yyyy-mm-dd'}</code>
+                for dates, <code class="literal">{t 'hh:mm:ss'}</code> for times and
+                <code class="literal">{ts 'yyyy-mm-dd hh:mm:ss[.millis]'}</code> (millis optional) for timestamps.  These
+                literals only work if you JDBC drivers supports them.
+            </p>
+        </div>
+
+        <div class="section" title="11.4.4. Parameters"><div class="titlepage"><div><div><h3 class="title"><a id="d5e2900"/>11.4.4. Parameters</h3></div></div></div>
+            
+            <p>
+                HQL supports all 3 of the following forms.  JPQL does not support the HQL-specific positional
+                parameters notion.  It is good practice to not mix forms in a given query.
+            </p>
+            <div class="section" title="11.4.4.1. Named parameters"><div class="titlepage"><div><div><h4 class="title"><a id="d5e2903"/>11.4.4.1. Named parameters</h4></div></div></div>
+                
+                <p>
+                    Named parameters are declared using a colon followed by an identifier -
+                    <code class="literal">:aNamedParameter</code>.  The same named parameter can appear multiple times in a query.
+                </p>
+                <div class="example"><a id="d5e2907"/><p class="title"><strong>Example 11.16. Named parameter examples</strong></p><div class="example-contents">
+                    
+                    <pre xmlns="" xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="">String queryString =
+        "select c " +
+        "from Customer c " +
+        "where c.name = :name " +
+        "   or c.nickName = :name";
+
+// HQL
+List customers = session.createQuery( queryString )
+        .setParameter( "name", theNameOfInterest )
+        .list();
+
+// JPQL
+List&lt;Customer&gt; customers = entityManager.createQuery( queryString, Customer.class )
+        .setParameter( "name", theNameOfInterest )
+        .getResultList();</pre>
+                </div></div><br class="example-break"/>
+            </div>
+            <div class="section" title="11.4.4.2. Positional (JPQL) parameters"><div class="titlepage"><div><div><h4 class="title"><a id="d5e2910"/>11.4.4.2. Positional (JPQL) parameters</h4></div></div></div>
+                
+                <p>
+                    JPQL-style positional parameters are declared using a question mark followed by an ordinal -
+                    <code class="literal">?1</code>, <code class="literal">?2</code>.  The ordinals start with 1.  Just like with
+                    named parameters, positional parameters can also appear multiple times in a query.
+                </p>
+                <div class="example"><a id="d5e2915"/><p class="title"><strong>Example 11.17. Positional (JPQL) parameter examples</strong></p><div class="example-contents">
+                    
+                    <pre xmlns="" xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="">String queryString =
+        "select c " +
+        "from Customer c " +
+        "where c.name = ?1 " +
+        "   or c.nickName = ?1";
+
+// HQL - as you can see, handled just like named parameters
+//      in terms of API
+List customers = session.createQuery( queryString )
+        .setParameter( "1", theNameOfInterest )
+        .list();
+
+// JPQL
+List&lt;Customer&gt; customers = entityManager.createQuery( queryString, Customer.class )
+        .setParameter( 1, theNameOfInterest )
+        .getResultList();</pre>
+                </div></div><br class="example-break"/>
+            </div>
+            <div class="section" title="11.4.4.3. Positional (HQL) parameters"><div class="titlepage"><div><div><h4 class="title"><a id="d5e2918"/>11.4.4.3. Positional (HQL) parameters</h4></div></div></div>
+                
+                <p>
+                    HQL-style positional parameters follow JDBC positional parameter syntax.  They are declared using
+                    <code class="literal">?</code> without a following ordinal.  There is no way to relate two such
+                    positional parameters as being "the same" aside from binding the same value to each.
+                </p>
+                <p>
+                    This form should be considered deprecated and may be removed in the near future.
+                </p>
+            </div>
+        </div>
+
+        <div class="section" title="11.4.5. Arithmetic"><div class="titlepage"><div><div><h3 class="title"><a id="d5e2923"/>11.4.5. Arithmetic</h3></div></div></div>
+            
+            <p>
+                Arithmetic operations also represent valid expressions.
+            </p>
+            <div class="example"><a id="d5e2926"/><p class="title"><strong>Example 11.18. Numeric arithmetic examples</strong></p><div class="example-contents">
+                
+                <pre xmlns="" xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="">select year( current_date() ) - year( c.dateOfBirth )
+from Customer c
+
+select c
+from Customer c
+where year( current_date() ) - year( c.dateOfBirth ) &lt; 30
+
+select o.customer, o.total + ( o.total * :salesTax )
+from Order o</pre>
+            </div></div><br class="example-break"/>
+            <p>
+                The following rules apply to the result of arithmetic operations:
+            </p>
+            <div class="itemizedlist"><ul class="itemizedlist"><li class="listitem">
+                    <p>
+                        If either of the operands is Double/double, the result is a Double;
+                    </p>
+                </li><li class="listitem">
+                    <p>
+                        else, if either of the operands is Float/float, the result is a Float;
+                    </p>
+                </li><li class="listitem">
+                    <p>
+                        else, if either operand is BigDecimal, the result is BigDecimal;
+                    </p>
+                </li><li class="listitem">
+                    <p>
+                        else, if either operand is BigInteger, the result is BigInteger (except for division, in
+                        which case the result type is not further defined);
+                    </p>
+                </li><li class="listitem">
+                    <p>
+                        else, if either operand is Long/long, the result is Long (except for division, in
+                        which case the result type is not further defined);
+                    </p>
+                </li><li class="listitem">
+                    <p>
+                        else, (the assumption being that both operands are of integral type) the result is Integer
+                        (except for division, in which case the result type is not further defined);
+                    </p>
+                </li></ul></div>
+
+            <p>
+                Date arithmetic is also supported, albeit in a more limited fashion.  This is due partially to
+                differences in database support and partially to the lack of support for <code class="literal">INTERVAL</code>
+                definition in the query language itself.
+            </p>
+        </div>
+
+        <div class="section" title="11.4.6. Concatenation (operation)"><div class="titlepage"><div><div><h3 class="title"><a id="d5e2945"/>11.4.6. Concatenation (operation)</h3></div></div></div>
+            
+            <p>
+                HQL defines a concatenation operator in addition to supporting the concatenation
+                (<code class="literal">CONCAT</code>) function.  This is not defined by JPQL, so portable applications
+                should avoid it use.  The concatenation operator is taken from the SQL concatenation operator -
+                <code class="literal">||</code>.
+            </p>
+            <div class="example"><a id="d5e2950"/><p class="title"><strong>Example 11.19. Concatenation operation example</strong></p><div class="example-contents">
+                
+                <pre xmlns="" xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="">select 'Mr. ' || c.name.first || ' ' || c.name.last
+from Customer c
+where c.gender = Gender.MALE</pre>
+            </div></div><br class="example-break"/>
+            <p>
+                See <a class="xref" href="ch11.html#ql-exp-functions" title="11.4.8. Scalar functions">Section 11.4.8, “Scalar functions”</a> for details on the <code class="literal">concat()</code> function
+            </p>
+        </div>
+
+        <div class="section" title="11.4.7. Aggregate functions"><div class="titlepage"><div><div><h3 class="title"><a id="d5e2956"/>11.4.7. Aggregate functions</h3></div></div></div>
+            
+            <p>
+                Aggregate functions are also valid expressions in HQL and JPQL.  The semantic is the same as their
+                SQL counterpart.  The supported aggregate functions are:
+            </p>
+            <div class="itemizedlist"><ul class="itemizedlist"><li class="listitem">
+                    <p>
+                        <code class="literal">COUNT</code> (including distinct/all qualifiers) - The result type is always Long.
+                    </p>
+                </li><li class="listitem">
+                    <p>
+                        <code class="literal">AVG</code> -  The result type is always Double.
+                    </p>
+                </li><li class="listitem">
+                    <p>
+                        <code class="literal">MIN</code> - The result type is the same as the argument type.
+                    </p>
+                </li><li class="listitem">
+                    <p>
+                        <code class="literal">MAX</code> - The result type is the same as the argument type.
+                    </p>
+                </li><li class="listitem">
+                    <p>
+                        <code class="literal">SUM</code> -  The result type of the <code class="literal">avg()</code> function depends on
+                        the type of the values being averaged.  For integral values (other than BigInteger), the result
+                        type is Long.  For floating point values (other than BigDecimal) the result type is Double.  For
+                        BigInteger values, the result type is BigInteger.  For BigDecimal values, the result type is
+                        BigDecimal.
+                    </p>
+                </li></ul></div>
+            <div class="example"><a id="d5e2976"/><p class="title"><strong>Example 11.20. Aggregate function examples</strong></p><div class="example-contents">
+                
+                <pre xmlns="" xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="">select count(*), sum( o.total ), avg( o.total ), min( o.total ), max( o.total )
+from Order o
+
+select count( distinct c.name )
+from Customer c
+
+select c.id, c.name, sum( o.total )
+from Customer c
+    left join c.orders o
+group by c.id, c.name</pre>
+            </div></div><br class="example-break"/>
+            <p>
+                Aggregations often appear with grouping.  For information on grouping see <a class="xref" href="ch11.html#ql-grouping" title="11.8. Grouping">Section 11.8, “Grouping”</a>
+            </p>
+        </div>
+
+        <div class="section" title="11.4.8. Scalar functions"><div class="titlepage"><div><div><h3 class="title"><a id="ql-exp-functions"/>11.4.8. Scalar functions</h3></div></div></div>
+            
+            <p>
+                Both HQL and JPQL define some standard functions that are available regardless of the underlying 
+                database in use.  HQL can also understand additional functions defined by the Dialect as well as the 
+                application.
+            </p>
+
+            <div class="section" title="11.4.8.1. Standardized functions - JPQL"><div class="titlepage"><div><div><h4 class="title"><a id="d5e2984"/>11.4.8.1. Standardized functions - JPQL</h4></div></div></div>
+                
+                <p>
+                    Here are the list of functions defined as supported by JPQL.  Applications interested in remaining
+                    portable between JPA providers should stick to these functions.
+                </p>
+                <div class="variablelist"><dl><dt><span class="term">CONCAT</span></dt><dd>
+                            <p>
+                                String concatenation function.  Variable argument length of 2 or more string values
+                                to be concatenated together.
+                            </p>
+                        </dd><dt><span class="term">SUBSTRING</span></dt><dd>
+                            <p>
+                                Extracts a portion of a string value.
+                            </p>
+                            <pre xmlns="" xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="">substring( string_expression, numeric_expression [, numeric_expression] )</pre>
+                            <p>
+                                The second argument denotes the starting position.  The third (optional) argument
+                                denotes the length.
+                            </p>
+                        </dd><dt><span class="term">UPPER</span></dt><dd>
+                            <p>
+                                Upper cases the specified string
+                            </p>
+                        </dd><dt><span class="term">LOWER</span></dt><dd>
+                            <p>
+                                Lower cases the specified string
+                            </p>
+                        </dd><dt><span class="term">TRIM</span></dt><dd>
+                            <p>
+                                Follows the semantics of the SQL trim function.
+                            </p>
+                        </dd><dt><span class="term">LENGTH</span></dt><dd>
+                            <p>
+                                Returns the length of a string.
+                            </p>
+                        </dd><dt><span class="term">LOCATE</span></dt><dd>
+                            <p>
+                                Locates a string within another string.
+                            </p>
+                            <pre xmlns="" xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="">locate( string_expression, string_expression[, numeric_expression] )</pre>
+                            <p>
+                                The third argument (optional) is used to denote a position from which to start looking.
+                            </p>
+                        </dd><dt><span class="term">ABS</span></dt><dd>
+                            <p>
+                                Calculates the mathematical absolute value of a numeric value.
+                            </p>
+                        </dd><dt><span class="term">MOD</span></dt><dd>
+                            <p>
+                                Calculates the remainder of dividing the first argument by the second.
+                            </p>
+                        </dd><dt><span class="term">SQRT</span></dt><dd>
+                            <p>
+                                Calculates the mathematical square root of a numeric value.
+                            </p>
+                        </dd><dt><span class="term">CURRENT_DATE</span></dt><dd>
+                            <p>
+                                Returns the database current date.
+                            </p>
+                        </dd><dt><span class="term">CURRENT_TIME</span></dt><dd>
+                            <p>
+                                Returns the database current time.
+                            </p>
+                        </dd><dt><span class="term">CURRENT_TIMESTAMP</span></dt><dd>
+                            <p>
+                                Returns the database current timestamp.
+                            </p>
+                        </dd></dl></div>
+            </div>
+            <div class="section" title="11.4.8.2. Standardized functions - HQL"><div class="titlepage"><div><div><h4 class="title"><a id="d5e3044"/>11.4.8.2. Standardized functions - HQL</h4></div></div></div>
+                
+                <p>
+                    Beyond the JPQL standardized functions, HQL makes some additional functions available regardless
+                    of the underlying database in use.
+                </p>
+                <div class="variablelist"><dl><dt><span class="term">BIT_LENGTH</span></dt><dd>
+                            <p>
+                                Returns the length of binary data.
+                            </p>
+                        </dd><dt><span class="term">CAST</span></dt><dd>
+                            <p>
+                                Performs a SQL cast.  The cast target should name the Hibernate mapping type to use.
+                                See the chapter on data types for more information.
+                            </p>
+                        </dd><dt><span class="term">EXTRACT</span></dt><dd>
+                            <p>
+                                Performs a SQL extraction on datetime values.  An extraction extracts parts of
+                                the datetime (the year, for example).  See the abbreviated forms below.
+                            </p>
+                        </dd><dt><span class="term">SECOND</span></dt><dd>
+                            <p>
+                                Abbreviated extract form for extracting the second.
+                            </p>
+                        </dd><dt><span class="term">MINUTE</span></dt><dd>
+                            <p>
+                                Abbreviated extract form for extracting the minute.
+                            </p>
+                        </dd><dt><span class="term">HOUR</span></dt><dd>
+                            <p>
+                                Abbreviated extract form for extracting the hour.
+                            </p>
+                        </dd><dt><span class="term">DAY</span></dt><dd>
+                            <p>
+                                Abbreviated extract form for extracting the day.
+                            </p>
+                        </dd><dt><span class="term">MONTH</span></dt><dd>
+                            <p>
+                                Abbreviated extract form for extracting the month.
+                            </p>
+                        </dd><dt><span class="term">YEAR</span></dt><dd>
+                            <p>
+                                Abbreviated extract form for extracting the year.
+                            </p>
+                        </dd><dt><span class="term">STR</span></dt><dd>
+                            <p>
+                                Abbreviated form for casting a value as character data.
+                            </p>
+                        </dd></dl></div>
+            </div>
+
+            <div class="section" title="11.4.8.3. Non-standardized functions"><div class="titlepage"><div><div><h4 class="title"><a id="d5e3088"/>11.4.8.3. Non-standardized functions</h4></div></div></div>
+                
+                <p>
+                    Hibernate Dialects can register additional functions known to be available for that particular
+                    database product.  These functions are also available in HQL (and JPQL, though only when using
+                    Hibernate as the JPA provider obviously).  However, they would only be available when using that
+                    database/Dialect.  Applications that aim for database portability should avoid using functions
+                    in this category.
+                </p>
+                <p>
+                    Application developers can also supply their own set of functions.  This would usually represent
+                    either custom SQL functions or aliases for snippets of SQL.  Such function declarations are
+                    made by using the <code class="methodname">addSqlFunction</code> method of
+                    <code class="classname">org.hibernate.cfg.Configuration</code>
+                </p>
+            </div>
+        </div>
+
+        <div class="section" title="11.4.9. Collection-related expressions"><div class="titlepage"><div><div><h3 class="title"><a id="ql-collection-expressions"/>11.4.9. Collection-related expressions</h3></div></div></div>
+            
+            <p>
+                There are a few specialized expressions for working with collection-valued associations.  Generally
+                these are just abbreviated forms or other expressions for the sake of conciseness.
+            </p>
+            <div class="variablelist"><dl><dt><span class="term">SIZE</span></dt><dd>
+                        <p>
+                            Calculate the size of a collection.  Equates to a subquery!
+                        </p>
+                    </dd><dt><span class="term">MAXELEMENT</span></dt><dd>
+                        <p>
+                            Available for use on collections of basic type.  Refers to the maximum value as determined
+                            by applying the <code class="literal">max</code> SQL aggregation.
+                        </p>
+                    </dd><dt><span class="term">MAXINDEX</span></dt><dd>
+                        <p>
+                            Available for use on indexed collections.  Refers to the maximum index (key/position) as
+                            determined by applying the <code class="literal">max</code> SQL aggregation.
+                        </p>
+                    </dd><dt><span class="term">MINELEMENT</span></dt><dd>
+                        <p>
+                            Available for use on collections of basic type.  Refers to the minimum value as determined
+                            by applying the <code class="literal">min</code> SQL aggregation.
+                        </p>
+                    </dd><dt><span class="term">MININDEX</span></dt><dd>
+                        <p>
+                            Available for use on indexed collections.  Refers to the minimum index (key/position) as
+                            determined by applying the <code class="literal">min</code> SQL aggregation.
+                        </p>
+                    </dd><dt><span class="term">ELEMENTS</span></dt><dd>
+                        <p>
+                            Used to refer to the elements of a collection as a whole.  Only allowed in the where clause.
+                            Often used in conjunction with <code class="literal">ALL</code>, <code class="literal">ANY</code> or
+                            <code class="literal">SOME</code> restrictions.
+                        </p>
+                    </dd><dt><span class="term">INDICES</span></dt><dd>
+                        <p>
+                            Similar to <code class="literal">elements</code> except that <code class="literal">indices</code> refers to
+                            the collections indices (keys/positions) as a whole.
+                        </p>
+                    </dd></dl></div>
+            <div class="example"><a id="d5e3135"/><p class="title"><strong>Example 11.21. Collection-related expressions examples</strong></p><div class="example-contents">
+                
+                <pre xmlns="" xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="">select cal
+from Calendar cal
+where maxelement(cal.holidays) &gt; current_date()
+
+select o
+from Order o
+where maxindex(o.items) &gt; 100
+
+select o
+from Order o
+where minelement(o.items) &gt; 10000
+
+select m
+from Cat as m, Cat as kit
+where kit in elements(m.kittens)
+
+// the above query can be re-written in jpql standard way:
+select m
+from Cat as m, Cat as kit
+where kit member of m.kittens
+
+select p
+from NameList l, Person p
+where p.name = some elements(l.names)
+
+select cat
+from Cat cat
+where exists elements(cat.kittens)
+
+select p
+from Player p
+where 3 &gt; all elements(p.scores)
+
+select show
+from Show show
+where 'fizard' in indices(show.acts)</pre>
+            </div></div><br class="example-break"/>
+            <p>
+                Elements of indexed collections (arrays, lists, and maps) can be referred to by index operator.
+            </p>
+            <div class="example"><a id="d5e3139"/><p class="title"><strong>Example 11.22. Index operator examples</strong></p><div class="example-contents">
+                
+                <pre xmlns="" xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="">select o
+from Order o
+where o.items[0].id = 1234
+
+select p
+from Person p, Calendar c
+where c.holidays['national day'] = p.birthDay
+  and p.nationality.calendar = c
+
+select i
+from Item i, Order o
+where o.items[ o.deliveredItemIndices[0] ] = i
+  and o.id = 11
+
+select i
+from Item i, Order o
+where o.items[ maxindex(o.items) ] = i
+  and o.id = 11
+
+select i
+from Item i, Order o
+where o.items[ size(o.items) - 1 ] = i</pre>
+            </div></div><br class="example-break"/>
+            <p>
+                See also <a class="xref" href="ch11.html#ql-collection-qualification" title="11.3.5.1. Special case - qualified path expressions">Section 11.3.5.1, “Special case - qualified path expressions”</a> as there is a good deal of overlap.
+            </p>
+        </div>
+
+        <div class="section" title="11.4.10. Entity type"><div class="titlepage"><div><div><h3 class="title"><a id="ql-entity-type-exp"/>11.4.10. Entity type</h3></div></div></div>
+            
+            <p>
+                We can also refer to the type of an entity as an expression.  This is mainly useful when dealing
+                with entity inheritance hierarchies.  The type can expressed using a <code class="literal">TYPE</code> function
+                used to refer to the type of an identification variable representing an entity.  The name of the
+                entity also serves as a way to refer to an entity type.  Additionally the entity type can be
+                parametrized, in which case the entity's Java Class reference would be bound as the parameter
+                value.
+            </p>
+            <div class="example"><a id="d5e3148"/><p class="title"><strong>Example 11.23. Entity type expression examples</strong></p><div class="example-contents">
+                
+                <pre xmlns="" xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="">select p
+from Payment p
+where type(p) = CreditCardPayment
+
+select p
+from Payment p
+where type(p) = :aType
+
+</pre>
+            </div></div><br class="example-break"/>
+            <p>
+                HQL also has a legacy form of referring to an entity type, though that legacy form is considered
+                deprecated in favor of <code class="literal">TYPE</code>.  The legacy form would have used <code class="literal">p.class</code>
+                in the examples rather than <code class="literal">type(p)</code>.  It is mentioned only for completeness.
+            </p>
+        </div>
+
+        <div class="section" title="11.4.11. CASE expressions"><div class="titlepage"><div><div><h3 class="title"><a id="d5e3155"/>11.4.11. CASE expressions</h3></div></div></div>
+            
+            <p>
+                Both the simple and searched forms are supported, as well as the 2 SQL defined abbreviated forms
+                (<code class="literal">NULLIF</code> and <code class="literal">COALESCE</code>)
+            </p>
+            <div class="section" title="11.4.11.1. Simple CASE expressions"><div class="titlepage"><div><div><h4 class="title"><a id="d5e3160"/>11.4.11.1. Simple CASE expressions</h4></div></div></div>
+                
+                <p>
+                    The simple form has the following syntax:
+                </p>
+                <pre xmlns="" xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="">CASE {operand} WHEN {test_value} THEN {match_result} ELSE {miss_result} END</pre>
+                <div class="example"><a id="d5e3164"/><p class="title"><strong>Example 11.24. Simple case expression example</strong></p><div class="example-contents">
+                    
+                    <pre xmlns="" xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="">select case c.nickName when null then '&lt;no nick name&gt;' else c.nickName end
+from Customer c
+
+// This NULL checking is such a common case that most dbs
+// define an abbreviated CASE form.  For example:
+select nvl( c.nickName, '&lt;no nick name&gt;' )
+from Customer c
+
+// or:
+select isnull( c.nickName, '&lt;no nick name&gt;' )
+from Customer c
+
+// the standard coalesce abbreviated form can be used
+// to achieve the same result:
+select coalesce( c.nickName, '&lt;no nick name&gt;' )
+from Customer c
+</pre>
+                </div></div><br class="example-break"/>
+            </div>
+            <div class="section" title="11.4.11.2. Searched CASE expressions"><div class="titlepage"><div><div><h4 class="title"><a id="d5e3167"/>11.4.11.2. Searched CASE expressions</h4></div></div></div>
+                
+                <p>
+                    The searched form has the following syntax:
+                </p>
+                <pre xmlns="" xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="">CASE [ WHEN {test_conditional} THEN {match_result} ]* ELSE {miss_result} END</pre>
+                <div class="example"><a id="d5e3171"/><p class="title"><strong>Example 11.25. Searched case expression example</strong></p><div class="example-contents">
+                    
+                    <pre xmlns="" xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="">select case when c.name.first is not null then c.name.first
+            when c.nickName is not null then c.nickName
+            else '&lt;no first name&gt;' end
+from Customer c
+
+// Again, the abbreviated form coalesce can handle this a
+// little more succinctly
+select coalesce( c.name.first, c.nickName, '&lt;no first name&gt;' )
+from Customer c
+</pre>
+                </div></div><br class="example-break"/>
+            </div>
+            <div class="section" title="11.4.11.3. NULLIF expressions"><div class="titlepage"><div><div><h4 class="title"><a id="d5e3174"/>11.4.11.3. NULLIF expressions</h4></div></div></div>
+                
+                <p>
+                    NULLIF is an abbreviated CASE expression that returns NULL if its operands are considered equal.
+                </p>
+                <div class="example"><a id="d5e3177"/><p class="title"><strong>Example 11.26. NULLIF example</strong></p><div class="example-contents">
+                    
+                    <pre xmlns="" xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="">// return customers who have changed their last name
+select nullif( c.previousName.last, c.name.last )
+from Customer c
+
+// equivalent CASE expression
+select case when c.previousName.last = c.name.last then null
+            else c.previousName.last end
+from Customer c
+</pre>
+                </div></div><br class="example-break"/>
+            </div>
+            <div class="section" title="11.4.11.4. COALESCE expressions"><div class="titlepage"><div><div><h4 class="title"><a id="d5e3180"/>11.4.11.4. COALESCE expressions</h4></div></div></div>
+                
+                <p>
+                    COALESCE is an  abbreviated CASE expression that returns the first non-null operand.  We have seen a 
+                    number of COALESCE examples above.
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <div class="section" title="11.5. The SELECT clause"><div class="titlepage"><div><div><h2 class="title"><a id="ql-select-clause"/>11.5. The <code class="literal">SELECT</code> clause</h2></div></div></div>
+        
+        <p>
+            The <code class="literal">SELECT</code> clause identifies which objects and values to return as the query results.
+            The expressions discussed in <a class="xref" href="ch11.html#ql-expressions" title="11.4. Expressions">Section 11.4, “Expressions”</a> are all valid select expressions, except
+            where otherwise noted.  See the section <a class="xref" href="ch11.html#ql-api" title="11.10. Query API">Section 11.10, “Query API”</a> for information on handling the results
+            depending on the types of values specified in the <code class="literal">SELECT</code> clause.
+        </p>
+
+        <p>
+            There is a particular expression type that is only valid in the select clause.  Hibernate calls this
+            <span class="quote">“<span class="quote">dynamic instantiation</span>”</span>.  JPQL supports some of that feature and calls it
+            a <span class="quote">“<span class="quote">constructor expression</span>”</span>
+        </p>
+
+        <div class="example"><a id="d5e3194"/><p class="title"><strong>Example 11.27. Dynamic instantiation example - constructor</strong></p><div class="example-contents">
+            
+            <pre xmlns="" xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="">select new Family( mother, mate, offspr )
+from DomesticCat as mother
+    join mother.mate as mate
+    left join mother.kittens as offspr</pre>
+        </div></div><br class="example-break"/>
+
+        <p>
+            So rather than dealing with the Object[] (again, see <a class="xref" href="ch11.html#ql-api" title="11.10. Query API">Section 11.10, “Query API”</a>) here we are wrapping
+            the values in a type-safe java object that will be returned as the results of the query.  The class
+            reference must be fully qualified and it must have a matching constructor.
+        </p>
+        <p>
+            The class here need not be mapped.  If it does represent an entity, the resulting instances are
+            returned in the NEW state (not managed!).
+        </p>
+
+        <p>
+            That is the part JPQL supports as well.  HQL supports additional <span class="quote">“<span class="quote">dynamic instantiation</span>”</span>
+            features.  First, the query can specify to return a List rather than an Object[] for scalar results:
+        </p>
+        <div class="example"><a id="d5e3202"/><p class="title"><strong>Example 11.28. Dynamic instantiation example - list</strong></p><div class="example-contents">
+            
+            <pre xmlns="" xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="">select new list(mother, offspr, mate.name)
+from DomesticCat as mother
+    inner join mother.mate as mate
+    left outer join mother.kittens as offspr</pre>
+        </div></div><br class="example-break"/>
+        <p>
+            The results from this query will be a List&lt;List&gt; as opposed to a List&lt;Object[]&gt;
+        </p>
+
+        <p>
+            HQL also supports wrapping the scalar results in a Map.
+        </p>
+        <div class="example"><a id="d5e3207"/><p class="title"><strong>Example 11.29. Dynamic instantiation example - map</strong></p><div class="example-contents">
+            
+            <pre xmlns="" xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="">select new map( mother as mother, offspr as offspr, mate as mate )
+from DomesticCat as mother
+    inner join mother.mate as mate
+    left outer join mother.kittens as offspr
+
+select new map( max(c.bodyWeight) as max, min(c.bodyWeight) as min, count(*) as n )
+from Cat c</pre>
+        </div></div><br class="example-break"/>
+        <p>
+            The results from this query will be a List&lt;Map&lt;String,Object&gt;&gt; as opposed to a
+            List&lt;Object[]&gt;.  The keys of the map are defined by the aliases given to the select
+            expressions.
+        </p>
+    </div>
+
+    <div class="section" title="11.6. Predicates"><div class="titlepage"><div><div><h2 class="title"><a id="ql-conditional-expressions"/>11.6. Predicates</h2></div></div></div>
+        
+        <p>
+            Predicates form the basis of the where clause, the having clause and searched case expressions.
+            They are expressions which resolve to a truth value, generally <code class="literal">TRUE</code> or
+            <code class="literal">FALSE</code>, although boolean comparisons involving NULLs generally resolve to
+            <code class="literal">UNKNOWN</code>.
+        </p>
+
+        <div class="section" title="11.6.1. Relational comparisons"><div class="titlepage"><div><div><h3 class="title"><a id="d5e3217"/>11.6.1. Relational comparisons</h3></div></div></div>
+            
+            <p>
+                Comparisons involve one of the comparison operators - =, &gt;, &gt;=, &lt;, &lt;=, &lt;&gt;]&gt;.  HQL also defines
+                &lt;![CDATA[!= as a comparison operator synonymous with &lt;&gt;.  The operands should be
+                of the same type.
+            </p>
+            <div class="example"><a id="d5e3220"/><p class="title"><strong>Example 11.30. Relational comparison examples</strong></p><div class="example-contents">
+                
+                <pre xmlns="" xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="">// numeric comparison
+select c
+from Customer c
+where c.chiefExecutive.age &lt; 30
+
+// string comparison
+select c
+from Customer c
+where c.name = 'Acme'
+
+// datetime comparison
+select c
+from Customer c
+where c.inceptionDate &lt; {d '2000-01-01'}
+
+// enum comparison
+select c
+from Customer c
+where c.chiefExecutive.gender = com.acme.Gender.MALE
+
+// boolean comparison
+select c
+from Customer c
+where c.sendEmail = true
+
+// entity type comparison
+select p
+from Payment p
+where type(p) = WireTransferPayment
+
+// entity value comparison
+select c
+from Customer c
+where c.chiefExecutive = c.chiefTechnologist</pre>
+            </div></div><br class="example-break"/>
+            <p>
+                Comparisons can also involve subquery qualifiers - <code class="literal">ALL</code>, <code class="literal">ANY</code>,
+                <code class="literal">SOME</code>.  SOME and ANY are synonymous.
+            </p>
+            <p>
+                The ALL qualifier resolves to true if the comparison is true for all of the values in the result of
+                the subquery.  It resolves to false if the subquery result is empty.
+            </p>
+            <div class="example"><a id="d5e3228"/><p class="title"><strong>Example 11.31. ALL subquery comparison qualifier example</strong></p><div class="example-contents">
+                
+                <pre xmlns="" xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="">// select all players that scored at least 3 points
+// in every game.
+select p
+from Player p
+where 3 &gt; all (
+    select spg.points
+    from StatsPerGame spg
+    where spg.player = p
+)</pre>
+            </div></div><br class="example-break"/>
+            <p>
+                The ANY/SOME qualifier resolves to true if the comparison is true for some of (at least one of) the
+                values in the result of the subquery.  It resolves to false if the subquery result is empty.
+            </p>
+        </div>
+
+        <div class="section" title="11.6.2. Nullness predicate"><div class="titlepage"><div><div><h3 class="title"><a id="d5e3232"/>11.6.2. Nullness predicate</h3></div></div></div>
+            
+            <p>
+                Check a value for nullness.  Can be applied to basic attribute references, entity references and
+                parameters.  HQL additionally allows it to be applied to component/embeddable types.
+            </p>
+            <div class="example"><a id="d5e3235"/><p class="title"><strong>Example 11.32. Nullness checking examples</strong></p><div class="example-contents">
+                
+                <pre xmlns="" xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="">// select everyone with an associated address
+select p
+from Person p
+where p.address is not null
+
+// select everyone without an associated address
+select p
+from Person p
+where p.address is null</pre>
+            </div></div><br class="example-break"/>
+        </div>
+
+        <div class="section" title="11.6.3. Like predicate"><div class="titlepage"><div><div><h3 class="title"><a id="d5e3238"/>11.6.3. Like predicate</h3></div></div></div>
+            
+            <p>
+                Performs a like comparison on string values.  The syntax is:
+            </p>
+            <pre xmlns="" xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="">like_expression ::=
+        string_expression
+        [NOT] LIKE pattern_value
+        [ESCAPE escape_character]
+</pre>
+            <p>
+                The semantics follow that of the SQL like expression.  The <code class="literal">pattern_value</code> is the
+                pattern to attempt to match in the <code class="literal">string_expression</code>.  Just like SQL,
+                <code class="literal">pattern_value</code> can use <span class="quote">“<span class="quote">_</span>”</span> and <span class="quote">“<span class="quote">%</span>”</span> as wildcards.  The
+                meanings are the same.  <span class="quote">“<span class="quote">_</span>”</span> matches any single character.  <span class="quote">“<span class="quote">%</span>”</span> matches
+                any number of characters.
+            </p>
+            <p>
+                The optional <code class="literal">escape_character</code> is used to specify an escape character used to
+                escape the special meaning of <span class="quote">“<span class="quote">_</span>”</span> and <span class="quote">“<span class="quote">%</span>”</span> in the
+                <code class="literal">pattern_value</code>.  THis is useful when needing to search on patterns including either
+                <span class="quote">“<span class="quote">_</span>”</span> or <span class="quote">“<span class="quote">%</span>”</span>
+            </p>
+            <div class="example"><a id="d5e3257"/><p class="title"><strong>Example 11.33. Like predicate examples</strong></p><div class="example-contents">
+                
+                <pre xmlns="" xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="">select p
+from Person p
+where p.name like '%Schmidt'
+
+select p
+from Person p
+where p.name not like 'Jingleheimmer%'
+
+// find any with name starting with "sp_"
+select sp
+from StoredProcedureMetadata sp
+where sp.name like 'sp|_%' escape '|'
+
+</pre>
+            </div></div><br class="example-break"/>
+        </div>
+
+        <div class="section" title="11.6.4. Between predicate"><div class="titlepage"><div><div><h3 class="title"><a id="d5e3260"/>11.6.4. Between predicate</h3></div></div></div>
+            
+            <p>
+                Analogous to the SQL between expression.  Perform a evaluation that a value is within the range
+                of 2 other values.  All the operands should have comparable types.
+            </p>
+            <div class="example"><a id="d5e3263"/><p class="title"><strong>Example 11.34. Between predicate examples</strong></p><div class="example-contents">
+                
+                <pre xmlns="" xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="">select p
+from Customer c
+    join c.paymentHistory p
+where c.id = 123
+  and index(p) between 0 and 9
+
+select c
+from Customer c
+where c.president.dateOfBirth
+        between {d '1945-01-01'}
+            and {d '1965-01-01'}
+
+select o
+from Order o
+where o.total between 500 and 5000
+
+select p
+from Person p
+where p.name between 'A' and 'E' </pre>
+            </div></div><br class="example-break"/>
+        </div>
+
+        <div class="section" title="11.6.5. In predicate"><div class="titlepage"><div><div><h3 class="title"><a id="d5e3266"/>11.6.5. In predicate</h3></div></div></div>
+            
+            <p>
+                <code class="literal">IN</code> predicates performs a check that a particular value is in a list of values.
+                Its syntax is:
+            </p>
+            <pre xmlns="" xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="">in_expression ::= single_valued_expression
+            [NOT] IN single_valued_list
+
+single_valued_list ::= constructor_expression |
+            (subquery) |
+            collection_valued_input_parameter
+
+constructor_expression ::= (expression[, expression]*)</pre>
+            <p>
+                The types of the <code class="literal">single_valued_expression</code> and the individual values in the
+                <code class="literal">single_valued_list</code> must be consistent.    JPQL limits the valid types here
+                to string, numeric, date, time, timestamp, and enum types.  In JPQL,
+                <code class="literal">single_valued_expression</code> can only refer to:
+            </p>
+            <div class="itemizedlist"><ul class="itemizedlist"><li class="listitem">
+                    <p>
+                        <span class="quote">“<span class="quote">state fields</span>”</span>, which is its term for simple attributes.  Specifically this
+                        excludes association and component/embedded attributes.
+                    </p>
+                </li><li class="listitem">
+                    <p>
+                        entity type expressions.  See <a class="xref" href="ch11.html#ql-entity-type-exp" title="11.4.10. Entity type">Section 11.4.10, “Entity type”</a>
+                    </p>
+                </li></ul></div>
+            <p>
+                In HQL, <code class="literal">single_valued_expression</code> can refer to a far more broad set of expression
+                types.  Single-valued association are allowed.  So are component/embedded attributes, although that
+                feature depends on the level of support for tuple or <span class="quote">“<span class="quote">row value constructor syntax</span>”</span> in
+                the underlying database.  Additionally, HQL does not limit the value type in any way, though
+                application developers should be aware that different types may incur limited support based on
+                the underlying database vendor.  This is largely the reason for the JPQL limitations.
+            </p>
+            <p>
+                The list of values can come from a number of different sources.  In the
+                <code class="literal">constructor_expression</code> and <code class="literal">collection_valued_input_parameter</code>, the
+                list of values must not be empty; it must contain at least one value.
+            </p>
+            <div class="example"><a id="d5e3288"/><p class="title"><strong>Example 11.35. In predicate examples</strong></p><div class="example-contents">
+                
+                <pre xmlns="" xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="">select p
+from Payment p
+where type(p) in (CreditCardPayment, WireTransferPayment)
+
+select c
+from Customer c
+where c.hqAddress.state in ('TX', 'OK', 'LA', 'NM')
+
+select c
+from Customer c
+where c.hqAddress.state in ?
+
+select c
+from Customer c
+where c.hqAddress.state in (
+    select dm.state
+    from DeliveryMetadata dm
+    where dm.salesTax is not null
+)
+
+// Not JPQL compliant!
+select c
+from Customer c
+where c.name in (
+    ('John','Doe'),
+    ('Jane','Doe')
+)
+
+// Not JPQL compliant!
+select c
+from Customer c
+where c.chiefExecutive in (
+    select p
+    from Person p
+    where ...
+)</pre>
+            </div></div><br class="example-break"/>
+        </div>
+
+        <div class="section" title="11.6.6. Exists predicate"><div class="titlepage"><div><div><h3 class="title"><a id="d5e3291"/>11.6.6. Exists predicate</h3></div></div></div>
+            
+            <p>
+                Exists expressions test the existence of results from a subquery.  The affirmative form returns true
+                if the subquery result contains values.  The negated form returns true if the subquery
+                result is empty.
+            </p>
+        </div>
+
+        <div class="section" title="11.6.7. Empty collection predicate"><div class="titlepage"><div><div><h3 class="title"><a id="d5e3294"/>11.6.7. Empty collection predicate</h3></div></div></div>
+            
+            <p>
+                The <code class="literal">IS [NOT] EMPTY</code> expression applies to collection-valued path expressions.  It
+                checks whether the particular collection has any associated values.
+            </p>
+            <div class="example"><a id="d5e3298"/><p class="title"><strong>Example 11.36. Empty collection expression examples</strong></p><div class="example-contents">
+                
+                <pre xmlns="" xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="">select o
+from Order o
+where o.lineItems is empty
+
+select c
+from Customer c
+where c.pastDueBills is not empty</pre>
+            </div></div><br class="example-break"/>
+        </div>
+
+        <div class="section" title="11.6.8. Member-of collection predicate"><div class="titlepage"><div><div><h3 class="title"><a id="d5e3301"/>11.6.8. Member-of collection predicate</h3></div></div></div>
+            
+            <p>
+                The <code class="literal">[NOT] MEMBER [OF]</code> expression applies to collection-valued path expressions.  It
+                checks whether a value is a member of the specified collection.
+            </p>
+            <div class="example"><a id="d5e3305"/><p class="title"><strong>Example 11.37. Member-of collection expression examples</strong></p><div class="example-contents">
+                
+                <pre xmlns="" xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="">select p
+from Person p
+where 'John' member of p.nickNames
+
+select p
+from Person p
+where p.name.first = 'Joseph'
+  and 'Joey' not member of p.nickNames
+</pre>
+            </div></div><br class="example-break"/>
+        </div>
+
+        <div class="section" title="11.6.9. NOT predicate operator"><div class="titlepage"><div><div><h3 class="title"><a id="d5e3308"/>11.6.9. NOT predicate operator</h3></div></div></div>
+            
+            <p>
+                The <code class="literal">NOT</code> operator is used to negate the predicate that follows it.  If that
+                following predicate is true, the NOT resolves to false.  If the predicate is true, NOT resolves to
+                false.  If the predicate is unknown, the NOT resolves to unknown as well.
+            </p>
+        </div>
+
+        <div class="section" title="11.6.10. AND predicate operator"><div class="titlepage"><div><div><h3 class="title"><a id="d5e3312"/>11.6.10. AND predicate operator</h3></div></div></div>
+            
+            <p>
+                The <code class="literal">AND</code> operator is used to combine 2 predicate expressions.  The result of the
+                AND expression is true if and only if both predicates resolve to true.  If either predicate resolves
+                to unknown, the AND expression resolves to unknown as well.  Otherwise, the result is false.
+            </p>
+        </div>
+
+        <div class="section" title="11.6.11. OR predicate operator"><div class="titlepage"><div><div><h3 class="title"><a id="d5e3316"/>11.6.11. OR predicate operator</h3></div></div></div>
+            
+            <p>
+                The <code class="literal">OR</code> operator is used to combine 2 predicate expressions.  The result of the
+                OR expression is true if either predicate resolves to true.  If both predicates resolve to unknown, the
+                OR expression resolves to unknown.  Otherwise, the result is false.
+            </p>
+        </div>
+    </div>
+
+    <div class="section" title="11.7. The WHERE clause"><div class="titlepage"><div><div><h2 class="title"><a id="ql-where-clause"/>11.7. The <code class="literal">WHERE</code> clause</h2></div></div></div>
+        
+        <p>
+            The <code class="literal">WHERE</code> clause of a query is made up of predicates which assert whether values in
+            each potential row match the predicated checks.  Thus, the where clause restricts the results returned
+            from a select query and limits the scope of update and delete queries.
+        </p>
+    </div>
+
+    <div class="section" title="11.8. Grouping"><div class="titlepage"><div><div><h2 class="title"><a id="ql-grouping"/>11.8. Grouping</h2></div></div></div>
+        
+        <p>
+            The <code class="literal">GROUP BY</code> clause allows building aggregated results for various value groups.  As an
+            example, consider the following queries:
+        </p>
+        <div class="example"><a id="group_by_illustration"/><p class="title"><strong>Example 11.38. Group-by illustration</strong></p><div class="example-contents">
+            
+            <pre xmlns="" xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="">// retrieve the total for all orders
+select sum( o.total )
+from Order o
+
+// retrieve the total of all orders
+// *grouped by* customer
+select c.id, sum( o.total )
+from Order o
+    inner join o.customer c
+group by c.id</pre>
+        </div></div><br class="example-break"/>
+        <p>
+            The first query retrieves the complete total of all orders.  The second retrieves the total for each
+            customer; grouped by each customer.
+        </p>
+        <p>
+            In a grouped query, the where clause applies to the non aggregated values (essentially it determines whether
+            rows will make it into the aggregation).  The <code class="literal">HAVING</code> clause also restricts results,
+            but it operates on the aggregated values.  In the <a class="xref" href="ch11.html#group_by_illustration" title="Example 11.38. Group-by illustration">Example 11.38, “Group-by illustration”</a> example,
+            we retrieved order totals for all customers.  If that ended up being too much data to deal with,
+            we might want to restrict the results to focus only on customers with a summed order total of more than
+            $10,000.00:
+        </p>
+        <div class="example"><a id="having_illustration"/><p class="title"><strong>Example 11.39. Having illustration</strong></p><div class="example-contents">
+            
+            <pre xmlns="" xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="">select c.id, sum( o.total )
+from Order o
+    inner join o.customer c
+group by c.id
+having sum( o.total ) &gt; 10000.00</pre>
+        </div></div><br class="example-break"/>
+        <p>
+            The HAVING clause follows the same rules as the WHERE clause and is also made up of predicates.  HAVING is
+            applied after the groupings and aggregations have been done; WHERE is applied before.
+        </p>
+    </div>
+
+    <div class="section" title="11.9. Ordering"><div class="titlepage"><div><div><h2 class="title"><a id="ql-ordering"/>11.9. Ordering</h2></div></div></div>
+        
+        <p>
+            The results of the query can also be ordered.  The <code class="literal">ORDER BY</code> clause is used to specify
+            the selected values to be used to order the result.  The types of expressions considered valid as part
+             of the order-by clause include:
+        </p>
+        <div class="itemizedlist"><ul class="itemizedlist"><li class="listitem">
+                <p>
+                    state fields
+                </p>
+            </li><li class="listitem">
+                <p>
+                    component/embeddable attributes
+                </p>
+            </li><li class="listitem">
+                <p>
+                    scalar expressions such as arithmetic operations, functions, etc.
+                </p>
+            </li><li class="listitem">
+                <p>
+                    identification variable declared in the select clause for any of the previous expression types
+                </p>
+            </li></ul></div>
+        <p>
+            Additionally, JPQL says that all values referenced in the order-by clause must be named in the select
+            clause.  HQL does not mandate that restriction, but applications desiring database portability should be
+            aware that not all databases support referencing values in the order-by clause that are not referenced
+            in the select clause.
+        </p>
+        <p>
+            Individual expressions in the order-by can be qualified with either <code class="literal">ASC</code> (ascending) or
+            <code class="literal">DESC</code> (descending) to indicated the desired ordering direction. Null values can be placed
+            in front or at the end of sorted set using <code class="literal">NULLS FIRST</code> or <code class="literal">NULLS LAST</code>
+            clause respectively.
+        </p>
+        <div class="example"><a id="d5e3359"/><p class="title"><strong>Example 11.40. Order-by examples</strong></p><div class="example-contents">
+            
+            <pre xmlns="" xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="">// legal because p.name is implicitly part of p
+select p
+from Person p
+order by p.name
+
+select c.id, sum( o.total ) as t
+from Order o
+    inner join o.customer c
+group by c.id
+order by t
+</pre>
+        </div></div><br class="example-break"/>
+    </div>
+
+    <div class="section" title="11.10. Query API"><div class="titlepage"><div><div><h2 class="title"><a id="ql-api"/>11.10. Query API</h2></div></div></div>
+        
+    </div>
+</div><hr xmlns="" xmlns:d="http://docbook.org/ns/docbook"/><a xmlns="" xmlns:d="http://docbook.org/ns/docbook" href="legalnotice.html"/><ul xmlns:d="http://docbook.org/ns/docbook" class="docnav"><li class="previous"><a accesskey="p" href="ch10.html"><strong>Prev</strong>Chapter 10. Mapping associations</a></li><li class="up"><a accesskey="u" href="#"><strong>Up</strong></a></li><li class="home"><a accesskey="h" href="index.html"><strong>Home</strong></a></li><li class="next"><a accesskey="n" href="ch12.html"><strong>Next</strong>Chapter 12. Criteria</a></li></ul></body></html>

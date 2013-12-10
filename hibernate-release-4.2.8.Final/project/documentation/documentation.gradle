@@ -1,0 +1,106 @@
+buildscript {
+  repositories {
+      mavenCentral()
+      mavenLocal()
+	  mavenRepo name: 'jboss-nexus', url: "http://repository.jboss.org/nexus/content/groups/public/"
+  }
+  dependencies {
+      classpath "org.jboss.jdocbook:gradle-jdocbook:1.2.2"
+  }
+}
+
+apply plugin: "java"
+apply plugin: "jdocbook"
+ext.pressgangVersion = '3.0.0'
+dependencies {
+    
+    jdocbookXsl "org.jboss.pressgang:pressgang-xslt-ns:${pressgangVersion}"
+    jdocbookXsl "org.jboss.pressgang:pressgang-fonts:${pressgangVersion}"
+    jdocbookStyles "org.jboss.pressgang:pressgang-jdocbook-style:${pressgangVersion}"
+}
+
+defaultTasks 'buildDocs'
+
+jdocbook {
+    // apply shared formatting config ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    format('html_single') {
+		finalName = "index.html"
+		stylesheet = "classpath:/xslt/org/hibernate/jdocbook/xslt/xhtml-single.xsl"
+	}
+	format('html') {
+		finalName = "index.html"
+		stylesheet = "classpath:/xslt/org/hibernate/jdocbook/xslt/xhtml.xsl"
+	}
+
+    // book-specific config ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    quickstart {
+        masterSourceDocumentName = 'Hibernate_Getting_Started_Guide.xml'
+        // only html supported due to tutorials.zip
+//        formats.pdf.enable = false
+    }
+	devguide {
+		masterSourceDocumentName = 'Hibernate_Development_Guide.xml'
+		useRelativeImageUris = false
+	}
+// todo : need to remove this once all content moved to devguide
+	manual {
+		masterSourceDocumentName = 'HIBERNATE_-_Relational_Persistence_for_Idiomatic_Java.xml'
+//		translation = ['de-DE','es-ES','fr-FR','ja-JP','pt-BR','zh-CN']
+	}
+}
+
+// todo : make this part of gradle-jdocbook.
+// 		specifically the ability to supply ant-style resource for images (dir + include/exclude patterns)
+stageStyles_devguide.doLast {
+	logger.lifecycle( "Staging devguide-specific style resources")
+	copy {
+		into project.file( 'target/docbook/stage/devguide/images' )
+		from project.file( 'src/main/docbook/devguide/en-US' )
+		include '**/images/*.png'
+		include '**/images/*.svg'
+		includeEmptyDirs = false
+	}
+}
+
+[ 'devguide', 'manual', 'quickstart' ].each { bookName ->
+	tasks[ "stageStyles_$bookName" ].doLast {
+		logger.lifecycle( "Staging local style resources")
+		copy {
+			into project.file( "target/docbook/stage/$bookName" )
+			from project.file( 'src/main/style' )
+			includeEmptyDirs = false
+		}
+	}
+}
+
+task buildTutorialZip(type: Zip) {
+    destinationDir = file( "target/work/tutorials" )
+    archiveName = 'hibernate-tutorials.zip'
+    from 'src/main/docbook/quickstart/tutorials'
+    expand(
+            version: project.version,
+            slf4j: parent.slf4jVersion,
+            junit: parent.junitVersion,
+            h2: parent.h2Version
+    )
+}
+
+buildDocs.dependsOn buildTutorialZip
+
+buildDocs.doLast {
+    for ( File languageDir : dirList( "target/docbook/publish/quickstart" ) ) {
+        for ( File formatDir : dirList( languageDir ) ) {
+            final File copyDir = new File( formatDir, "files" );
+            copyDir.mkdirs();
+            ant.copy( file: buildTutorialZip.archivePath.getAbsolutePath(), todir: copyDir.getAbsolutePath() )
+        }
+    }
+}
+
+File[] dirList(String dirName) {
+    return dirList( (File) file(dirName) );
+}
+
+File[] dirList(File dir) {
+    return dir.listFiles({file -> file.isDirectory() } as FileFilter).sort();
+}

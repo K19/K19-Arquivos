@@ -1,0 +1,380 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml"><head><title xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory">Chapter 1. Getting started</title><link rel="stylesheet" href="css/hibernate.css" type="text/css"/><meta xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" name="generator" content="DocBook XSL Stylesheets V1.72.0"/><link rel="start" href="index.html" title="Hibernate Search"/><link rel="up" href="index.html" title="Hibernate Search"/><link rel="prev" href="preface.html" title="Preface"/><link rel="next" href="search-architecture.html" title="Chapter 2. Architecture"/></head><body><p id="title"><a href="http://www.hibernate.org" class="site_href"><strong>Hibernate.org</strong></a><a href="http://hibernate.org/Documentation/DocumentationOverview" class="doc_href"><strong>Community Documentation</strong></a></p><ul class="docnav"><li class="previous"><a accesskey="p" href="preface.html"><strong>Prev</strong></a></li><li class="next"><a accesskey="n" href="search-architecture.html"><strong>Next</strong></a></li></ul><div class="chapter" lang="en-US"><div class="titlepage"><div><div><h2 class="title"><a id="getting-started"/>Chapter 1. Getting started</h2></div></div></div><div class="toc"><dl><dt><span class="section"><a href="getting-started.html#d0e73">1.1. System Requirements</a></span></dt><dt><span class="section"><a href="getting-started.html#d0e141">1.2. Using Maven</a></span></dt><dt><span class="section"><a href="getting-started.html#d0e183">1.3. Configuration</a></span></dt><dt><span class="section"><a href="getting-started.html#d0e397">1.4. Indexing</a></span></dt><dt><span class="section"><a href="getting-started.html#d0e422">1.5. Searching</a></span></dt><dt><span class="section"><a href="getting-started.html#d0e447">1.6. Analyzer</a></span></dt><dt><span class="section"><a href="getting-started.html#d0e536">1.7. What's next</a></span></dt></dl></div><p>Welcome to Hibernate Search. The following chapter will guide you
+  through the initial steps required to integrate Hibernate Search into an
+  existing Hibernate enabled application. In case you are a Hibernate new
+  timer we recommend you start <a xmlns:xlink="http://www.w3.org/1999/xlink" href="http://hibernate.org/quick-start.html">here</a>.</p><div class="section" lang="en-US"><div class="titlepage"><div><div><h2 class="title"><a id="d0e73"/>1.1. System Requirements</h2></div></div></div><div class="table"><a id="d0e76"/><p class="title"><b>Table 1.1. System requirements</b></p><div class="table-contents"><table summary="System requirements" border="1"><colgroup><col/><col/></colgroup><tbody><tr><td>Java Runtime</td><td>A JDK or JRE version <span class="emphasis"><em>6</em></span> or greater. You
+            can download a Java Runtime for Windows/Linux/Solaris <a xmlns:xlink="http://www.w3.org/1999/xlink" href="http://www.oracle.com/technetwork/java/javase/downloads/index.html">here</a>.
+            If using Java version <span class="emphasis"><em>7</em></span> make sure you avoid
+            builds 0 and 1: those versions contained an optimisation bug which
+            would be triggered by Lucene. Hibernate Search 3.x was compatible
+            with Java version <span class="emphasis"><em>5</em></span>.</td></tr><tr><td>Hibernate Search</td><td><code class="literal">hibernate-search-4.4.1.Final.jar</code> and all
+            runtime dependencies. You can get the jar artifacts either from
+            the <code class="literal">dist/lib</code> directory of the <a xmlns:xlink="http://www.w3.org/1999/xlink" href="http://sourceforge.net/projects/hibernate/files/hibernate-search/">Hibernate
+            Search distribution</a> or you can download them from the
+            <a xmlns:xlink="http://www.w3.org/1999/xlink" href="http://repository.jboss.org/nexus/content/groups/public-jboss/ ">JBoss
+            maven repository</a>.</td></tr><tr><td>Hibernate Core</td><td>You will need <code class="literal">hibernate-core-4.2.8.Final.jar</code>
+            and its transitive dependencies (either from the <a xmlns:xlink="http://www.w3.org/1999/xlink" href="http://sourceforge.net/projects/hibernate/files/hibernate3/">distribution
+            bundle</a> or the maven repository).</td></tr><tr><td>JPA 2</td><td>Even though Hibernate Search can be used without JPA
+            annotations the following instructions will use them for basic
+            entity configuration (<span class="emphasis"><em>@Entity, @Id,
+            @OneToMany,...</em></span>). This part of the configuration could
+            also be expressed in xml or code. <p>Hibernate Search, however,
+            has also its own set of annotations (<span class="emphasis"><em>@Indexed,
+            @DocumentId, @Field,...</em></span>) for which there exists so far
+            no XML based alternative; a better option is the <a href="search-mapping.html#hsearch-mapping-programmaticapi" title="4.7. Programmatic API">Section 4.7, “Programmatic API”</a>.</p>
+            </td></tr></tbody></table></div></div><br class="table-break"/></div><div class="section" lang="en-US"><div class="titlepage"><div><div><h2 class="title"><a id="d0e141"/>1.2. Using Maven</h2></div></div></div><p>The Hibernate Search artifacts can be found in Maven's central
+    repository but are released first in the <a xmlns:xlink="http://www.w3.org/1999/xlink" href="http://repository.jboss.org/nexus/content/groups/public-jboss/ ">JBoss
+    maven repository</a>. So it's not a requirement but we recommend to
+    add this repository to your <code class="filename">settings.xml file</code> (see
+    also <a xmlns:xlink="http://www.w3.org/1999/xlink" href="http://community.jboss.org/wiki/MavenGettingStarted-Users">Maven
+    Getting Started</a> for more details).</p><p>This is all you need to add to your pom.xml to get started:</p><div class="example"><a id="d0e157"/><p class="title"><b>Example 1.1. Maven artifact identifier for Hibernate Search</b></p><div class="example-contents"><pre xmlns="" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="XML"><!-- XML : generated by JHighlight v1.0 (http://jhighlight.dev.java.net) -->
+<span class="xml_tag_symbols">&lt;</span><span class="xml_tag_name">dependency</span><span class="xml_tag_symbols">&gt;</span><span class="xml_plain"></span><br />
+<span class="xml_plain">&nbsp;&nbsp;&nbsp;</span><span class="xml_tag_symbols">&lt;</span><span class="xml_tag_name">groupId</span><span class="xml_tag_symbols">&gt;</span><span class="xml_plain">org.hibernate</span><span class="xml_tag_symbols">&lt;/</span><span class="xml_tag_name">groupId</span><span class="xml_tag_symbols">&gt;</span><span class="xml_plain"></span><br />
+<span class="xml_plain">&nbsp;&nbsp;&nbsp;</span><span class="xml_tag_symbols">&lt;</span><span class="xml_tag_name">artifactId</span><span class="xml_tag_symbols">&gt;</span><span class="xml_plain">hibernate-search</span><span class="xml_tag_symbols">&lt;/</span><span class="xml_tag_name">artifactId</span><span class="xml_tag_symbols">&gt;</span><span class="xml_plain"></span><br />
+<span class="xml_plain">&nbsp;&nbsp;&nbsp;</span><span class="xml_tag_symbols">&lt;</span><span class="xml_tag_name">version</span><span class="xml_tag_symbols">&gt;</span><span class="xml_plain">4.4.1.Final</span><span class="xml_tag_symbols">&lt;/</span><span class="xml_tag_name">version</span><span class="xml_tag_symbols">&gt;</span><span class="xml_plain"></span><br />
+<span class="xml_tag_symbols">&lt;/</span><span class="xml_tag_name">dependency</span><span class="xml_tag_symbols">&gt;</span><span class="xml_plain"></span><br />
+</pre></div></div><br class="example-break"/><div class="example"><a id="d0e162"/><p class="title"><b>Example 1.2. Optional Maven dependencies for Hibernate Search</b></p><div class="example-contents"><pre xmlns="" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="XML"><!-- XML : generated by JHighlight v1.0 (http://jhighlight.dev.java.net) -->
+<span class="xml_tag_symbols">&lt;</span><span class="xml_tag_name">dependency</span><span class="xml_tag_symbols">&gt;</span><span class="xml_plain"></span><br />
+<span class="xml_comment">&lt;!--&nbsp;If&nbsp;using&nbsp;JPA&nbsp;(2),&nbsp;add:&nbsp;--&gt;</span><span class="xml_plain"></span><br />
+<span class="xml_tag_symbols">&lt;</span><span class="xml_tag_name">dependency</span><span class="xml_tag_symbols">&gt;</span><span class="xml_plain"></span><br />
+<span class="xml_plain">&nbsp;&nbsp;&nbsp;</span><span class="xml_tag_symbols">&lt;</span><span class="xml_tag_name">groupId</span><span class="xml_tag_symbols">&gt;</span><span class="xml_plain">org.hibernate</span><span class="xml_tag_symbols">&lt;/</span><span class="xml_tag_name">groupId</span><span class="xml_tag_symbols">&gt;</span><span class="xml_plain"></span><br />
+<span class="xml_plain">&nbsp;&nbsp;&nbsp;</span><span class="xml_tag_symbols">&lt;</span><span class="xml_tag_name">artifactId</span><span class="xml_tag_symbols">&gt;</span><span class="xml_plain">hibernate-entitymanager</span><span class="xml_tag_symbols">&lt;/</span><span class="xml_tag_name">artifactId</span><span class="xml_tag_symbols">&gt;</span><span class="xml_plain"></span><br />
+<span class="xml_plain">&nbsp;&nbsp;&nbsp;</span><span class="xml_tag_symbols">&lt;</span><span class="xml_tag_name">version</span><span class="xml_tag_symbols">&gt;</span><span class="xml_plain">4.2.8.Final</span><span class="xml_tag_symbols">&lt;/</span><span class="xml_tag_name">version</span><span class="xml_tag_symbols">&gt;</span><span class="xml_plain"></span><br />
+<span class="xml_tag_symbols">&lt;/</span><span class="xml_tag_name">dependency</span><span class="xml_tag_symbols">&gt;</span><span class="xml_plain"></span><br />
+<span class="xml_comment">&lt;!--&nbsp;Additional&nbsp;Analyzers:&nbsp;--&gt;</span><span class="xml_plain"></span><br />
+<span class="xml_tag_symbols">&lt;</span><span class="xml_tag_name">dependency</span><span class="xml_tag_symbols">&gt;</span><span class="xml_plain"></span><br />
+<span class="xml_plain">&nbsp;&nbsp;&nbsp;</span><span class="xml_tag_symbols">&lt;</span><span class="xml_tag_name">groupId</span><span class="xml_tag_symbols">&gt;</span><span class="xml_plain">org.hibernate</span><span class="xml_tag_symbols">&lt;/</span><span class="xml_tag_name">groupId</span><span class="xml_tag_symbols">&gt;</span><span class="xml_plain"></span><br />
+<span class="xml_plain">&nbsp;&nbsp;&nbsp;</span><span class="xml_tag_symbols">&lt;</span><span class="xml_tag_name">artifactId</span><span class="xml_tag_symbols">&gt;</span><span class="xml_plain">hibernate-search-analyzers</span><span class="xml_tag_symbols">&lt;/</span><span class="xml_tag_name">artifactId</span><span class="xml_tag_symbols">&gt;</span><span class="xml_plain"></span><br />
+<span class="xml_plain">&nbsp;&nbsp;&nbsp;</span><span class="xml_tag_symbols">&lt;</span><span class="xml_tag_name">version</span><span class="xml_tag_symbols">&gt;</span><span class="xml_plain">4.4.1.Final</span><span class="xml_tag_symbols">&lt;/</span><span class="xml_tag_name">version</span><span class="xml_tag_symbols">&gt;</span><span class="xml_plain"></span><br />
+<span class="xml_tag_symbols">&lt;/</span><span class="xml_tag_name">dependency</span><span class="xml_tag_symbols">&gt;</span><span class="xml_plain"></span><br />
+<span class="xml_comment">&lt;!--&nbsp;Infinispan&nbsp;integration:&nbsp;--&gt;</span><span class="xml_plain"></span><br />
+<span class="xml_tag_symbols">&lt;</span><span class="xml_tag_name">dependency</span><span class="xml_tag_symbols">&gt;</span><span class="xml_plain"></span><br />
+<span class="xml_plain">&nbsp;&nbsp;&nbsp;</span><span class="xml_tag_symbols">&lt;</span><span class="xml_tag_name">groupId</span><span class="xml_tag_symbols">&gt;</span><span class="xml_plain">org.hibernate</span><span class="xml_tag_symbols">&lt;/</span><span class="xml_tag_name">groupId</span><span class="xml_tag_symbols">&gt;</span><span class="xml_plain"></span><br />
+<span class="xml_plain">&nbsp;&nbsp;&nbsp;</span><span class="xml_tag_symbols">&lt;</span><span class="xml_tag_name">artifactId</span><span class="xml_tag_symbols">&gt;</span><span class="xml_plain">hibernate-search-infinispan</span><span class="xml_tag_symbols">&lt;/</span><span class="xml_tag_name">artifactId</span><span class="xml_tag_symbols">&gt;</span><span class="xml_plain"></span><br />
+<span class="xml_plain">&nbsp;&nbsp;&nbsp;</span><span class="xml_tag_symbols">&lt;</span><span class="xml_tag_name">version</span><span class="xml_tag_symbols">&gt;</span><span class="xml_plain">4.4.1.Final</span><span class="xml_tag_symbols">&lt;/</span><span class="xml_tag_name">version</span><span class="xml_tag_symbols">&gt;</span><span class="xml_plain"></span><br />
+<span class="xml_tag_symbols">&lt;/</span><span class="xml_tag_name">dependency</span><span class="xml_tag_symbols">&gt;</span><span class="xml_plain"></span><br />
+</pre></div></div><br class="example-break"/><p>Only the <span class="emphasis"><em>hibernate-search</em></span> dependency is
+    mandatory.<span class="emphasis"><em> hibernate-entitymanager</em></span> is only required
+    if you want to use Hibernate Search in conjunction with JPA.</p><p>To use <span class="emphasis"><em>hibernate-search-infinispan</em></span>, adding the
+    JBoss Maven repository is mandatory, because it contains the needed
+    Infinispan dependencies which are currently not mirrored by
+    <code class="literal">central</code>.</p></div><div class="section" lang="en-US"><div class="titlepage"><div><div><h2 class="title"><a id="d0e183"/>1.3. Configuration</h2></div></div></div><p>Once you have downloaded and added all required dependencies to your
+    application you have to add a couple of properties to your hibernate
+    configuration file. If you are using Hibernate directly this can be done
+    in <code class="literal">hibernate.properties</code> or
+    <code class="literal">hibernate.cfg.xml</code>. If you are using Hibernate via JPA
+    you can also add the properties to <code class="literal">persistence.xml</code>. The
+    good news is that for standard use most properties offer a sensible
+    default. An example <code class="filename">persistence.xml</code> configuration
+    could look like this:</p><div class="example"><a id="d0e200"/><p class="title"><b>Example 1.3. Basic configuration options to be added to
+      <code class="literal"><code class="filename">hibernate.properties</code></code>,
+      <code class="literal"><code class="filename">hibernate.cfg.xml</code></code> or
+      <code class="filename">persistence.xml</code></b></p><div class="example-contents"><pre xmlns="" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="XML"><!-- XML : generated by JHighlight v1.0 (http://jhighlight.dev.java.net) -->
+<span class="xml_plain">...</span><br />
+<span class="xml_tag_symbols">&lt;</span><span class="xml_tag_name">property</span><span class="xml_plain">&nbsp;</span><span class="xml_attribute_name">name</span><span class="xml_tag_symbols">=</span><span class="xml_attribute_value">&quot;hibernate.search.default.directory_provider&quot;</span><span class="xml_plain">&nbsp;</span><br />
+<span class="xml_plain">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="xml_attribute_name">value</span><span class="xml_tag_symbols">=</span><span class="xml_attribute_value">&quot;filesystem&quot;</span><span class="xml_tag_symbols">/&gt;</span><span class="xml_plain">&nbsp;</span><br />
+<span class="xml_plain"></span><br />
+<span class="xml_tag_symbols">&lt;</span><span class="xml_tag_name">property</span><span class="xml_plain">&nbsp;</span><span class="xml_attribute_name">name</span><span class="xml_tag_symbols">=</span><span class="xml_attribute_value">&quot;hibernate.search.default.indexBase&quot;</span><span class="xml_plain">&nbsp;</span><br />
+<span class="xml_plain">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="xml_attribute_name">value</span><span class="xml_tag_symbols">=</span><span class="xml_attribute_value">&quot;/var/lucene/indexes&quot;</span><span class="xml_tag_symbols">/&gt;</span><span class="xml_plain">&nbsp;</span><br />
+<span class="xml_plain">...&nbsp;&nbsp;&nbsp;&nbsp;</span><br />
+</pre></div></div><br class="example-break"/><p>First you have to tell Hibernate Search which
+    <code class="classname">DirectoryProvider</code> to use. This can be achieved by
+    setting the <code class="literal">hibernate.search.default.directory_provider</code>
+    property. Apache Lucene has the notion of a <code class="literal">Directory</code>
+    to store the index files. Hibernate Search handles the initialization and
+    configuration of a Lucene <code class="literal">Directory</code> instance via a
+    <code class="literal">DirectoryProvider</code>. In this tutorial we will use a a
+    directory provider storing the index in the file system. This will give us
+    the ability to physically inspect the Lucene indexes created by Hibernate
+    Search (eg via <a xmlns:xlink="http://www.w3.org/1999/xlink" href="http://code.google.com/p/luke/">Luke</a>).
+    Once you have a working configuration you can start experimenting with
+    other directory providers (see <a href="search-configuration.html#search-configuration-directory" title="3.3. Directory configuration">Section 3.3, “Directory configuration”</a>). Next to the directory
+    provider you also have to specify the default base directory for all
+    indexes via <code class="literal">hibernate.search.default.indexBase</code>.</p><p>Lets assume that your application contains the Hibernate managed
+    classes <code class="classname">example.Book</code> and
+    <code class="classname">example.Author</code> and you want to add free text search
+    capabilities to your application in order to search the books contained in
+    your database.</p><div class="example"><a id="d0e248"/><p class="title"><b>Example 1.4. Example entities Book and Author before adding Hibernate Search
+      specific annotations</b></p><div class="example-contents"><pre xmlns="" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="JAVA"><!-- <br/> --><span class="java_keyword">package</span><!-- <br/> --><span class="java_plain">&nbsp;example</span><!-- <br/> --><span class="java_separator">;</span>
+<!--  --><br/><span class="java_separator">...</span>
+<!--  --><br/><span class="java_plain">@</span><span class="java_type">Entity</span>
+<!--  --><br/><span class="java_keyword">public</span><span class="java_plain">&nbsp;</span><span class="java_keyword">class</span><span class="java_plain">&nbsp;</span><span class="java_type">Book</span><span class="java_plain">&nbsp;</span><span class="java_separator">{</span>
+</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;@</span><span class="java_type">Id</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;@</span><span class="java_type">GeneratedValue</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;</span><span class="java_keyword">private</span><span class="java_plain">&nbsp;</span><span class="java_type">Integer</span><span class="java_plain">&nbsp;id</span><span class="java_separator">;</span><span class="java_plain">&nbsp;</span>
+</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;</span><span class="java_keyword">private</span><span class="java_plain">&nbsp;</span><span class="java_type">String</span><span class="java_plain">&nbsp;title</span><span class="java_separator">;</span><span class="java_plain">&nbsp;&nbsp;</span>
+</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;</span><span class="java_keyword">private</span><span class="java_plain">&nbsp;</span><span class="java_type">String</span><span class="java_plain">&nbsp;subtitle</span><span class="java_separator">;</span><span class="java_plain">&nbsp;</span>
+</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;@</span><span class="java_type">ManyToMany</span><span class="java_plain">&nbsp;</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;</span><span class="java_keyword">private</span><span class="java_plain">&nbsp;</span><span class="java_type">Set</span><span class="java_operator">&lt;</span><span class="java_type">Author</span><span class="java_operator">&gt;</span><span class="java_plain">&nbsp;authors&nbsp;</span><span class="java_operator">=</span><span class="java_plain">&nbsp;</span><span class="java_keyword">new</span><span class="java_plain">&nbsp;</span><span class="java_type">HashSet</span><span class="java_operator">&lt;</span><span class="java_type">Author</span><span class="java_operator">&gt;</span><span class="java_separator">();</span>
+</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;</span><span class="java_keyword">private</span><span class="java_plain">&nbsp;</span><span class="java_type">Date</span><span class="java_plain">&nbsp;publicationDate</span><span class="java_separator">;</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;</span><span class="java_keyword">public</span><span class="java_plain">&nbsp;</span><span class="java_type">Book</span><span class="java_separator">()</span><span class="java_plain">&nbsp;</span><span class="java_separator">{}</span><span class="java_plain">&nbsp;</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;</span><span class="java_operator">//</span><span class="java_plain">&nbsp;standard&nbsp;getters</span><span class="java_operator">/</span><span class="java_plain">setters&nbsp;follow&nbsp;here</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;</span><span class="java_separator">...</span>
+<!--  --><br/><span class="java_separator">}</span></pre><pre xmlns="" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="JAVA"><!-- <br/> --><span class="java_keyword">package</span><!-- <br/> --><span class="java_plain">&nbsp;example</span><!-- <br/> --><span class="java_separator">;</span>
+<!--  --><br/><span class="java_separator">...</span>
+<!--  --><br/><span class="java_plain">@</span><span class="java_type">Entity</span>
+<!--  --><br/><span class="java_keyword">public</span><span class="java_plain">&nbsp;</span><span class="java_keyword">class</span><span class="java_plain">&nbsp;</span><span class="java_type">Author</span><span class="java_plain">&nbsp;</span><span class="java_separator">{</span>
+</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;@</span><span class="java_type">Id</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;@</span><span class="java_type">GeneratedValue</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;</span><span class="java_keyword">private</span><span class="java_plain">&nbsp;</span><span class="java_type">Integer</span><span class="java_plain">&nbsp;id</span><span class="java_separator">;</span>
+</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;</span><span class="java_keyword">private</span><span class="java_plain">&nbsp;</span><span class="java_type">String</span><span class="java_plain">&nbsp;name</span><span class="java_separator">;</span>
+</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;</span><span class="java_keyword">public</span><span class="java_plain">&nbsp;</span><span class="java_type">Author</span><span class="java_separator">()</span><span class="java_plain">&nbsp;</span><span class="java_separator">{}</span><span class="java_plain">&nbsp;</span>
+<!--  --><br/><span class="java_plain">&nbsp;</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;</span><span class="java_operator">//</span><span class="java_plain">&nbsp;standard&nbsp;getters</span><span class="java_operator">/</span><span class="java_plain">setters&nbsp;follow&nbsp;here</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;</span><span class="java_separator">...</span>
+<!--  --><br/><span class="java_separator">}</span></pre></div></div><br class="example-break"/><p>To achieve this you have to add a few annotations to the
+    <code class="classname">Book</code> and <code class="classname">Author</code> class. The
+    first annotation <code class="literal">@Indexed</code> marks
+    <code class="classname">Book</code> as indexable. By design Hibernate Search needs
+    to store an untokenized id in the index to ensure index unicity for a
+    given entity. <code class="literal">@DocumentId</code> marks the property to use for
+    this purpose and is in most cases the same as the database primary key.
+    The <code class="literal">@DocumentId</code> annotation is optional in the case
+    where an <code class="classname">@Id</code> annotation exists.</p><p>Next you have to mark the fields you want to make searchable. Let's
+    start with <code class="literal">title</code> and <code class="literal">subtitle</code> and
+    annotate both with <code class="literal">@Field</code>. The parameter
+    <code class="literal">index=Index.YES</code> will ensure that the text will be
+    indexed, while <code class="literal">analyze=Analyze.YES</code> ensures that the
+    text will be analyzed using the default Lucene analyzer. Usually,
+    analyzing means chunking a sentence into individual words and potentially
+    excluding common words like <code class="literal">'a'</code> or
+    '<code class="literal">the</code>'. We will talk more about analyzers a little later
+    on. The third parameter we specify within
+    <code class="literal">@Field</code>,<code class="literal"> store=Store.NO</code>, ensures that
+    the actual data will not be stored in the index. Whether this data is
+    stored in the index or not has nothing to do with the ability to search
+    for it. From Lucene's perspective it is not necessary to keep the data
+    once the index is created. The benefit of storing it is the ability to
+    retrieve it via projections ( see <a href="search-query.html#projections" title="5.1.3.5. Projection">Section 5.1.3.5, “Projection”</a>).</p><p>Without projections, Hibernate Search will per default execute a
+    Lucene query in order to find the database identifiers of the entities
+    matching the query critera and use these identifiers to retrieve managed
+    objects from the database. The decision for or against projection has to
+    be made on a case to case basis. The default behaviour is recommended
+    since it returns managed objects whereas projections only return object
+    arrays.</p><p>Note that <code class="literal">index=Index.YES</code>,
+    <code class="literal">analyze=Analyze.YES</code> and
+    <code class="literal">store=Store.NO</code> are the default values for these
+    paramters and could be ommited.</p><p>After this short look under the hood let's go back to annotating the
+    <code class="classname">Book</code> class. Another annotation we have not yet
+    discussed is <code class="literal">@DateBridge</code>. This annotation is one of the
+    built-in field bridges in Hibernate Search. The Lucene index is purely
+    string based. For this reason Hibernate Search must convert the data types
+    of the indexed fields to strings and vice versa. A range of predefined
+    bridges are provided, including the <code class="classname">DateBridge</code>
+    which will convert a <code class="classname">java.util.Date</code> into a
+    <code class="classname">String</code> with the specified resolution. For more
+    details see <a href="search-mapping.html#search-mapping-bridge" title="4.4. Bridges">Section 4.4, “Bridges”</a>.</p><p>This leaves us with <code class="literal">@IndexedEmbedded. </code>This
+    annotation is used to index associated entities
+    (<code class="literal">@ManyToMany</code>, <code class="literal">@*ToOne</code>,
+    <code class="literal">@Embedded</code> and <code class="literal">@ElementCollection</code>) as
+    part of the owning entity. This is needed since a Lucene index document is
+    a flat data structure which does not know anything about object relations.
+    To ensure that the authors' name will be searchable you have to make sure
+    that the names are indexed as part of the book itself. On top of
+    <code class="literal">@IndexedEmbedded</code> you will also have to mark all fields
+    of the associated entity you want to have included in the index with
+    <code class="literal">@Indexed</code>. For more details see <a href="search-mapping.html#search-mapping-associated" title="4.1.3. Embedded and associated objects">Section 4.1.3, “Embedded and associated objects”</a>.</p><p>These settings should be sufficient for now. For more details on
+    entity mapping refer to <a href="search-mapping.html#search-mapping-entity" title="4.1. Mapping an entity">Section 4.1, “Mapping an entity”</a>.</p><div class="example"><a id="d0e370"/><p class="title"><b>Example 1.5. Example entities after adding Hibernate Search
+      annotations</b></p><div class="example-contents"><pre xmlns="" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="JAVA"><!-- <br/> --><span class="java_keyword">package</span><!-- <br/> --><span class="java_plain">&nbsp;example</span><!-- <br/> --><span class="java_separator">;</span>
+<!--  --><br/><span class="java_separator">...</span>
+<!--  --><br/><span class="java_plain">@</span><span class="java_type">Entity</span>
+@Indexed</span>
+<!--  --><br/><span class="java_keyword">public</span><span class="java_plain">&nbsp;</span><span class="java_keyword">class</span><span class="java_plain">&nbsp;</span><span class="java_type">Book</span><span class="java_plain">&nbsp;</span><span class="java_separator">{</span>
+</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;@</span><span class="java_type">Id</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;@</span><span class="java_type">GeneratedValue</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;</span><span class="java_keyword">private</span><span class="java_plain">&nbsp;</span><span class="java_type">Integer</span><span class="java_plain">&nbsp;id</span><span class="java_separator">;</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;</span>@Field(index=Index.YES, analyze=Analyze.YES, store=Store.NO)</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;</span><span class="java_keyword">private</span><span class="java_plain">&nbsp;</span><span class="java_type">String</span><span class="java_plain">&nbsp;title</span><span class="java_separator">;</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;</span>@Field(index=Index.YES, analyze=Analyze.YES, store=Store.NO)</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;</span><span class="java_keyword">private</span><span class="java_plain">&nbsp;</span><span class="java_type">String</span><span class="java_plain">&nbsp;subtitle</span><span class="java_separator">;</span><span class="java_plain">&nbsp;</span>
+</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;</span>@Field(index = Index.YES, analyze=Analyze.NO, store = Store.YES)
+  @DateBridge(resolution = Resolution.DAY)</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;</span><span class="java_keyword">private</span><span class="java_plain">&nbsp;</span><span class="java_type">Date</span><span class="java_plain">&nbsp;publicationDate</span><span class="java_separator">;</span>
+</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;</span>@IndexedEmbedded</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;@</span><span class="java_type">ManyToMany</span><span class="java_plain">&nbsp;</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;</span><span class="java_keyword">private</span><span class="java_plain">&nbsp;</span><span class="java_type">Set</span><span class="java_operator">&lt;</span><span class="java_type">Author</span><span class="java_operator">&gt;</span><span class="java_plain">&nbsp;authors&nbsp;</span><span class="java_operator">=</span><span class="java_plain">&nbsp;</span><span class="java_keyword">new</span><span class="java_plain">&nbsp;</span><span class="java_type">HashSet</span><span class="java_operator">&lt;</span><span class="java_type">Author</span><span class="java_operator">&gt;</span><span class="java_separator">();</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;</span></span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;</span><span class="java_keyword">public</span><span class="java_plain">&nbsp;</span><span class="java_type">Book</span><span class="java_separator">()</span><span class="java_plain">&nbsp;</span><span class="java_separator">{</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;</span><span class="java_separator">}</span><span class="java_plain">&nbsp;</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;</span><span class="java_operator">//</span><span class="java_plain">&nbsp;standard&nbsp;getters</span><span class="java_operator">/</span><span class="java_plain">setters&nbsp;follow&nbsp;here</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;</span><span class="java_separator">...</span><span class="java_plain">&nbsp;</span>
+<!--  --><br/><span class="java_separator">}</span></pre><pre xmlns="" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="JAVA"><!-- <br/> --><span class="java_keyword">package</span><!-- <br/> --><span class="java_plain">&nbsp;example</span><!-- <br/> --><span class="java_separator">;</span>
+<!--  --><br/><span class="java_separator">...</span>
+<!--  --><br/><span class="java_plain">@</span><span class="java_type">Entity</span>
+<!--  --><br/><span class="java_keyword">public</span><span class="java_plain">&nbsp;</span><span class="java_keyword">class</span><span class="java_plain">&nbsp;</span><span class="java_type">Author</span><span class="java_plain">&nbsp;</span><span class="java_separator">{</span>
+</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;@</span><span class="java_type">Id</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;@</span><span class="java_type">GeneratedValue</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;</span><span class="java_keyword">private</span><span class="java_plain">&nbsp;</span><span class="java_type">Integer</span><span class="java_plain">&nbsp;id</span><span class="java_separator">;</span>
+</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;</span>@Field</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;</span><span class="java_keyword">private</span><span class="java_plain">&nbsp;</span><span class="java_type">String</span><span class="java_plain">&nbsp;name</span><span class="java_separator">;</span>
+</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;</span><span class="java_keyword">public</span><span class="java_plain">&nbsp;</span><span class="java_type">Author</span><span class="java_separator">()</span><span class="java_plain">&nbsp;</span><span class="java_separator">{</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;</span><span class="java_separator">}</span><span class="java_plain">&nbsp;</span>
+<!--  --><br/><span class="java_plain">&nbsp;</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;</span><span class="java_operator">//</span><span class="java_plain">&nbsp;standard&nbsp;getters</span><span class="java_operator">/</span><span class="java_plain">setters&nbsp;follow&nbsp;here</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;</span><span class="java_separator">...</span>
+<!--  --><br/><span class="java_separator">}</span></pre></div></div><br class="example-break"/></div><div class="section" lang="en-US"><div class="titlepage"><div><div><h2 class="title"><a id="d0e397"/>1.4. Indexing</h2></div></div></div><p>Hibernate Search will transparently index every entity persisted,
+    updated or removed through Hibernate Core. However, you have to create an
+    initial Lucene index for the data already present in your database. Once
+    you have added the above properties and annotations it is time to trigger
+    an initial batch index of your books. You can achieve this by using one of
+    the following code snippets (see also <a href="manual-index-changes.html#search-batchindex" title="6.3. Rebuilding the whole index">Section 6.3, “Rebuilding the whole index”</a>):</p><div class="example"><a id="d0e404"/><p class="title"><b>Example 1.6. Using Hibernate Session to index data</b></p><div class="example-contents"><pre xmlns="" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="JAVA"><!-- <br/> --><span class="java_type">FullTextSession</span><!-- <br/> --><span class="java_plain">&nbsp;fullTextSession&nbsp;</span><!-- <br/> --><span class="java_operator">=</span><!-- <br/> --><span class="java_plain">&nbsp;</span><!-- <br/> --><span class="java_type">Search</span><!-- <br/> --><span class="java_separator">.</span><!-- <br/> --><span class="java_plain">getFullTextSession</span><!-- <br/> --><span class="java_separator">(</span><!-- <br/> --><span class="java_plain">session</span><!-- <br/> --><span class="java_separator">);</span>
+<!--  --><br/><span class="java_plain">fullTextSession</span><span class="java_separator">.</span><span class="java_plain">createIndexer</span><span class="java_separator">().</span><span class="java_plain">startAndWait</span><span class="java_separator">();</span></pre></div></div><br class="example-break"/><div class="example"><a id="d0e409"/><p class="title"><b>Example 1.7. Using JPA to index data</b></p><div class="example-contents"><pre xmlns="" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="JAVA"><!-- <br/> --><span class="java_type">EntityManager</span><!-- <br/> --><span class="java_plain">&nbsp;em&nbsp;</span><!-- <br/> --><span class="java_operator">=</span><!-- <br/> --><span class="java_plain">&nbsp;entityManagerFactory</span><!-- <br/> --><span class="java_separator">.</span><!-- <br/> --><span class="java_plain">createEntityManager</span><!-- <br/> --><span class="java_separator">();</span>
+<!--  --><br/><span class="java_type">FullTextEntityManager</span><span class="java_plain">&nbsp;fullTextEntityManager&nbsp;</span><span class="java_operator">=</span><span class="java_plain">&nbsp;</span><span class="java_type">Search</span><span class="java_separator">.</span><span class="java_plain">getFullTextEntityManager</span><span class="java_separator">(</span><span class="java_plain">em</span><span class="java_separator">);</span>
+<!--  --><br/><span class="java_plain">fullTextEntityManager</span><span class="java_separator">.</span><span class="java_plain">createIndexer</span><span class="java_separator">().</span><span class="java_plain">startAndWait</span><span class="java_separator">();</span></pre></div></div><br class="example-break"/><p>After executing the above code, you should be able to see a Lucene
+    index under <code class="literal">/var/lucene/indexes/example.Book</code>. Go ahead
+    an inspect this index with <a xmlns:xlink="http://www.w3.org/1999/xlink" href="http://code.google.com/p/luke/">Luke</a>. It will help you to
+    understand how Hibernate Search works.</p></div><div class="section" lang="en-US"><div class="titlepage"><div><div><h2 class="title"><a id="d0e422"/>1.5. Searching</h2></div></div></div><p>Now it is time to execute a first search. The general approach is to
+    create a Lucene query, either via the Lucene API (<a href="search-query.html#search-query-lucene-api" title="5.1.1. Building a Lucene query using the Lucene API">Section 5.1.1, “Building a Lucene query using the Lucene API”</a>) or via the Hibernate Search query DSL
+    (<a href="search-query.html#search-query-querydsl" title="5.1.2. Building a Lucene query with the Hibernate Search query DSL">Section 5.1.2, “Building a Lucene query with the Hibernate Search query
+      DSL”</a>), and then wrap this query into a
+    <code class="classname">org.hibernate.Query</code> in order to get all the
+    functionality one is used to from the Hibernate API. The following code
+    will prepare a query against the indexed fields, execute it and return a
+    list of <code class="classname">Book</code>s.</p><div class="example"><a id="d0e437"/><p class="title"><b>Example 1.8. Using Hibernate Session to create and execute a search</b></p><div class="example-contents"><pre xmlns="" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="JAVA"><!-- <br/> --><span class="java_type">FullTextSession</span><!-- <br/> --><span class="java_plain">&nbsp;fullTextSession&nbsp;</span><!-- <br/> --><span class="java_operator">=</span><!-- <br/> --><span class="java_plain">&nbsp;</span><!-- <br/> --><span class="java_type">Search</span><!-- <br/> --><span class="java_separator">.</span><!-- <br/> --><span class="java_plain">getFullTextSession</span><!-- <br/> --><span class="java_separator">(</span><!-- <br/> --><span class="java_plain">session</span><!-- <br/> --><span class="java_separator">);</span>
+<!--  --><br/><span class="java_type">Transaction</span><span class="java_plain">&nbsp;tx&nbsp;</span><span class="java_operator">=</span><span class="java_plain">&nbsp;fullTextSession</span><span class="java_separator">.</span><span class="java_plain">beginTransaction</span><span class="java_separator">();</span>
+</span>
+<!--  --><br/><span class="java_operator">//</span><span class="java_plain">&nbsp;create&nbsp;</span><span class="java_keyword">native</span><span class="java_plain">&nbsp;</span><span class="java_type">Lucene</span><span class="java_plain">&nbsp;query&nbsp;unsing&nbsp;the&nbsp;query&nbsp;DSL</span>
+<!--  --><br/><span class="java_operator">//</span><span class="java_plain">&nbsp;alternatively&nbsp;you&nbsp;can&nbsp;write&nbsp;the&nbsp;</span><span class="java_type">Lucene</span><span class="java_plain">&nbsp;query&nbsp;using&nbsp;the&nbsp;</span><span class="java_type">Lucene</span><span class="java_plain">&nbsp;query&nbsp;parser</span>
+<!--  --><br/><span class="java_operator">//</span><span class="java_plain">&nbsp;or&nbsp;the&nbsp;</span><span class="java_type">Lucene</span><span class="java_plain">&nbsp;programmatic&nbsp;API</span><span class="java_separator">.</span><span class="java_plain">&nbsp;</span><span class="java_type">The</span><span class="java_plain">&nbsp;</span><span class="java_type">Hibernate</span><span class="java_plain">&nbsp;</span><span class="java_type">Search</span><span class="java_plain">&nbsp;DSL&nbsp;is&nbsp;recommended&nbsp;though</span>
+<!--  --><br/><span class="java_type">QueryBuilder</span><span class="java_plain">&nbsp;qb&nbsp;</span><span class="java_operator">=</span><span class="java_plain">&nbsp;fullTextSession</span><span class="java_separator">.</span><span class="java_plain">getSearchFactory</span><span class="java_separator">()</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="java_separator">.</span><span class="java_plain">buildQueryBuilder</span><span class="java_separator">().</span><span class="java_plain">forEntity</span><span class="java_separator">(</span><span class="java_type">Book</span><span class="java_separator">.</span><span class="java_keyword">class</span><span class="java_separator">).</span><span class="java_plain">get</span><span class="java_separator">();</span>
+<!--  --><br/><span class="java_plain">org</span><span class="java_separator">.</span><span class="java_plain">apache</span><span class="java_separator">.</span><span class="java_plain">lucene</span><span class="java_separator">.</span><span class="java_plain">search</span><span class="java_separator">.</span><span class="java_type">Query</span><span class="java_plain">&nbsp;query&nbsp;</span><span class="java_operator">=</span><span class="java_plain">&nbsp;qb</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;</span><span class="java_separator">.</span><span class="java_plain">keyword</span><span class="java_separator">()</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;</span><span class="java_separator">.</span><span class="java_plain">onFields</span><span class="java_separator">(</span><span class="java_literal">&quot;title&quot;</span><span class="java_separator">,</span><span class="java_plain">&nbsp;</span><span class="java_literal">&quot;subtitle&quot;</span><span class="java_separator">,</span><span class="java_plain">&nbsp;</span><span class="java_literal">&quot;authors.name&quot;</span><span class="java_separator">)</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;</span><span class="java_separator">.</span><span class="java_plain">matching</span><span class="java_separator">(</span><span class="java_literal">&quot;Java&nbsp;rocks!&quot;</span><span class="java_separator">)</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;</span><span class="java_separator">.</span><span class="java_plain">createQuery</span><span class="java_separator">();</span>
+</span>
+<!--  --><br/><span class="java_operator">//</span><span class="java_plain">&nbsp;wrap&nbsp;</span><span class="java_type">Lucene</span><span class="java_plain">&nbsp;query&nbsp;in&nbsp;a&nbsp;org</span><span class="java_separator">.</span><span class="java_plain">hibernate</span><span class="java_separator">.</span><span class="java_type">Query</span>
+<!--  --><br/><span class="java_plain">org</span><span class="java_separator">.</span><span class="java_plain">hibernate</span><span class="java_separator">.</span><span class="java_type">Query</span><span class="java_plain">&nbsp;hibQuery&nbsp;</span><span class="java_operator">=</span><span class="java_plain">&nbsp;</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;&nbsp;&nbsp;fullTextSession</span><span class="java_separator">.</span><span class="java_plain">createFullTextQuery</span><span class="java_separator">(</span><span class="java_plain">query</span><span class="java_separator">,</span><span class="java_plain">&nbsp;</span><span class="java_type">Book</span><span class="java_separator">.</span><span class="java_keyword">class</span><span class="java_separator">);</span>
+</span>
+<!--  --><br/><span class="java_operator">//</span><span class="java_plain">&nbsp;execute&nbsp;search</span>
+<!--  --><br/><span class="java_type">List</span><span class="java_plain">&nbsp;result&nbsp;</span><span class="java_operator">=</span><span class="java_plain">&nbsp;hibQuery</span><span class="java_separator">.</span><span class="java_plain">list</span><span class="java_separator">();</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;</span>
+<!--  --><br/><span class="java_plain">tx</span><span class="java_separator">.</span><span class="java_plain">commit</span><span class="java_separator">();</span>
+<!--  --><br/><span class="java_plain">session</span><span class="java_separator">.</span><span class="java_plain">close</span><span class="java_separator">();</span></pre></div></div><br class="example-break"/><div class="example"><a id="d0e442"/><p class="title"><b>Example 1.9. Using JPA to create and execute a search</b></p><div class="example-contents"><pre xmlns="" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="JAVA"><!-- <br/> --><span class="java_type">EntityManager</span><!-- <br/> --><span class="java_plain">&nbsp;em&nbsp;</span><!-- <br/> --><span class="java_operator">=</span><!-- <br/> --><span class="java_plain">&nbsp;entityManagerFactory</span><!-- <br/> --><span class="java_separator">.</span><!-- <br/> --><span class="java_plain">createEntityManager</span><!-- <br/> --><span class="java_separator">();</span>
+<!--  --><br/><span class="java_type">FullTextEntityManager</span><span class="java_plain">&nbsp;fullTextEntityManager&nbsp;</span><span class="java_operator">=</span><span class="java_plain">&nbsp;</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;&nbsp;&nbsp;org</span><span class="java_separator">.</span><span class="java_plain">hibernate</span><span class="java_separator">.</span><span class="java_plain">search</span><span class="java_separator">.</span><span class="java_plain">jpa</span><span class="java_separator">.</span><span class="java_type">Search</span><span class="java_separator">.</span><span class="java_plain">getFullTextEntityManager</span><span class="java_separator">(</span><span class="java_plain">em</span><span class="java_separator">);</span>
+<!--  --><br/><span class="java_plain">em</span><span class="java_separator">.</span><span class="java_plain">getTransaction</span><span class="java_separator">().</span><span class="java_plain">begin</span><span class="java_separator">();</span>
+</span>
+<!--  --><br/><span class="java_operator">//</span><span class="java_plain">&nbsp;create&nbsp;</span><span class="java_keyword">native</span><span class="java_plain">&nbsp;</span><span class="java_type">Lucene</span><span class="java_plain">&nbsp;query&nbsp;unsing&nbsp;the&nbsp;query&nbsp;DSL</span>
+<!--  --><br/><span class="java_operator">//</span><span class="java_plain">&nbsp;alternatively&nbsp;you&nbsp;can&nbsp;write&nbsp;the&nbsp;</span><span class="java_type">Lucene</span><span class="java_plain">&nbsp;query&nbsp;using&nbsp;the&nbsp;</span><span class="java_type">Lucene</span><span class="java_plain">&nbsp;query&nbsp;parser</span>
+<!--  --><br/><span class="java_operator">//</span><span class="java_plain">&nbsp;or&nbsp;the&nbsp;</span><span class="java_type">Lucene</span><span class="java_plain">&nbsp;programmatic&nbsp;API</span><span class="java_separator">.</span><span class="java_plain">&nbsp;</span><span class="java_type">The</span><span class="java_plain">&nbsp;</span><span class="java_type">Hibernate</span><span class="java_plain">&nbsp;</span><span class="java_type">Search</span><span class="java_plain">&nbsp;DSL&nbsp;is&nbsp;recommended&nbsp;though</span>
+<!--  --><br/><span class="java_type">QueryBuilder</span><span class="java_plain">&nbsp;qb&nbsp;</span><span class="java_operator">=</span><span class="java_plain">&nbsp;fullTextEntityManager</span><span class="java_separator">.</span><span class="java_plain">getSearchFactory</span><span class="java_separator">()</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="java_separator">.</span><span class="java_plain">buildQueryBuilder</span><span class="java_separator">().</span><span class="java_plain">forEntity</span><span class="java_separator">(</span><span class="java_type">Book</span><span class="java_separator">.</span><span class="java_keyword">class</span><span class="java_separator">).</span><span class="java_plain">get</span><span class="java_separator">();</span>
+<!--  --><br/><span class="java_plain">org</span><span class="java_separator">.</span><span class="java_plain">apache</span><span class="java_separator">.</span><span class="java_plain">lucene</span><span class="java_separator">.</span><span class="java_plain">search</span><span class="java_separator">.</span><span class="java_type">Query</span><span class="java_plain">&nbsp;query&nbsp;</span><span class="java_operator">=</span><span class="java_plain">&nbsp;qb</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;</span><span class="java_separator">.</span><span class="java_plain">keyword</span><span class="java_separator">()</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;</span><span class="java_separator">.</span><span class="java_plain">onFields</span><span class="java_separator">(</span><span class="java_literal">&quot;title&quot;</span><span class="java_separator">,</span><span class="java_plain">&nbsp;</span><span class="java_literal">&quot;subtitle&quot;</span><span class="java_separator">,</span><span class="java_plain">&nbsp;</span><span class="java_literal">&quot;authors.name&quot;</span><span class="java_separator">)</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;</span><span class="java_separator">.</span><span class="java_plain">matching</span><span class="java_separator">(</span><span class="java_literal">&quot;Java&nbsp;rocks!&quot;</span><span class="java_separator">)</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;</span><span class="java_separator">.</span><span class="java_plain">createQuery</span><span class="java_separator">();</span>
+</span>
+<!--  --><br/><span class="java_operator">//</span><span class="java_plain">&nbsp;wrap&nbsp;</span><span class="java_type">Lucene</span><span class="java_plain">&nbsp;query&nbsp;in&nbsp;a&nbsp;javax</span><span class="java_separator">.</span><span class="java_plain">persistence</span><span class="java_separator">.</span><span class="java_type">Query</span>
+<!--  --><br/><span class="java_plain">javax</span><span class="java_separator">.</span><span class="java_plain">persistence</span><span class="java_separator">.</span><span class="java_type">Query</span><span class="java_plain">&nbsp;persistenceQuery&nbsp;</span><span class="java_operator">=</span><span class="java_plain">&nbsp;</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;&nbsp;&nbsp;fullTextEntityManager</span><span class="java_separator">.</span><span class="java_plain">createFullTextQuery</span><span class="java_separator">(</span><span class="java_plain">query</span><span class="java_separator">,</span><span class="java_plain">&nbsp;</span><span class="java_type">Book</span><span class="java_separator">.</span><span class="java_keyword">class</span><span class="java_separator">);</span>
+</span>
+<!--  --><br/><span class="java_operator">//</span><span class="java_plain">&nbsp;execute&nbsp;search</span>
+<!--  --><br/><span class="java_type">List</span><span class="java_plain">&nbsp;result&nbsp;</span><span class="java_operator">=</span><span class="java_plain">&nbsp;persistenceQuery</span><span class="java_separator">.</span><span class="java_plain">getResultList</span><span class="java_separator">();</span>
+</span>
+<!--  --><br/><span class="java_plain">em</span><span class="java_separator">.</span><span class="java_plain">getTransaction</span><span class="java_separator">().</span><span class="java_plain">commit</span><span class="java_separator">();</span>
+<!--  --><br/><span class="java_plain">em</span><span class="java_separator">.</span><span class="java_plain">close</span><span class="java_separator">();</span></pre></div></div><br class="example-break"/></div><div class="section" lang="en-US"><div class="titlepage"><div><div><h2 class="title"><a id="d0e447"/>1.6. Analyzer</h2></div></div></div><p>Let's make things a little more interesting now. Assume that one of
+    your indexed book entities has the title "Refactoring: Improving the
+    Design of Existing Code" and you want to get hits for all of the following
+    queries: "refactor", "refactors", "refactored" and "refactoring". In
+    Lucene this can be achieved by choosing an analyzer class which applies
+    word stemming during the indexing <span class="bold"><strong>as well
+    as</strong></span> the search process. Hibernate Search offers several ways to
+    configure the analyzer to be used (see <a href="search-mapping.html#analyzer" title="4.3.1. Default analyzer and analyzer by class">Section 4.3.1, “Default analyzer and analyzer by class”</a>):</p><div class="itemizedlist"><ul><li><p>Setting the <code class="literal">hibernate.search.analyzer</code>
+        property in the configuration file. The specified class will then be
+        the default analyzer.</p></li><li><p>Setting the <code class="literal"><code class="literal">@Analyzer</code></code>
+        annotation at the entity level.</p></li><li><p>Setting the <code class="literal">@<code class="literal">Analyzer</code></code>
+        annotation at the field level.</p></li></ul></div><p>When using the <code class="literal">@Analyzer</code> annotation one can
+    either specify the fully qualified classname of the analyzer to use or one
+    can refer to an analyzer definition defined by the
+    <code class="literal">@AnalyzerDef</code> annotation. In the latter case the Solr
+    analyzer framework with its factories approach is utilized. To find out
+    more about the factory classes available you can either browse the Solr
+    JavaDoc or read the corresponding section on the <a xmlns:xlink="http://www.w3.org/1999/xlink" href="http://wiki.apache.org/solr/AnalyzersTokenizersTokenFilters">Solr
+    Wiki.</a></p><p>In the example below a
+    <code class="classname">StandardTokenizerFactory</code> is used followed by two
+    filter factories, <code class="classname">LowerCaseFilterFactory</code> and
+    <code class="classname">SnowballPorterFilterFactory</code>. The standard tokenizer
+    splits words at punctuation characters and hyphens while keeping email
+    addresses and internet hostnames intact. It is a good general purpose
+    tokenizer. The lowercase filter lowercases the letters in each token
+    whereas the snowball filter finally applies language specific
+    stemming.</p><p>Generally, when using the Solr framework you have to start with a
+    tokenizer followed by an arbitrary number of filters.</p><div class="example"><a id="d0e502"/><p class="title"><b>Example 1.10. Using <code class="classname">@AnalyzerDef</code> and the Solr framework
+      to define and use an analyzer</b></p><div class="example-contents"><pre xmlns="" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="JAVA"><!-- <br/> --><span class="java_plain">@</span><!-- <br/> --><span class="java_type">Entity</span>
+<!--  --><br/><span class="java_plain">@</span><span class="java_type">Indexed</span>
+@AnalyzerDef(name = "customanalyzer",
+  tokenizer = @TokenizerDef(factory = StandardTokenizerFactory.class),
+  filters = {
+    @TokenFilterDef(factory = LowerCaseFilterFactory.class),
+    @TokenFilterDef(factory = SnowballPorterFilterFactory.class, params = {
+      @Parameter(name = "language", value = "English")
+    })
+  })</span>
+<!--  --><br/><span class="java_keyword">public</span><span class="java_plain">&nbsp;</span><span class="java_keyword">class</span><span class="java_plain">&nbsp;</span><span class="java_type">Book</span><span class="java_plain">&nbsp;</span><span class="java_separator">{</span>
+</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;@</span><span class="java_type">Id</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;@</span><span class="java_type">GeneratedValue</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;@</span><span class="java_type">DocumentId</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;</span><span class="java_keyword">private</span><span class="java_plain">&nbsp;</span><span class="java_type">Integer</span><span class="java_plain">&nbsp;id</span><span class="java_separator">;</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;@</span><span class="java_type">Field</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;</span>@Analyzer(definition = "customanalyzer")</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;</span><span class="java_keyword">private</span><span class="java_plain">&nbsp;</span><span class="java_type">String</span><span class="java_plain">&nbsp;title</span><span class="java_separator">;</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;@</span><span class="java_type">Field</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;</span>@Analyzer(definition = "customanalyzer")</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;</span><span class="java_keyword">private</span><span class="java_plain">&nbsp;</span><span class="java_type">String</span><span class="java_plain">&nbsp;subtitle</span><span class="java_separator">;</span><span class="java_plain">&nbsp;</span>
+</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;@</span><span class="java_type">IndexedEmbedded</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;@</span><span class="java_type">ManyToMany</span><span class="java_plain">&nbsp;</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;</span><span class="java_keyword">private</span><span class="java_plain">&nbsp;</span><span class="java_type">Set</span><span class="java_operator">&lt;</span><span class="java_type">Author</span><span class="java_operator">&gt;</span><span class="java_plain">&nbsp;authors&nbsp;</span><span class="java_operator">=</span><span class="java_plain">&nbsp;</span><span class="java_keyword">new</span><span class="java_plain">&nbsp;</span><span class="java_type">HashSet</span><span class="java_operator">&lt;</span><span class="java_type">Author</span><span class="java_operator">&gt;</span><span class="java_separator">();</span>
+</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;@</span><span class="java_type">Field</span><span class="java_separator">(</span><span class="java_plain">index&nbsp;</span><span class="java_operator">=</span><span class="java_plain">&nbsp;</span><span class="java_type">Index</span><span class="java_separator">.</span><span class="java_plain">YES</span><span class="java_separator">,</span><span class="java_plain">&nbsp;analyze&nbsp;</span><span class="java_operator">=</span><span class="java_plain">&nbsp;</span><span class="java_type">Analyze</span><span class="java_separator">.</span><span class="java_plain">NO</span><span class="java_separator">,</span><span class="java_plain">&nbsp;store&nbsp;</span><span class="java_operator">=</span><span class="java_plain">&nbsp;</span><span class="java_type">Store</span><span class="java_separator">.</span><span class="java_plain">YES</span><span class="java_separator">)</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;@</span><span class="java_type">DateBridge</span><span class="java_separator">(</span><span class="java_plain">resolution&nbsp;</span><span class="java_operator">=</span><span class="java_plain">&nbsp;</span><span class="java_type">Resolution</span><span class="java_separator">.</span><span class="java_plain">DAY</span><span class="java_separator">)</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;</span><span class="java_keyword">private</span><span class="java_plain">&nbsp;</span><span class="java_type">Date</span><span class="java_plain">&nbsp;publicationDate</span><span class="java_separator">;</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;</span><span class="java_keyword">public</span><span class="java_plain">&nbsp;</span><span class="java_type">Book</span><span class="java_separator">()</span><span class="java_plain">&nbsp;</span><span class="java_separator">{</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;</span><span class="java_separator">}</span><span class="java_plain">&nbsp;</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;</span><span class="java_operator">//</span><span class="java_plain">&nbsp;standard&nbsp;getters</span><span class="java_operator">/</span><span class="java_plain">setters&nbsp;follow&nbsp;here</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;</span><span class="java_separator">...</span><span class="java_plain">&nbsp;</span>
+<!--  --><br/><span class="java_separator">}</span></pre></div></div><br class="example-break"/><p>Using <code class="classname">@AnalyzerDef</code> only defines an Analyzer,
+    you still have to apply it to entities and or properties using
+    <code class="classname">@Analyzer</code>. Like in the above example the
+    <code class="literal">customanalyzer</code> is defined but not applied on the
+    entity: it's applied on the <code class="literal">title</code> and
+    <code class="literal">subtitle</code> properties only. An analyzer definition is
+    global, so you can define it on any entity and reuse the definition on
+    other entities.</p></div><div class="section" lang="en-US"><div class="titlepage"><div><div><h2 class="title"><a id="d0e536"/>1.7. What's next</h2></div></div></div><p>The above paragraphs helped you getting an overview of Hibernate
+    Search. The next step after this tutorial is to get more familiar with the
+    overall architecture of Hibernate Search (<a href="search-architecture.html" title="Chapter 2. Architecture">Chapter 2, <i xmlns:xlink="http://www.w3.org/1999/xlink">Architecture</i></a>) and explore the basic features in more
+    detail. Two topics which were only briefly touched in this tutorial were
+    analyzer configuration (<a href="search-mapping.html#analyzer" title="4.3.1. Default analyzer and analyzer by class">Section 4.3.1, “Default analyzer and analyzer by class”</a>) and field bridges
+    (<a href="search-mapping.html#search-mapping-bridge" title="4.4. Bridges">Section 4.4, “Bridges”</a>). Both are important features
+    required for more fine-grained indexing. More advanced topics cover
+    clustering (<a href="search-configuration.html#jms-backend" title="3.4.1. JMS Master/Slave back end">Section 3.4.1, “JMS Master/Slave back end”</a>, <a href="search-configuration.html#infinispan-directories" title="3.3.1. Infinispan Directory configuration">Section 3.3.1, “Infinispan Directory configuration”</a>) and large index handling (<a href="search-lucene-native.html#advanced-features-sharding" title="10.4. Sharding indexes">Section 10.4, “Sharding indexes”</a>).</p></div></div><HR xmlns=""/><a xmlns="" href=""/><ul class="docnav"><li class="previous"><a accesskey="p" href="preface.html"><strong>Prev</strong>Preface</a></li><li class="up"><a accesskey="u" href="#"><strong>Top of page</strong></a></li><li class="home"><a accesskey="h" href="index.html"><strong>Front page</strong></a></li><li class="next"><a accesskey="n" href="search-architecture.html"><strong>Next</strong>Chapter 2. Architecture</a></li></ul></body></html>

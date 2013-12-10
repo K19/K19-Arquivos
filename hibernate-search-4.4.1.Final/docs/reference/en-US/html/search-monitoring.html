@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml"><head><title xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory">Chapter 8. Monitoring</title><link rel="stylesheet" href="css/hibernate.css" type="text/css"/><meta xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" name="generator" content="DocBook XSL Stylesheets V1.72.0"/><link rel="start" href="index.html" title="Hibernate Search"/><link rel="up" href="index.html" title="Hibernate Search"/><link rel="prev" href="search-optimize.html" title="Chapter 7. Index Optimization"/><link rel="next" href="spatial.html" title="Chapter 9. Spatial"/></head><body><p id="title"><a href="http://www.hibernate.org" class="site_href"><strong>Hibernate.org</strong></a><a href="http://hibernate.org/Documentation/DocumentationOverview" class="doc_href"><strong>Community Documentation</strong></a></p><ul class="docnav"><li class="previous"><a accesskey="p" href="search-optimize.html"><strong>Prev</strong></a></li><li class="next"><a accesskey="n" href="spatial.html"><strong>Next</strong></a></li></ul><div class="chapter" lang="en-US"><div class="titlepage"><div><div><h2 class="title"><a id="search-monitoring"/>Chapter 8. Monitoring</h2></div></div></div><div class="toc"><dl><dt><span class="section"><a href="search-monitoring.html#d0e7595">8.1. JMX</a></span></dt><dd><dl><dt><span class="section"><a href="search-monitoring.html#d0e7624">8.1.1. StatisticsInfoMBean</a></span></dt><dt><span class="section"><a href="search-monitoring.html#d0e7632">8.1.2. IndexControlMBean</a></span></dt><dt><span class="section"><a href="search-monitoring.html#d0e7648">8.1.3. IndexingProgressMonitorMBean</a></span></dt></dl></dd></dl></div><p>Hibernate Search offers access to a <code class="classname">Statistics</code>
+  object via <code class="methodname">SearchFactory.getStatistics()</code>. It allows
+  you for example to determine which classes are indexed and how many entities
+  are in the index. This information is always available. However, by
+  specifying the <code class="literal">hibernate.search.generate_statistics</code>
+  property in your configuration you can also collect total and average Lucene
+  query and object loading timings.</p><div class="section" lang="en-US"><div class="titlepage"><div><div><h2 class="title"><a id="d0e7595"/>8.1. JMX</h2></div></div></div><p>You can also enable access to the statistics via JMX. Setting the
+    property <code class="literal">hibernate.search.jmx_enabled</code> will
+    automatically register the <code class="classname">StatisticsInfoMBean</code>.
+    Depending on your the configuration the
+    <code class="classname">IndexControlMBean</code> and
+    <code class="classname">IndexingProgressMonitorMBean</code> will also be
+    registered. In case you are having more than one JMX enabled Hibernate
+    Search instance running within a single JVM, you should also set
+    <span class="property">hibernate.search.jmx_bean_suffix</span> to a different value
+    for each of the instances. The specified suffix will be used to
+    distinguish between the different MBean instances. Let's have a closer
+    look at the mentioned MBeans. </p><div xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="tip"><h2>Tip</h2><p>If you want to access your JMX beans remotely via JConsole make
+        sure to set the system property
+        <code class="varname">com.sun.management.jmxremote</code> to
+        <code class="constant">true</code>.</p></div><div class="section" lang="en-US"><div class="titlepage"><div><div><h3 class="title"><a id="d0e7624"/>8.1.1. StatisticsInfoMBean</h3></div></div></div><p>This MBean gives you access to <code class="classname">Statistics</code>
+      object as desribed in the previous section.</p></div><div class="section" lang="en-US"><div class="titlepage"><div><div><h3 class="title"><a id="d0e7632"/>8.1.2. IndexControlMBean</h3></div></div></div><p>This MBean allows to build, optimize and purge the index for a
+      given entity. Indexing occurs via the mass indexing API (see<a href="manual-index-changes.html#search-batchindex-massindexer" title="6.3.2. Using a MassIndexer">Section 6.3.2, “Using a MassIndexer”</a>). A requirement for this bean
+      to be registered in JMX is, that the Hibernate
+      <code class="classname">SessionFactory</code> is bound to JNDI via the
+      <code class="literal">hibernate.session_factory_name</code> property. Refer to the
+      Hibernate Core manual for more information on how to configure JNDI. The
+      <code class="classname">IndexControlMBean</code> and its API are for now
+      experimental.</p></div><div class="section" lang="en-US"><div class="titlepage"><div><div><h3 class="title"><a id="d0e7648"/>8.1.3. IndexingProgressMonitorMBean</h3></div></div></div><p>This MBean is an implementation
+      <code class="classname">MassIndexerProgressMonitor</code> interface. If
+      <code class="literal">hibernate.search.jmx_enabled</code> is enabled and the mass
+      indexer API is used the indexing progress can be followed via this bean.
+      The bean will only be bound to JMX while indexing is in progress. Once
+      indexing is completed the MBean is not longer available.</p></div></div></div><HR xmlns=""/><a xmlns="" href=""/><ul class="docnav"><li class="previous"><a accesskey="p" href="search-optimize.html"><strong>Prev</strong>Chapter 7. Index Optimization</a></li><li class="up"><a accesskey="u" href="#"><strong>Top of page</strong></a></li><li class="home"><a accesskey="h" href="index.html"><strong>Front page</strong></a></li><li class="next"><a accesskey="n" href="spatial.html"><strong>Next</strong>Chapter 9. Spatial</a></li></ul></body></html>

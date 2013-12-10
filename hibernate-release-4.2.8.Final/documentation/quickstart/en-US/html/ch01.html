@@ -1,0 +1,142 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml"><head><title>Chapter 1. Obtaining Hibernate</title><link rel="stylesheet" type="text/css" href="css/hibernate.css"/><meta name="generator" content="DocBook XSL Stylesheets V1.76.1"/><link rel="home" href="index.html" title="Hibernate Getting Started Guide"/><link rel="up" href="index.html" title="Hibernate Getting Started Guide"/><link rel="prev" href="pr01.html" title="Preface"/><link rel="next" href="ch02.html" title="Chapter 2. Tutorial Using Native Hibernate APIs and hbm.xml Mappings"/><meta xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" http-equiv="Content-Type" content="text/html; charset=UTF-8"/></head><body><p xmlns:d="http://docbook.org/ns/docbook" id="title"><a href="http://www.hibernate.org" class="site_href"><strong>Hibernate.org</strong></a><a href="http://hibernate.org/Documentation/DocumentationOverview" class="doc_href"><strong>Community Documentation</strong></a></p><ul xmlns:d="http://docbook.org/ns/docbook" class="docnav"><li class="previous"><a accesskey="p" href="pr01.html"><strong>Prev</strong></a></li><li class="next"><a accesskey="n" href="ch02.html"><strong>Next</strong></a></li></ul><div class="chapter" title="Chapter 1. Obtaining Hibernate"><div class="titlepage"><div><div><h2 class="title"><a id="d5e61"/>Chapter 1. Obtaining Hibernate</h2></div></div></div><div class="toc"><p><strong>Table of Contents</strong></p><dl><dt><span class="section"><a href="ch01.html#hibernate-gsg-setup-releaseBundle">1.1. Release Bundle Downloads</a></span></dt><dt><span class="section"><a href="ch01.html#hibernate-gsg-setup-mavenRepoArtifacts">1.2. Maven Repository Artifacts</a></span></dt></dl></div>
+    
+
+    <div class="section" title="1.1. Release Bundle Downloads"><div class="titlepage"><div><div><h2 class="title"><a id="hibernate-gsg-setup-releaseBundle"/>1.1. Release Bundle Downloads</h2></div></div></div>
+        
+        <p>
+            The Hibernate team provides release bundles hosted on the SourceForge File Release System, in
+            <code class="literal">ZIP</code>
+            and
+            <code class="literal">TGZ</code>
+            formats. Each release bundle contains<code class="literal">JARs</code>,
+            documentation, source code, and other goodness.
+        </p>
+        <p>
+            You can download releases of Hibernate, in your chosen format, from the list at
+            <a class="ulink" href="http://sourceforge.net/projects/hibernate/files/hibernate4/">http://sourceforge.net/projects/hibernate/files/hibernate4/</a>.
+        </p>
+        <div class="itemizedlist"><ul class="itemizedlist"><li class="listitem">
+                <p>
+                    The <code class="filename">lib/required/</code> directory contains all the JARs Hibernate requires.  All the
+                    jars in this directory must also be included in your project's classpath.
+                </p>
+            </li><li class="listitem">
+                <p>
+                    The <code class="filename">/lib/jpa/</code> directory contains the
+                    <code class="systemitem">hibernate-entitymanager</code> jar and its dependencies beyond those
+                    in <code class="filename">lib/required/</code>.  This defines Hibernate support for
+                    <a class="ulink" href="http://jcp.org/en/jsr/detail?id=317">JPA</a>.
+                </p>
+            </li><li class="listitem">
+                <p>
+                    The <code class="filename">lib/envers</code> directory contains the <code class="systemitem">hibernate-envers</code>
+                    jar and its dependencies beyond those in <code class="filename">lib/required/</code>
+                </p>
+            </li><li class="listitem">
+                <p>
+                    The <code class="filename">lib/optional</code> directory contains the jars needed for optional features of
+                    Hibernate.
+                </p>
+            </li></ul></div>
+    </div>
+
+    <div class="section" title="1.2. Maven Repository Artifacts"><div class="titlepage"><div><div><h2 class="title"><a id="hibernate-gsg-setup-mavenRepoArtifacts"/>1.2. Maven Repository Artifacts</h2></div></div></div>
+        
+        <div xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="note" style="margin-left: 0.5in; margin-right: 0.5in;"><h2>Note</h2>
+            <p>
+                The authoritative repository for Hibernate artifacts is the JBoss Maven repository. The team responsible
+                for the JBoss Maven repository maintains a number of Wiki pages that contain important information.
+            </p>
+            <div class="itemizedlist" title="Maven Repository Wiki Pages"><p class="title"><strong>Maven Repository Wiki Pages</strong></p><ul class="itemizedlist"><li class="listitem">
+                    <p>
+                        <a class="ulink" href="http://community.jboss.org/docs/DOC-14900">http://community.jboss.org/docs/DOC-14900</a> - General information about the repository.
+                    </p>
+                </li><li class="listitem">
+                    <p>
+                        <a class="ulink" href="http://community.jboss.org/docs/DOC-15170">http://community.jboss.org/docs/DOC-15170</a> - Information about setting up the JBoss
+                        repositories in order to do development work on JBoss projects themselves.
+                    </p>
+                </li><li class="listitem">
+                    <p>
+                        <a class="ulink" href="http://community.jboss.org/docs/DOC-15169">http://community.jboss.org/docs/DOC-15169</a> - Information about setting up access to
+                        the repository to use JBoss projects as part of your own software.
+                    </p>
+                </li></ul></div>
+        </div>
+
+        <p>
+            Hibernate produces a number of artifacts (all under the <code class="systemitem">org.hibernate</code> groupId):
+        </p>
+        <div class="variablelist" title="Hibernate Artifacts under groupId org.hibernate"><p class="title"><strong>Hibernate Artifacts under groupId <code class="systemitem">org.hibernate</code>
+            </strong></p><dl><dt><span class="term">hibernate-core</span></dt><dd>
+                    <p>
+                        The main artifact, needed to build applications using the native Hibernate APIs including
+                        defining metadata in both annotations as well as Hibernate's own <code class="filename">hbm.xml</code>
+                        format.
+                    </p>
+                </dd><dt><span class="term">hibernate-entitymanager</span></dt><dd>
+                    <p>
+                        Represents Hibernate's implementation of <span>JPA</span>, as specified at
+                        <a class="ulink" href="http://jcp.org/en/jsr/detail?id=317">http://jcp.org/en/jsr/detail?id=317</a>.
+                    </p>
+                    <p>
+                        This artifact depends on <code class="systemitem">hibernate-core</code>
+                    </p>
+                </dd><dt><span class="term">hibernate-envers</span></dt><dd>
+                    <p>
+                        An optional module that provides historical auditing of changes to your entities.
+                    </p>
+                    <p>
+                        This artifact depends on both <code class="systemitem">hibernate-core</code>
+                        and <code class="systemitem">hibernate-entitymanager</code>.
+                    </p>
+                </dd><dt><span class="term">hibernate-c3p0</span></dt><dd>
+                    <p>
+                        Provides integration between Hibernate and the <span class="application">C3P0</span> connection
+                        pool library.  See <a class="ulink" href="http://sourceforge.net/projects/c3p0/">http://sourceforge.net/projects/c3p0/</a> for information
+                        about <span class="application">C3P0</span>.
+                    </p>
+                    <p>
+                        This artifact depends on <code class="systemitem">hibernate-core</code>, but is generally included
+                        in a project as a runtime dependency.  It pulls in the <span class="application">C3P0</span>
+                        dependencies automatically.
+                    </p>
+                </dd><dt><span class="term">hibernate-proxool</span></dt><dd>
+                    <p>
+                        Provides integration between Hibernate and the <span class="application">Proxool</span> connection
+                        pool library. See <a class="ulink" href="http://proxool.sourceforge.net/">http://proxool.sourceforge.net/</a> for more information about
+                        this library.
+                    </p>
+                    <p>
+                        This artifact depends on <code class="systemitem">hibernate-core</code>, but is generally included
+                        in a project as a runtime dependency. It pulls in the <span class="application">Proxool</span>
+                        dependencies automatically..
+                    </p>
+                </dd><dt><span class="term">hibernate-ehcache</span></dt><dd>
+                    <p>
+                        Privides integration between Hibernate and <span class="application">EhCache</span>, as a
+                        second-level cache. See <a class="ulink" href="http://ehcache.sourceforge.net/">http://ehcache.sourceforge.net/</a> for more
+                        information about<span class="application">EhCache</span>.
+                    </p>
+                    <p>
+                        This artifact depends on <code class="systemitem">hibernate-core</code>, but is generally included
+                        in a project as a runtime dependency. It pulls in the <span class="application">Ehcache</span>
+                        dependencies automatically.
+                    </p>
+                </dd><dt><span class="term">hibernate-infinispan</span></dt><dd>
+                    <p>
+                        Provides integration between Hibernate and <span class="application">Infinispan</span>, as a
+                        second-level cache. See <a class="ulink" href="http://jboss.org/infinispan">http://jboss.org/infinispan</a> for more information
+                        about <span class="application">Infinispan</span>.
+                    </p>
+                    <p>
+                        This artifact depends on <code class="systemitem">hibernate-core</code>, but is generally included
+                        in a project as a runtime dependency. It pulls in the <span class="application">Infinispan</span>
+                        dependencies automatically.
+                    </p>
+                </dd></dl></div>
+    </div>
+</div><hr xmlns="" xmlns:d="http://docbook.org/ns/docbook"/><a xmlns="" xmlns:d="http://docbook.org/ns/docbook" href="legalnotice.html"/><ul xmlns:d="http://docbook.org/ns/docbook" class="docnav"><li class="previous"><a accesskey="p" href="pr01.html"><strong>Prev</strong>Preface</a></li><li class="up"><a accesskey="u" href="#"><strong>Up</strong></a></li><li class="home"><a accesskey="h" href="index.html"><strong>Home</strong></a></li><li class="next"><a accesskey="n" href="ch02.html"><strong>Next</strong>Chapter 2. Tutorial Using Native Hibernate APIs a...</a></li></ul></body></html>

@@ -1,0 +1,252 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml"><head><title>Chapter 22. Additional modules</title><link rel="stylesheet" type="text/css" href="css/hibernate.css"/><meta name="generator" content="DocBook XSL Stylesheets V1.76.1"/><link rel="home" href="index.html" title="HIBERNATE - Relational Persistence for Idiomatic Java"/><link rel="up" href="index.html" title="HIBERNATE - Relational Persistence for Idiomatic Java"/><link rel="prev" href="ch21.html" title="Chapter 21. Toolset Guide"/><link rel="next" href="ch23.html" title="Chapter 23. Example: Parent/Child"/><link rel="copyright" href="ln-d5e19.html" title="Legal Notice"/><meta xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" http-equiv="Content-Type" content="text/html; charset=UTF-8"/></head><body><p xmlns:d="http://docbook.org/ns/docbook" id="title"><a href="http://www.hibernate.org" class="site_href"><strong>Hibernate.org</strong></a><a href="http://hibernate.org/Documentation/DocumentationOverview" class="doc_href"><strong>Community Documentation</strong></a></p><ul xmlns:d="http://docbook.org/ns/docbook" class="docnav"><li class="previous"><a accesskey="p" href="ch21.html"><strong>Prev</strong></a></li><li class="next"><a accesskey="n" href="ch23.html"><strong>Next</strong></a></li></ul><div class="chapter" title="Chapter 22. Additional modules"><div class="titlepage"><div><div><h2 class="title"><a id="additionalmodules"/>Chapter 22. Additional modules</h2></div></div></div><div class="toc"><p><strong>Table of Contents</strong></p><dl><dt><span class="section"><a href="ch22.html#d5e9814">22.1. Bean Validation</a></span></dt><dd><dl><dt><span class="section"><a href="ch22.html#d5e9823">22.1.1. Adding Bean Validation</a></span></dt><dt><span class="section"><a href="ch22.html#d5e9826">22.1.2. Configuration</a></span></dt><dt><span class="section"><a href="ch22.html#d5e9882">22.1.3. Catching violations</a></span></dt><dt><span class="section"><a href="ch22.html#d5e9895">22.1.4. Database schema</a></span></dt></dl></dd><dt><span class="section"><a href="ch22.html#d5e9918">22.2. Hibernate Search</a></span></dt><dd><dl><dt><span class="section"><a href="ch22.html#d5e9920">22.2.1. Description</a></span></dt><dt><span class="section"><a href="ch22.html#d5e9925">22.2.2. Integration with Hibernate Annotations</a></span></dt></dl></dd></dl></div>
+  
+
+  <p>Hibernate Core also offers integration with some external
+  modules/projects. This includes Hibernate Validator the reference
+  implementation of Bean Validation (JSR 303) and Hibernate Search. </p>
+
+  <div class="section" title="22.1. Bean Validation"><div class="titlepage"><div><div><h2 class="title"><a id="d5e9814"/>22.1. Bean Validation</h2></div></div></div>
+    
+
+    <p>Bean Validation standardizes how to define and declare domain model
+    level constraints. You can, for example, express that a property should
+    never be null, that the account balance should be strictly positive, etc.
+    These domain model constraints are declared in the bean itself by
+    annotating its properties. Bean Validation can then read them and check
+    for constraint violations. The validation mechanism can be executed in
+    different layers in your application without having to duplicate any of
+    these rules (presentation layer, data access layer). Following the DRY
+    principle, Bean Validation and its reference implementation Hibernate
+    Validator has been designed for that purpose.</p>
+
+    <p>The integration between Hibernate and Bean Validation works at two
+    levels. First, it is able to check in-memory instances of a class for
+    constraint violations. Second, it can apply the constraints to the
+    Hibernate metamodel and incorporate them into the generated database
+    schema.</p>
+
+    <p>Each constraint annotation is associated to a validator
+    implementation responsible for checking the constraint on the entity
+    instance. A validator can also (optionally) apply the constraint to the
+    Hibernate metamodel, allowing Hibernate to generate DDL that expresses the
+    constraint. With the appropriate event listener, you can execute the
+    checking operation on inserts, updates and deletes done by
+    Hibernate.</p>
+
+    <p>When checking instances at runtime, Hibernate Validator returns
+    information about constraint violations in a set of
+    <code class="classname">ConstraintViolation</code>s. Among other information, the
+    <code class="classname">ConstraintViolation</code> contains an error description
+    message that can embed the parameter values bundle with the annotation
+    (eg. size limit), and message strings that may be externalized to a
+    <code class="classname">ResourceBundle</code>.</p>
+
+    <div class="section" title="22.1.1. Adding Bean Validation"><div class="titlepage"><div><div><h3 class="title"><a id="d5e9823"/>22.1.1. Adding Bean Validation</h3></div></div></div>
+      
+
+      <p>To enable Hibernate's Bean Validation integration, simply add a
+      Bean Validation provider (preferably Hibernate Validation 4) on your
+      classpath.</p>
+    </div>
+
+    <div class="section" title="22.1.2. Configuration"><div class="titlepage"><div><div><h3 class="title"><a id="d5e9826"/>22.1.2. Configuration</h3></div></div></div>
+      
+
+      <p>By default, no configuration is necessary.</p>
+
+      <p>The <code class="classname">Default</code> group is validated on entity
+      insert and update and the database model is updated accordingly based on
+      the <code class="classname">Default</code> group as well.</p>
+
+      <p>You can customize the Bean Validation integration by setting the
+      validation mode. Use the
+      <code class="literal">javax.persistence.validation.mode</code> property and set it
+      up for example in your <code class="filename">persistence.xml</code> file or your
+      <code class="filename">hibernate.cfg.xml</code> file. Several options are
+      possible:</p>
+
+      <div class="itemizedlist"><ul class="itemizedlist"><li class="listitem">
+          <p><code class="literal">auto</code> (default): enable integration between
+          Bean Validation and Hibernate (callback and ddl generation) only if
+          Bean Validation is present in the classpath.</p>
+        </li><li class="listitem">
+          <p><code class="literal">none</code>: disable all integration between Bean
+          Validation and Hibernate</p>
+        </li><li class="listitem">
+          <p><code class="literal">callback</code>: only validate entities when they
+          are either inserted, updated or deleted. An exception is raised if
+          no Bean Validation provider is present in the classpath.</p>
+        </li><li class="listitem">
+          <p><code class="literal">ddl</code>: only apply constraints to the database
+          schema when generated by Hibernate. An exception is raised if no
+          Bean Validation provider is present in the classpath. This value is
+          not defined by the Java Persistence spec and is specific to
+          Hibernate.</p>
+        </li></ul></div>
+
+      <div xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="note" style="margin-left: 0.5in; margin-right: 0.5in;"><h2>Note</h2>
+        <p>You can use both <code class="literal">callback</code> and
+        <code class="literal">ddl</code> together by setting the property to
+        <code class="literal">callback, dll</code></p>
+
+        <pre xmlns="" class="XML"><!-- XML : generated by JHighlight v1.0 (http://jhighlight.dev.java.net) -->
+<span class="xml_tag_symbols">&lt;</span><span class="xml_tag_name">persistence</span><span class="xml_plain">&nbsp;...</span><span class="xml_tag_symbols">&gt;</span><span class="xml_plain"></span><br />
+<span class="xml_plain">&nbsp;&nbsp;</span><span class="xml_tag_symbols">&lt;</span><span class="xml_tag_name">persistence-unit</span><span class="xml_plain">&nbsp;...</span><span class="xml_tag_symbols">&gt;</span><span class="xml_plain"></span><br />
+<span class="xml_plain">&nbsp;&nbsp;&nbsp;&nbsp;...</span><br />
+<span class="xml_plain">&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="xml_tag_symbols">&lt;</span><span class="xml_tag_name">properties</span><span class="xml_tag_symbols">&gt;</span><span class="xml_plain"></span><br />
+<span class="xml_plain">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="xml_tag_symbols">&lt;</span><span class="xml_tag_name">property</span><span class="xml_plain">&nbsp;</span><span class="xml_attribute_name">name</span><span class="xml_tag_symbols">=</span><span class="xml_attribute_value">&quot;javax.persistence.validation.mode&quot;</span><span class="xml_plain"></span><br />
+<span class="xml_plain">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="xml_attribute_name">value</span><span class="xml_tag_symbols">=</span><span class="xml_attribute_value">&quot;callback,&nbsp;ddl&quot;</span><span class="xml_tag_symbols">/&gt;</span><span class="xml_plain"></span><br />
+<span class="xml_plain">&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="xml_tag_symbols">&lt;/</span><span class="xml_tag_name">properties</span><span class="xml_tag_symbols">&gt;</span><span class="xml_plain"></span><br />
+<span class="xml_plain">&nbsp;&nbsp;</span><span class="xml_tag_symbols">&lt;/</span><span class="xml_tag_name">persistence-unit</span><span class="xml_tag_symbols">&gt;</span><span class="xml_plain"></span><br />
+<span class="xml_tag_symbols">&lt;/</span><span class="xml_tag_name">persistence</span><span class="xml_tag_symbols">&gt;</span><span class="xml_plain"></span><br />
+</pre>
+
+        <p>This is equivalent to <code class="literal">auto</code> except that if no
+        Bean Validation provider is present, an exception is raised.</p>
+      </div>
+
+      <p>If you want to validate different groups during insertion, update
+      and deletion, use:</p>
+
+      <div class="itemizedlist"><ul class="itemizedlist"><li class="listitem">
+          <p><code class="literal">javax.persistence.validation.group.pre-persist</code>:
+          groups validated when an entity is about to be persisted (default to
+          <code class="classname">Default</code>)</p>
+        </li><li class="listitem">
+          <p><code class="literal">javax.persistence.validation.group.pre-update</code>:
+          groups validated when an entity is about to be updated (default to
+          <code class="classname">Default</code>)</p>
+        </li><li class="listitem">
+          <p><code class="literal">javax.persistence.validation.group.pre-remove</code>:
+          groups validated when an entity is about to be deleted (default to
+          no group)</p>
+        </li><li class="listitem">
+          <p><code class="literal">org.hibernate.validator.group.ddl</code>: groups
+          considered when applying constraints on the database schema (default
+          to <code class="classname">Default</code>)</p>
+        </li></ul></div>
+
+      <p>Each property accepts the fully qualified class names of the
+      groups validated separated by a comma (,)</p>
+
+      <div class="example"><a id="d5e9875"/><p class="title"><strong>Example 22.1. Using custom groups for validation</strong></p><div class="example-contents">
+        
+
+        <pre xmlns="" xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="XML"><!-- XML : generated by JHighlight v1.0 (http://jhighlight.dev.java.net) -->
+<span class="xml_tag_symbols">&lt;</span><span class="xml_tag_name">persistence</span><span class="xml_plain">&nbsp;...</span><span class="xml_tag_symbols">&gt;</span><span class="xml_plain"></span><br />
+<span class="xml_plain">&nbsp;&nbsp;</span><span class="xml_tag_symbols">&lt;</span><span class="xml_tag_name">persistence-unit</span><span class="xml_plain">&nbsp;...</span><span class="xml_tag_symbols">&gt;</span><span class="xml_plain"></span><br />
+<span class="xml_plain">&nbsp;&nbsp;&nbsp;&nbsp;...</span><br />
+<span class="xml_plain">&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="xml_tag_symbols">&lt;</span><span class="xml_tag_name">properties</span><span class="xml_tag_symbols">&gt;</span><span class="xml_plain"></span><br />
+<span class="xml_plain">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="xml_tag_symbols">&lt;</span><span class="xml_tag_name">property</span><span class="xml_plain">&nbsp;</span><span class="xml_attribute_name">name</span><span class="xml_tag_symbols">=</span><span class="xml_attribute_value">&quot;javax.persistence.validation.group.pre-update&quot;</span><span class="xml_plain"></span><br />
+<span class="xml_plain">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="xml_attribute_name">value</span><span class="xml_tag_symbols">=</span><span class="xml_attribute_value">&quot;javax.validation.group.Default,&nbsp;com.acme.group.Strict&quot;</span><span class="xml_tag_symbols">/&gt;</span><span class="xml_plain"></span><br />
+<span class="xml_plain">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="xml_tag_symbols">&lt;</span><span class="xml_tag_name">property</span><span class="xml_plain">&nbsp;</span><span class="xml_attribute_name">name</span><span class="xml_tag_symbols">=</span><span class="xml_attribute_value">&quot;javax.persistence.validation.group.pre-remove&quot;</span><span class="xml_plain"></span><br />
+<span class="xml_plain">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="xml_attribute_name">value</span><span class="xml_tag_symbols">=</span><span class="xml_attribute_value">&quot;com.acme.group.OnDelete&quot;</span><span class="xml_tag_symbols">/&gt;</span><span class="xml_plain"></span><br />
+<span class="xml_plain">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="xml_tag_symbols">&lt;</span><span class="xml_tag_name">property</span><span class="xml_plain">&nbsp;</span><span class="xml_attribute_name">name</span><span class="xml_tag_symbols">=</span><span class="xml_attribute_value">&quot;org.hibernate.validator.group.ddl&quot;</span><span class="xml_plain"></span><br />
+<span class="xml_plain">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="xml_attribute_name">value</span><span class="xml_tag_symbols">=</span><span class="xml_attribute_value">&quot;com.acme.group.DDL&quot;</span><span class="xml_tag_symbols">/&gt;</span><span class="xml_plain"></span><br />
+<span class="xml_plain">&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="xml_tag_symbols">&lt;/</span><span class="xml_tag_name">properties</span><span class="xml_tag_symbols">&gt;</span><span class="xml_plain"></span><br />
+<span class="xml_plain">&nbsp;&nbsp;</span><span class="xml_tag_symbols">&lt;/</span><span class="xml_tag_name">persistence-unit</span><span class="xml_tag_symbols">&gt;</span><span class="xml_plain"></span><br />
+<span class="xml_tag_symbols">&lt;/</span><span class="xml_tag_name">persistence</span><span class="xml_tag_symbols">&gt;</span><span class="xml_plain"></span><br />
+</pre>
+      </div></div><br class="example-break"/>
+
+      <div xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="note" style="margin-left: 0.5in; margin-right: 0.5in;"><h2>Note</h2>
+        <p>You can set these properties in
+        <code class="filename">hibernate.cfg.xml</code>,
+        <code class="filename">hibernate.properties</code> or programmatically.</p>
+      </div>
+    </div>
+
+    <div class="section" title="22.1.3. Catching violations"><div class="titlepage"><div><div><h3 class="title"><a id="d5e9882"/>22.1.3. Catching violations</h3></div></div></div>
+      
+
+      <p>If an entity is found to be invalid, the list of constraint
+      violations is propagated by the
+      <code class="classname">ConstraintViolationException</code> which exposes the
+      set of <code class="classname">ConstraintViolation</code>s.</p>
+
+      <p>This exception is wrapped in a
+      <code class="classname">RollbackException</code> when the violation happens at
+      commit time. Otherwise the
+      <code class="classname">ConstraintViolationException</code> is returned (for
+      example when calling <code class="methodname">flush()</code>. Note that
+      generally, catchable violations are validated at a higher level (for
+      example in Seam / JSF 2 via the JSF - Bean Validation integration or in
+      your business layer by explicitly calling Bean Validation).</p>
+
+      <p>An application code will rarely be looking for a
+      <code class="classname">ConstraintViolationException</code> raised by Hibernate.
+      This exception should be treated as fatal and the persistence context
+      should be discarded (<code class="classname">EntityManager</code> or
+      <code class="classname">Session</code>).</p>
+    </div>
+
+    <div class="section" title="22.1.4. Database schema"><div class="titlepage"><div><div><h3 class="title"><a id="d5e9895"/>22.1.4. Database schema</h3></div></div></div>
+      
+
+      <p>Hibernate uses Bean Validation constraints to generate an accurate
+      database schema:</p>
+
+      <div class="itemizedlist"><ul class="itemizedlist"><li class="listitem">
+          <p><code class="classname">@NotNull</code> leads to a not null column
+          (unless it conflicts with components or table inheritance)</p>
+        </li><li class="listitem">
+          <p><code class="classname">@Size.max</code> leads to a
+          <code class="literal">varchar(max)</code> definition for Strings</p>
+        </li><li class="listitem">
+          <p><code class="classname">@Min</code>, <code class="classname">@Max</code> lead
+          to column checks (like <code class="code">value &lt;= max</code>)</p>
+        </li><li class="listitem">
+          <p><code class="classname">@Digits</code> leads to the definition of
+          precision and scale (ever wondered which is which? It's easy now
+          with <code class="classname">@Digits</code> :) )</p>
+        </li></ul></div>
+
+      <p>These constraints can be declared directly on the entity
+      properties or indirectly by using constraint composition.</p>
+
+      <p>
+          For more information check the Hibernate Validator reference documentation at
+          <a class="ulink" href="http://docs.jboss.org/hibernate/stable/validator/reference/en-US/html/">http://docs.jboss.org/hibernate/stable/validator/reference/en-US/html/</a>
+      </p>
+    </div>
+  </div>
+
+  <div class="section" title="22.2. Hibernate Search"><div class="titlepage"><div><div><h2 class="title"><a id="d5e9918"/>22.2. Hibernate Search</h2></div></div></div>
+    
+
+    <div class="section" title="22.2.1. Description"><div class="titlepage"><div><div><h3 class="title"><a id="d5e9920"/>22.2.1. Description</h3></div></div></div>
+      
+
+      <p>
+          Full text search engines like <span class="productname">Apache Lucene</span> are a very powerful technology to
+          bring free text/efficient queries to applications. If suffers several mismatches when dealing with a
+          object domain model (keeping the index up to date, mismatch between the index structure and the domain
+          model, querying mismatch...) Hibernate Search indexes your domain model thanks to a few annotations,
+          takes care of the database / index synchronization and brings you back regular managed objects from
+          free text queries. Hibernate Search is using
+          <a class="ulink" href="http://lucene.apache.org">Apache Lucene</a>
+          under the covers.
+      </p>
+    </div>
+
+    <div class="section" title="22.2.2. Integration with Hibernate Annotations"><div class="titlepage"><div><div><h3 class="title"><a id="d5e9925"/>22.2.2. Integration with Hibernate Annotations</h3></div></div></div>
+      
+
+      <p>Hibernate Search integrates with Hibernate Core transparently
+      provided that the Hibernate Search jar is present on the classpath. If
+      you do not wish to automatically register Hibernate Search event
+      listeners, you can set
+      <code class="literal">hibernate.search.autoregister_listeners</code> to false.
+      Such a need is very uncommon and not recommended.</p>
+
+      <p>
+          Check the Hibernate Search reference documentation (
+          <a class="ulink" href="http://docs.jboss.org/hibernate/stable/validator/reference/en-US/html/">http://docs.jboss.org/hibernate/stable/validator/reference/en-US/html/</a>
+          ) for more information.
+      </p>
+    </div>
+  </div>
+</div><hr xmlns="" xmlns:d="http://docbook.org/ns/docbook"/><a xmlns="" xmlns:d="http://docbook.org/ns/docbook" href="legalnotice.html"/><ul xmlns:d="http://docbook.org/ns/docbook" class="docnav"><li class="previous"><a accesskey="p" href="ch21.html"><strong>Prev</strong>Chapter 21. Toolset Guide</a></li><li class="up"><a accesskey="u" href="#"><strong>Up</strong></a></li><li class="home"><a accesskey="h" href="index.html"><strong>Home</strong></a></li><li class="next"><a accesskey="n" href="ch23.html"><strong>Next</strong>Chapter 23. Example: Parent/Child</a></li></ul></body></html>

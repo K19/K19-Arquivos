@@ -1,0 +1,131 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml"><head><title>Chapter 4. Tutorial Using the Java Persistence API (JPA)</title><link rel="stylesheet" type="text/css" href="css/hibernate.css"/><meta name="generator" content="DocBook XSL Stylesheets V1.76.1"/><link rel="home" href="index.html" title="Hibernate Getting Started Guide"/><link rel="up" href="index.html" title="Hibernate Getting Started Guide"/><link rel="prev" href="ch03.html" title="Chapter 3. Tutorial Using Native Hibernate APIs and Annotation Mappings"/><link rel="next" href="ch05.html" title="Chapter 5. Tutorial Using Envers"/><meta xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" http-equiv="Content-Type" content="text/html; charset=UTF-8"/></head><body><p xmlns:d="http://docbook.org/ns/docbook" id="title"><a href="http://www.hibernate.org" class="site_href"><strong>Hibernate.org</strong></a><a href="http://hibernate.org/Documentation/DocumentationOverview" class="doc_href"><strong>Community Documentation</strong></a></p><ul xmlns:d="http://docbook.org/ns/docbook" class="docnav"><li class="previous"><a accesskey="p" href="ch03.html"><strong>Prev</strong></a></li><li class="next"><a accesskey="n" href="ch05.html"><strong>Next</strong></a></li></ul><div class="chapter" title="Chapter 4. Tutorial Using the Java Persistence API (JPA)"><div class="titlepage"><div><div><h2 class="title"><a id="d5e425"/>Chapter 4. Tutorial Using the <em class="firstterm"><span>Java Persistence API (JPA)</span></em></h2></div></div></div><div class="toc"><p><strong>Table of Contents</strong></p><dl><dt><span class="section"><a href="ch04.html#hibernate-gsg-tutorial-jpa-config">4.1. <code class="filename">persistence.xml</code></a></span></dt><dt><span class="section"><a href="ch04.html#hibernate-gsg-tutorial-jpa-entity">4.2. The annotated entity Java class</a></span></dt><dt><span class="section"><a href="ch04.html#hibernate-gsg-tutorial-jpa-test">4.3. Example code</a></span></dt><dt><span class="section"><a href="ch04.html#hibernate-gsg-tutorial-annotations-further">4.4. Take it further!</a></span></dt></dl></div>
+    
+
+    <p>
+      This tutorial is located within the download bundle under <code class="filename">entitymanager</code>.
+    </p>
+    <div class="itemizedlist" title="Objectives"><p class="title"><strong>Objectives</strong></p><ul class="itemizedlist"><li class="listitem">
+        <p>
+          Use annotations to provide mapping information.
+        </p>
+      </li><li class="listitem">
+        <p>
+          Use <code class="systemitem">JPA</code>.
+        </p>
+      </li></ul></div>
+
+    <div class="section" title="4.1. persistence.xml"><div class="titlepage"><div><div><h2 class="title"><a id="hibernate-gsg-tutorial-jpa-config"/>4.1. <code class="filename">persistence.xml</code></h2></div></div></div>
+        
+
+        <p>
+            The previous tutorials used the Hibernate-specific
+            <code class="filename"><em class="replaceable"><code>hibernate.cfg.xml</code></em></code> configuration file.
+            <code class="systemitem">JPA</code>, however, defines a different bootstrap process that uses its own configuration
+            file named <code class="filename">persistence.xml</code>.  This bootstrapping process is defined by the
+            <code class="systemitem">JPA</code> specification.  In <span class="trademark">Java</span>™ SE environments the persistence
+            provider (Hibernate in this case) is required to locate all <code class="systemitem">JPA</code> configuration files
+            by classpath lookup of the <code class="filename">META-INF/persistence.xml</code> resource name.
+        </p>
+
+        <div class="example"><a id="hibernate-gsg-tutorial-jpa-config-pu"/><p class="title"><strong>Example 4.1. <code class="filename">persistence.xml</code></strong></p><div class="example-contents">
+          
+          <pre xmlns="" xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="">&lt;persistence xmlns="http://java.sun.com/xml/ns/persistence"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://java.sun.com/xml/ns/persistence http://java.sun.com/xml/ns/persistence/persistence_2_0.xsd"
+        version="2.0"&gt;
+    &lt;persistence-unit name="org.hibernate.tutorial.jpa"&gt;
+        ...
+    &lt;/persistence-unit&gt;
+&lt;/persistence&gt;</pre>
+        </div></div><br class="example-break"/>
+
+        <p>
+          <code class="filename">persistence.xml</code> files should provide a unique name for each <span>persistence
+          unit</span>.  Applications use this name to reference the configuration when obtaining an
+          <code class="interfacename">javax.persistence.EntityManagerFactory</code> reference.
+        </p>
+
+        <p>
+          The settings defined in the <code class="varname">properties</code> element are discussed in <a class="xref" href="ch02.html#hibernate-gsg-tutorial-basic-config" title="2.1. The Hibernate configuration file">Section 2.1, “The Hibernate configuration file”</a>.  Here the <code class="literal">javax.persistence</code>-prefixed
+          varieties are used when possible.  Notice that the remaining Hibernate-specific configuration setting names
+          are now prefixed with <code class="literal">hibernate.</code>.
+        </p>
+
+        <p>
+          Additionally, the <code class="varname">class</code> element functions the same as in <a class="xref" href="ch03.html#hibernate-gsg-tutorial-annotations-config" title="3.1. The Hibernate configuration file">Section 3.1, “The Hibernate configuration file”</a>.
+        </p>
+    </div>
+
+    <div class="section" title="4.2. The annotated entity Java class"><div class="titlepage"><div><div><h2 class="title"><a id="hibernate-gsg-tutorial-jpa-entity"/>4.2. The annotated entity Java class</h2></div></div></div>
+        
+        <p>
+          The entity is exactly the same as in <a class="xref" href="ch03.html#hibernate-gsg-tutorial-annotations-entity" title="3.2. The annotated entity Java class">Section 3.2, “The annotated entity Java class”</a>
+        </p>
+    </div>
+
+    <div class="section" title="4.3. Example code"><div class="titlepage"><div><div><h2 class="title"><a id="hibernate-gsg-tutorial-jpa-test"/>4.3. Example code</h2></div></div></div>
+        
+        <p>
+          The previous tutorials used the Hibernate APIs.  This tutorial uses the <code class="systemitem">JPA</code> APIs.
+        </p>
+
+        <div class="example"><a id="hibernate-gsg-tutorial-jpa-test-setUp"/><p class="title"><strong>Example 4.2. Obtaining the <code class="interfacename">javax.persistence.EntityManagerFactory</code></strong></p><div class="example-contents">
+          
+          <pre xmlns="" xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="">protected void setUp() throws Exception {
+    entityManagerFactory = Persistence.createEntityManagerFactory( "org.hibernate.tutorial.jpa" );
+}</pre>
+        </div></div><br class="example-break"/>
+
+        <p>
+          Notice again that the persistence unit name is <code class="literal">org.hibernate.tutorial.jpa</code>, which matches
+          <a class="xref" href="ch04.html#hibernate-gsg-tutorial-jpa-config-pu" title="Example 4.1. persistence.xml">Example 4.1, “<code class="filename">persistence.xml</code>”</a>
+        </p>
+
+        <div class="example"><a id="hibernate-gsg-tutorial-jpa-test-saving"/><p class="title"><strong>Example 4.3. Saving (persisting) entities</strong></p><div class="example-contents">
+          
+          <pre xmlns="" xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="">EntityManager entityManager = entityManagerFactory.createEntityManager();
+entityManager.getTransaction().begin();
+entityManager.persist( new Event( "Our very first event!", new Date() ) );
+entityManager.persist( new Event( "A follow up event", new Date() ) );
+entityManager.getTransaction().commit();
+entityManager.close();</pre>
+        </div></div><br class="example-break"/>
+
+        <p>
+          The code is similar to <a class="xref" href="ch02.html#hibernate-gsg-tutorial-basic-test-saving" title="Example 2.5. Saving entities">Example 2.5, “Saving entities”</a>.  An
+          <code class="interfacename">javax.persistence.EntityManager</code> interface is used instead of a
+          <code class="interfacename">org.hibernate.Session</code> interface.  <code class="systemitem">JPA</code> calls this
+          operation <code class="methodname">persist</code> instead of <code class="methodname">save</code>.
+        </p>
+
+        <div class="example"><a id="hibernate-gsg-tutorial-jpa-test-list"/><p class="title"><strong>Example 4.4. Obtaining a list of entities</strong></p><div class="example-contents">
+          
+          <pre xmlns="" xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="">entityManager = entityManagerFactory.createEntityManager();
+entityManager.getTransaction().begin();
+List&lt;Event&gt; result = entityManager.createQuery( "from Event", Event.class ).getResultList();
+for ( Event event : result ) {
+    System.out.println( "Event (" + event.getDate() + ") : " + event.getTitle() );
+}
+entityManager.getTransaction().commit();
+entityManager.close();</pre>
+        </div></div><br class="example-break"/>
+
+        <p>
+          Again, the code is pretty similar to <a class="xref" href="ch02.html#hibernate-gsg-tutorial-basic-test-list" title="Example 2.6. Obtaining a list of entities">Example 2.6, “Obtaining a list of entities”</a>.
+        </p>
+    </div>
+
+    <div class="section" title="4.4. Take it further!"><div class="titlepage"><div><div><h2 class="title"><a id="hibernate-gsg-tutorial-annotations-further"/>4.4. Take it further!</h2></div></div></div>
+        
+        <div class="itemizedlist" title="Practice Exercises"><p class="title"><strong>Practice Exercises</strong></p><ul class="itemizedlist"><li class="listitem">
+                <p>
+                    Develop an EJB Session bean to investigate implications of using a container-managed
+                    persistence context (<code class="interfacename">javax.persistence.EntityManager</code>).  Try both
+                    stateless and stateful use-cases.
+                </p>
+            </li></ul></div>
+    </div>
+</div><hr xmlns="" xmlns:d="http://docbook.org/ns/docbook"/><a xmlns="" xmlns:d="http://docbook.org/ns/docbook" href="legalnotice.html"/><ul xmlns:d="http://docbook.org/ns/docbook" class="docnav"><li class="previous"><a accesskey="p" href="ch03.html"><strong>Prev</strong>Chapter 3. Tutorial Using Native Hibernate APIs a...</a></li><li class="up"><a accesskey="u" href="#"><strong>Up</strong></a></li><li class="home"><a accesskey="h" href="index.html"><strong>Home</strong></a></li><li class="next"><a accesskey="n" href="ch05.html"><strong>Next</strong>Chapter 5. Tutorial Using Envers</a></li></ul></body></html>

@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml"><head><title>Chapter 6. OSGi Tutorial</title><link rel="stylesheet" type="text/css" href="css/hibernate.css"/><meta name="generator" content="DocBook XSL Stylesheets V1.76.1"/><link rel="home" href="index.html" title="Hibernate Getting Started Guide"/><link rel="up" href="index.html" title="Hibernate Getting Started Guide"/><link rel="prev" href="ch05.html" title="Chapter 5. Tutorial Using Envers"/><meta xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" http-equiv="Content-Type" content="text/html; charset=UTF-8"/></head><body><p xmlns:d="http://docbook.org/ns/docbook" id="title"><a href="http://www.hibernate.org" class="site_href"><strong>Hibernate.org</strong></a><a href="http://hibernate.org/Documentation/DocumentationOverview" class="doc_href"><strong>Community Documentation</strong></a></p><ul xmlns:d="http://docbook.org/ns/docbook" class="docnav"><li class="previous"><a accesskey="p" href="ch05.html"><strong>Prev</strong></a></li><li class="next"/></ul><div class="chapter" title="Chapter 6. OSGi Tutorial"><div class="titlepage"><div><div><h2 class="title"><a id="d5e556"/>Chapter 6. OSGi Tutorial</h2></div></div></div><div class="toc"><p><strong>Table of Contents</strong></p><dl><dt><span class="section"><a href="ch06.html#d5e567">6.1. 
+			Project Overview
+		</a></span></dt><dt><span class="section"><a href="ch06.html#d5e571">6.2. 
+			Project Structure
+		</a></span></dt><dt><span class="section"><a href="ch06.html#hibernate-gsg-tutorial-envers-config">6.3. 
+			TODOs
+		</a></span></dt><dt><span class="section"><a href="ch06.html#hibernate-gsg-tutorial-envers-config">6.4. 
+			Karaf Commands
+		</a></span></dt></dl></div>
+	
+
+	<p>
+		Hibernate targets the OSGi 4.3 spec or later and supports three types
+		of configurations.
+
+		</p><div class="orderedlist"><ol class="orderedlist" type="1"><li class="listitem">
+				<a class="ulink" href="https://github.com/hibernate/hibernate-orm/tree/master/documentation/src/main/docbook/quickstart/tutorials/osgi/managed-jpa">Container-Managed JPA</a>
+			</li><li class="listitem">
+				<a class="ulink" href="https://github.com/hibernate/hibernate-orm/tree/master/documentation/src/main/docbook/quickstart/tutorials/osgi/unmanaged-jpa">Unmanaged JPA</a>
+			</li><li class="listitem">
+				<a class="ulink" href="https://github.com/hibernate/hibernate-orm/tree/master/documentation/src/main/docbook/quickstart/tutorials/osgi/unmanaged-native">Unmanaged Native</a>
+			</li></ol></div><p>
+	</p>
+	
+	<p>
+		For more details about OSGi, the three configurations, hibernate-osgi, extensions points, and caveats, please
+		see the OSGi chapter of the Developer's Guide!
+	</p>
+
+	<div class="section" title="6.1.  Project Overview"><div class="titlepage"><div><div><h2 class="title"><a id="d5e567"/>6.1. 
+			Project Overview
+		</h2></div></div></div>
+		
+		<p>
+			Each configuration has a QuickStart project located within the download bundle (under <code class="filename">osgi</code>).
+			The bundles can be used as-is within Apache Karaf. Feel free to use them as literal
+			"quick start" bundle templates.
+		</p>
+	</div>
+	
+	<div class="section" title="6.2.  Project Structure"><div class="titlepage"><div><div><h2 class="title"><a id="d5e571"/>6.2. 
+			Project Structure
+		</h2></div></div></div>
+		
+		<div class="itemizedlist"><ul class="itemizedlist"><li class="listitem">
+				<code class="filename">osgi/datasource-h2.xml</code>: Enterprise OSGi JPA usage can include a DataSource installed in the container.
+				The client bundle's <code class="literal">persistence.xml</code> references the DataSource through JNDI. For an
+				example, see how managed-jpa's <code class="literal">persistence.xml</code> calls out the
+				<code class="literal">jta-data-source</code>.
+			</li><li class="listitem">
+				<code class="filename">osgi/[project]/features.xml</code>: This is arguably the most important "quick start" material. It defines
+				a single Karaf feature ("hibernate-test") that demonstrates the necessary 3rd party libraries and
+				bundle activation ordering.
+			</li><li class="listitem">
+				<code class="filename">osgi/[project]/pom.xml</code>: The POM includes typical compile-time dependencies (JPA, OSGi Core,
+				OSGi Enterprise), as well as OSGi manifest data.
+			</li><li class="listitem">
+				<code class="filename">osgi/[project]/src/main/resources/OSGI-INF/blueprint/blueprint.xml</code>:
+				The Blueprint includes container-managed EntityManager
+				injection (for managed-jpa), as well as demonstrations showing how to register
+				your custom implementations of Hibernate extension points.
+			</li><li class="listitem">
+				<code class="filename">osgi/[project]/src/main/resources/META-INF/persistence.xml</code> or
+				<code class="filename">osgi/[project]/src/main/resources/hibernate.cfg.xml</code>: Note that the configurations
+				are no different than typical uses of Hibernate!
+			</li><li class="listitem">
+				<code class="filename">osgi/[project]/src/main/java/org/hibernate/osgitest/HibernateUtil.java</code>: Demonstrates how to create an
+				EntityManagerFactory (JPA) or SessionFactory (Native) using hibernate-osgi's services.  Note that in
+				managed-jpa, this is replaced by <code class="literal">DataPointServiceImpl#entityManager</code>, injected by
+				<code class="filename">blueprint.xml</code> (described above).
+			</li></ul></div>
+	</div>
+
+	<div class="section" title="6.3.  TODOs"><div class="titlepage"><div><div><h2 class="title"><a id="hibernate-gsg-tutorial-envers-config"/>6.3. 
+			TODOs
+		</h2></div></div></div>
+		
+		<div class="itemizedlist"><ul class="itemizedlist"><li class="listitem">
+				If using managed-jpa, <code class="filename">features.xml</code> will need the path to
+				<code class="filename">datasource-h2.xml</code> updated.
+			</li></ul></div>
+	</div>
+
+	<div class="section" title="6.4.  Karaf Commands"><div class="titlepage"><div><div><h2 class="title"><a id="hibernate-gsg-tutorial-envers-config"/>6.4. 
+			Karaf Commands
+		</h2></div></div></div>
+		
+		<p>
+			All three bundles include Karaf Commands that can be used directly on the Karaf command line to test
+			basic persistence operations ("dp:add [name]", "dp:getall", "dp:deleteall", etc.).  I leave them in the
+			QuickStarts as a useful sanity check.
+		</p>
+	</div>
+
+</div><hr xmlns="" xmlns:d="http://docbook.org/ns/docbook"/><a xmlns="" xmlns:d="http://docbook.org/ns/docbook" href="legalnotice.html"/><ul xmlns:d="http://docbook.org/ns/docbook" class="docnav"><li class="previous"><a accesskey="p" href="ch05.html"><strong>Prev</strong>Chapter 5. Tutorial Using Envers</a></li><li class="up"><a accesskey="u" href="#"><strong>Up</strong></a></li><li class="home"><a accesskey="h" href="index.html"><strong>Home</strong></a></li></ul></body></html>

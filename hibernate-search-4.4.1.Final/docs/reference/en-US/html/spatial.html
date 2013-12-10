@@ -1,0 +1,339 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml"><head><title xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory">Chapter 9. Spatial</title><link rel="stylesheet" href="css/hibernate.css" type="text/css"/><meta xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" name="generator" content="DocBook XSL Stylesheets V1.72.0"/><link rel="start" href="index.html" title="Hibernate Search"/><link rel="up" href="index.html" title="Hibernate Search"/><link rel="prev" href="search-monitoring.html" title="Chapter 8. Monitoring"/><link rel="next" href="search-lucene-native.html" title="Chapter 10. Advanced features"/></head><body><p id="title"><a href="http://www.hibernate.org" class="site_href"><strong>Hibernate.org</strong></a><a href="http://hibernate.org/Documentation/DocumentationOverview" class="doc_href"><strong>Community Documentation</strong></a></p><ul class="docnav"><li class="previous"><a accesskey="p" href="search-monitoring.html"><strong>Prev</strong></a></li><li class="next"><a accesskey="n" href="search-lucene-native.html"><strong>Next</strong></a></li></ul><div class="chapter" lang="en-US"><div class="titlepage"><div><div><h2 class="title"><a id="spatial"/>Chapter 9. Spatial</h2></div></div></div><div class="toc"><dl><dt><span class="section"><a href="spatial.html#spatial-indexing">9.1. Enable indexing of Spatial Coordinates</a></span></dt><dd><dl><dt><span class="section"><a href="spatial.html#spatial-indexing-range">9.1.1. Indexing coordinates for Double Range Queries</a></span></dt><dt><span class="section"><a href="spatial.html#spatial-indexing-quadtree">9.1.2. Indexing coordinates in a Grid with Quad Trees</a></span></dt><dt><span class="section"><a href="spatial.html#spatial-coordinatesinterface">9.1.3. Implementing the Coordinates interface</a></span></dt></dl></dd><dt><span class="section"><a href="spatial.html#spatial-queries">9.2. Performing Spatial Queries</a></span></dt><dd><dl><dt><span class="section"><a href="spatial.html#spatial-queries-distance">9.2.1. Returning distance to query point in the search results</a></span></dt></dl></dd><dt><span class="section"><a href="spatial.html#spatial-multiplecoordinates">9.3. Multiple Coordinate pairs</a></span></dt><dt><span class="section"><a href="spatial.html#spatial-behind-curtain">9.4. Insight: implementation details of Quad Tree indexing</a></span></dt><dd><dl><dt><span class="section"><a href="spatial.html#d0e8105">9.4.1. At indexing level</a></span></dt><dt><span class="section"><a href="spatial.html#d0e8150">9.4.2. At search level</a></span></dt></dl></dd></dl></div><p>With the Spatial extensions you can combine fulltext queries
+  with restrictions based on distance from a point in space, filter
+  results based on distances from coordinates or sort results
+  on such a distance criteria.</p><p>The spatial support of Hibernate Search has a few goals:</p><div class="itemizedlist"><ul><li><p>Enable spatial search on entities: find entities within x km
+      from a location (latitude, longitude) on Earth</p></li><li><p>Provide an easy way to enable spatial indexing via expressive
+      annotations</p></li><li><p>Provide a simple way for querying</p></li><li><p>Hide geographical complexity</p></li></ul></div><p>For example, you might search for that Italian place named
+  approximately "Il Ciociaro" and is somewhere in the 2 km area around
+  your office.</p><p>To be able to filter an <code class="classname">@Indexed</code> <code class="classname">@Entity</code>
+  on a distance criteria you need to add the <code class="classname">@Spatial</code>
+  annotation (<code class="classname">org.hibernate.search.annotations.Spatial</code>)
+  and specify one or more sets of coordinates.</p><div class="section" lang="en-US"><div class="titlepage"><div><div><h2 class="title"><a id="spatial-indexing"/>9.1. Enable indexing of Spatial Coordinates</h2></div></div></div><p>There are different techniques to index point coordinates,
+    in particular Hibernate Search Spatial offers a choice between
+    two strategies:</p><div class="itemizedlist"><ul><li><p>as numbers formatted for range queries</p></li><li><p>in Quad-Tree labels for two stage spatial queries</p></li></ul></div><p>We will now describe both methods so you can make a suitable choice; of
+    course you can pick different strategies for each set of coordinates.
+    These strategies are selected by specifying <code class="literal">spatialMode</code>,
+    an attribute of the <code class="classname">@Spatial</code> annotation.</p><div class="section" lang="en-US"><div class="titlepage"><div><div><h3 class="title"><a id="spatial-indexing-range"/>9.1.1. Indexing coordinates for Double Range Queries</h3></div></div></div><p>When setting the <code class="classname">@Spatial</code>.<code class="methodname">spatialMode</code>
+    attribute to <code class="classname">SpatialMode</code>.<code class="methodname">RANGE</code>
+    (which is the default) coordinates are indexed as numeric fields,
+    so that range queries can be performed to narrow down the initial area
+    of interest.</p><p>Pros:</p><div class="itemizedlist"><ul><li><p>Is quick on small data sets (&lt; 100k entities)</p></li><li><p>Is very simple: straightforward to debug/analyze</p></li><li><p>Impact on index size is moderate</p></li></ul></div><p>Cons:</p><div class="itemizedlist"><ul><li><p>Poor performance on large data sets</p></li><li><p>Poor performance if your data set is distributed across the whole
+          world (for example when indexing points of interest in the United States,
+          in Europe and in Asia, large areas collide because they share the same latitude.
+          The latitude range query returns large amounts of data that need to be cross
+          checked with those returned by the longitude range).</p></li></ul></div><p>To index your entities for range querying you have to:</p><div class="itemizedlist"><ul><li><p>add the <code class="classname">@Spatial</code> annotation on your entity</p></li><li><p>add the <code class="classname">@Latitude</code> and
+        <code class="classname">@Longitude</code> annotations on your properties representing
+        the coordinates; these must be of type <code class="classname">Double</code></p></li></ul></div><div class="example"><a id="d0e7774"/><p class="title"><b>Example 9.1. Sample Spatial indexing: Hotel class</b></p><div class="example-contents"><pre xmlns="" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="JAVA"><!-- <br/> --><span class="java_keyword">import</span><!-- <br/> --><span class="java_plain">&nbsp;org</span><!-- <br/> --><span class="java_separator">.</span><!-- <br/> --><span class="java_plain">hibernate</span><!-- <br/> --><span class="java_separator">.</span><!-- <br/> --><span class="java_plain">search</span><!-- <br/> --><span class="java_separator">.</span><!-- <br/> --><span class="java_plain">annotations</span><!-- <br/> --><span class="java_separator">.</span><!-- <br/> --><span class="java_operator">*</span><!-- <br/> --><span class="java_separator">;</span>
+</span>
+<!--  --><br/><span class="java_plain">@</span><span class="java_type">Spatial</span><span class="java_plain">&nbsp;@</span><span class="java_type">Indexed</span><span class="java_plain">&nbsp;@</span><span class="java_type">Entity</span>
+<!--  --><br/><span class="java_keyword">public</span><span class="java_plain">&nbsp;</span><span class="java_keyword">class</span><span class="java_plain">&nbsp;</span><span class="java_type">Hotel</span><span class="java_plain">&nbsp;</span><span class="java_separator">{</span>
+</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;@</span><span class="java_type">Latitude</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;</span><span class="java_type">Double</span><span class="java_plain">&nbsp;latitude</span>
+</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;@</span><span class="java_type">Longitude</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;</span><span class="java_type">Double</span><span class="java_plain">&nbsp;longitude</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;</span><span class="java_separator">[..]</span></pre></div></div><br class="example-break"/></div><div class="section" lang="en-US"><div class="titlepage"><div><div><h3 class="title"><a id="spatial-indexing-quadtree"/>9.1.2. Indexing coordinates in a Grid with Quad Trees</h3></div></div></div><p>When setting <code class="classname">@Spatial</code>.<code class="methodname">spatialMode</code>
+    to <code class="classname">SpatialMode</code>.<code class="methodname">GRID</code>
+    the coordinates are encoded in several fields representing different
+    zoom levels. Each box for each level is labelled so coordinates are assigned
+    matching labels for each zoom level. This results in a tree encoding of
+    labels called <code class="literal">quad tree</code>.</p><p>Pros :</p><div class="itemizedlist"><ul><li><p>Good performance even with large data sets</p></li><li><p>World wide data distribution independent</p></li></ul></div><p>Cons :</p><div class="itemizedlist"><ul><li><p>Index size is larger: need to encode multiple labels per
+          pair of coordinates</p></li></ul></div><p>To index your entities you have to:</p><div class="itemizedlist"><ul><li><p>add the <code class="classname">@Spatial</code> annotation on the
+        entity with the <code class="classname">SpatialMode</code> set to GRID :
+        <code class="code">@Spatial(spatialMode = SpatialMode.GRID)</code></p></li><li><p>add the <code class="classname">@Latitude</code> and
+        <code class="classname">@Longitude</code> annotations on the properties
+        representing your coordinates; these must be of type
+        <code class="classname">Double</code></p></li></ul></div><div class="example"><a id="d0e7839"/><p class="title"><b>Example 9.2. Indexing coordinates in a Grid using Quad Trees</b></p><div class="example-contents"><pre xmlns="" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="JAVA"><!-- <br/> --><span class="java_plain">@</span><!-- <br/> --><span class="java_type">Spatial</span><!-- <br/> --><span class="java_separator">(</span><!-- <br/> --><span class="java_plain">spatialMode&nbsp;</span><!-- <br/> --><span class="java_operator">=</span><!-- <br/> --><span class="java_plain">&nbsp;</span><!-- <br/> --><span class="java_type">SpatialMode</span><!-- <br/> --><span class="java_separator">.</span><!-- <br/> --><span class="java_plain">GRID</span><!-- <br/> --><span class="java_separator">)</span>
+<!--  --><br/><span class="java_plain">@</span><span class="java_type">Indexed</span>
+<!--  --><br/><span class="java_plain">@</span><span class="java_type">Entity</span>
+<!--  --><br/><span class="java_keyword">public</span><span class="java_plain">&nbsp;</span><span class="java_keyword">class</span><span class="java_plain">&nbsp;</span><span class="java_type">Hotel</span><span class="java_plain">&nbsp;</span><span class="java_separator">{</span>
+</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;@</span><span class="java_type">Latitude</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;</span><span class="java_type">Double</span><span class="java_plain">&nbsp;latitude</span><span class="java_separator">;</span>
+</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;@</span><span class="java_type">Longitude</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;</span><span class="java_type">Double</span><span class="java_plain">&nbsp;longitude</span><span class="java_separator">;</span>
+</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;</span><span class="java_separator">[...]</span>
+</pre></div></div><br class="example-break"/></div><div class="section" lang="en-US"><div class="titlepage"><div><div><h3 class="title"><a id="spatial-coordinatesinterface"/>9.1.3. Implementing the Coordinates interface</h3></div></div></div><p>Instead of using the <code class="literal">@</code><code class="classname">Latitude</code>
+    and <code class="literal">@</code><code class="classname">Longitue</code> annotations
+    you can choose to implement the <code class="classname">org.hibernate.search.spatial.Coordinates</code>
+    interface.</p><div class="example"><a id="d0e7862"/><p class="title"><b>Example 9.3. Implementing the Coordinates interface</b></p><div class="example-contents"><pre xmlns="" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="JAVA"><!-- <br/> --><span class="java_keyword">import</span><!-- <br/> --><span class="java_plain">&nbsp;org</span><!-- <br/> --><span class="java_separator">.</span><!-- <br/> --><span class="java_plain">hibernate</span><!-- <br/> --><span class="java_separator">.</span><!-- <br/> --><span class="java_plain">search</span><!-- <br/> --><span class="java_separator">.</span><!-- <br/> --><span class="java_plain">annotations</span><!-- <br/> --><span class="java_separator">.</span><!-- <br/> --><span class="java_operator">*</span><!-- <br/> --><span class="java_separator">;</span>
+<!--  --><br/><span class="java_keyword">import</span><span class="java_plain">&nbsp;org</span><span class="java_separator">.</span><span class="java_plain">hibernate</span><span class="java_separator">.</span><span class="java_plain">search</span><span class="java_separator">.</span><span class="java_plain">spatial</span><span class="java_separator">.</span><span class="java_type">Coordinates</span><span class="java_separator">;</span>
+</span>
+<!--  --><br/><span class="java_plain">@</span><span class="java_type">Spatial</span><span class="java_plain">&nbsp;@</span><span class="java_type">Indexed</span><span class="java_plain">&nbsp;@</span><span class="java_type">Entity</span>
+<!--  --><br/><span class="java_keyword">public</span><span class="java_plain">&nbsp;</span><span class="java_keyword">class</span><span class="java_plain">&nbsp;</span><span class="java_type">Song</span><span class="java_plain">&nbsp;</span><span class="java_keyword">implements</span><span class="java_plain">&nbsp;</span><span class="java_type">Coordinates</span><span class="java_plain">&nbsp;</span><span class="java_separator">{</span>
+</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;@</span><span class="java_type">Id</span><span class="java_plain">&nbsp;</span><span class="java_type">long</span><span class="java_plain">&nbsp;id</span><span class="java_separator">;</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;</span><span class="java_type">double</span><span class="java_plain">&nbsp;latitude</span><span class="java_separator">;</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;</span><span class="java_type">double</span><span class="java_plain">&nbsp;longitude</span><span class="java_separator">;</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;</span><span class="java_separator">[...]</span>
+</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;@</span><span class="java_type">Override</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;</span><span class="java_type">Double</span><span class="java_plain">&nbsp;getLatitude</span><span class="java_separator">()</span><span class="java_plain">&nbsp;</span><span class="java_separator">{</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="java_keyword">return</span><span class="java_plain">&nbsp;latitude</span><span class="java_separator">;</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;</span><span class="java_separator">}</span>
+</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;@</span><span class="java_type">Override</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;</span><span class="java_type">Double</span><span class="java_plain">&nbsp;getLongitude</span><span class="java_separator">()</span><span class="java_plain">&nbsp;</span><span class="java_separator">{</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="java_keyword">return</span><span class="java_plain">&nbsp;longitude</span><span class="java_separator">;</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;</span><span class="java_separator">}</span>
+</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;</span><span class="java_separator">[...]</span>
+</pre></div></div><br class="example-break"/><p>As we will see in the section <a href="spatial.html#spatial-multiplecoordinates" title="9.3. Multiple Coordinate pairs">Section 9.3, “Multiple Coordinate pairs”</a>,
+   a <code class="literal">@</code><code class="classname">Spatial</code>
+   <code class="literal">@</code><code class="classname">Indexed</code> <code class="literal">@</code><code class="classname">Entity</code>
+   can have multiple <code class="literal">@</code><code class="classname">Spatial</code> annotations;
+   when having the entity implement <code class="classname">Coordinates</code>, the implemented
+   methods refer to the default Spatial name: the default pair of coordinates.</p><p>An alternative is to use properties implementing the <code class="classname">Coordinates</code>
+  interface; this way you can have multiple Spatial instances:</p><div class="example"><a id="d0e7899"/><p class="title"><b>Example 9.4. Using attributes of type Coordinates</b></p><div class="example-contents"><pre xmlns="" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="JAVA"><!-- <br/> --><span class="java_plain">@</span><!-- <br/> --><span class="java_type">Indexed</span><!-- <br/> --><span class="java_plain">&nbsp;@</span><!-- <br/> --><span class="java_type">Entity</span>
+<!--  --><br/><span class="java_keyword">public</span><span class="java_plain">&nbsp;</span><span class="java_keyword">class</span><span class="java_plain">&nbsp;</span><span class="java_type">Event</span><span class="java_plain">&nbsp;</span><span class="java_separator">{</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;@</span><span class="java_type">Id</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;</span><span class="java_type">Integer</span><span class="java_plain">&nbsp;id</span><span class="java_separator">;</span>
+</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;@</span><span class="java_type">Field</span><span class="java_separator">(</span><span class="java_plain">store&nbsp;</span><span class="java_operator">=</span><span class="java_plain">&nbsp;</span><span class="java_type">Store</span><span class="java_separator">.</span><span class="java_plain">YES</span><span class="java_separator">)</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;</span><span class="java_type">String</span><span class="java_plain">&nbsp;name</span><span class="java_separator">;</span>
+</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;</span><span class="java_type">double</span><span class="java_plain">&nbsp;latitude</span><span class="java_separator">;</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;</span><span class="java_type">double</span><span class="java_plain">&nbsp;longitude</span><span class="java_separator">;</span>
+</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;@</span><span class="java_type">Spatial</span><span class="java_separator">(</span><span class="java_plain">spatialMode&nbsp;</span><span class="java_operator">=</span><span class="java_plain">&nbsp;</span><span class="java_type">SpatialMode</span><span class="java_separator">.</span><span class="java_plain">GRID</span><span class="java_separator">)</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;</span><span class="java_keyword">public</span><span class="java_plain">&nbsp;</span><span class="java_type">Coordinates</span><span class="java_plain">&nbsp;getLocation</span><span class="java_separator">()</span><span class="java_plain">&nbsp;</span><span class="java_separator">{</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="java_keyword">return</span><span class="java_plain">&nbsp;</span><span class="java_keyword">new</span><span class="java_plain">&nbsp;</span><span class="java_type">Coordinates</span><span class="java_separator">()</span><span class="java_plain">&nbsp;</span><span class="java_separator">{</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;@</span><span class="java_type">Override</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="java_keyword">public</span><span class="java_plain">&nbsp;</span><span class="java_type">Double</span><span class="java_plain">&nbsp;getLatitude</span><span class="java_separator">()</span><span class="java_plain">&nbsp;</span><span class="java_separator">{</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="java_keyword">return</span><span class="java_plain">&nbsp;latitude</span><span class="java_separator">;</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="java_separator">}</span>
+</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;@</span><span class="java_type">Override</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="java_keyword">public</span><span class="java_plain">&nbsp;</span><span class="java_type">Double</span><span class="java_plain">&nbsp;getLongitude</span><span class="java_separator">()</span><span class="java_plain">&nbsp;</span><span class="java_separator">{</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="java_keyword">return</span><span class="java_plain">&nbsp;longitude</span><span class="java_separator">;</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="java_separator">}</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="java_separator">};</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;</span><span class="java_separator">}</span>
+</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;</span><span class="java_separator">[...]</span>
+</pre></div></div><br class="example-break"/><p>When using this form the <code class="literal">@</code><code class="classname">Spatial</code>
+    <code class="literal">.name</code> automatically defaults to the propery name.</p></div></div><div class="section" lang="en-US"><div class="titlepage"><div><div><h2 class="title"><a id="spatial-queries"/>9.2. Performing Spatial Queries</h2></div></div></div><p>The Hibernate Search DSL has been extended to support the spatial
+  feature. You can build a query to search around a pair of coordinates
+  (latitude,longitude) or around a bean implementing the <code class="classname">Coordinates</code>
+  interface.</p><p>As with any fulltext queries, also for Spatial queries you:</p><div class="itemizedlist"><ul><li><p>retrieve a <code class="classname">QueryBuilder</code> from the
+        <code class="classname">SearchFactory</code> as a starting point</p></li><li><p>use the DSL to build a spatial query with your search center and
+        radius</p></li><li><p>optionally combine the resulting Query with other filters</p></li><li><p>call the <code class="methodname">createFullTextQuery()</code> and use
+        run it as any standard Hibernate or JPA <code class="classname">Query</code></p></li></ul></div><div class="example"><a id="spatial-example-firstquery"/><p class="title"><b>Example 9.5. Search for an Hotel by distance</b></p><div class="example-contents"><pre xmlns="" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="JAVA"><!-- <br/> --><span class="java_type">QueryBuilder</span><!-- <br/> --><span class="java_plain">&nbsp;builder&nbsp;</span><!-- <br/> --><span class="java_operator">=</span><!-- <br/> --><span class="java_plain">&nbsp;fullTextSession</span><!-- <br/> --><span class="java_separator">.</span><!-- <br/> --><span class="java_plain">getSearchFactory</span><!-- <br/> --><span class="java_separator">()</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;</span><span class="java_separator">.</span><span class="java_plain">buildQueryBuilder</span><span class="java_separator">().</span><span class="java_plain">forEntity</span><span class="java_separator">(</span><span class="java_plain">&nbsp;</span><span class="java_type">Hotel</span><span class="java_separator">.</span><span class="java_keyword">class</span><span class="java_plain">&nbsp;</span><span class="java_separator">).</span><span class="java_plain">get</span><span class="java_separator">();</span>
+</span>
+<!--  --><br/><span class="java_plain">org</span><span class="java_separator">.</span><span class="java_plain">apache</span><span class="java_separator">.</span><span class="java_plain">lucene</span><span class="java_separator">.</span><span class="java_plain">search</span><span class="java_separator">.</span><span class="java_type">Query</span><span class="java_plain">&nbsp;luceneQuery&nbsp;</span><span class="java_operator">=</span><span class="java_plain">&nbsp;builder</span><span class="java_separator">.</span><span class="java_plain">spatial</span><span class="java_separator">()</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;</span><span class="java_separator">.</span><span class="java_plain">onDefaultCoordinates</span><span class="java_separator">()</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;</span><span class="java_separator">.</span><span class="java_plain">within</span><span class="java_separator">(</span><span class="java_plain">&nbsp;radius</span><span class="java_separator">,</span><span class="java_plain">&nbsp;</span><span class="java_type">Unit</span><span class="java_separator">.</span><span class="java_plain">KM&nbsp;</span><span class="java_separator">)</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;</span><span class="java_separator">.</span><span class="java_plain">ofLatitude</span><span class="java_separator">(</span><span class="java_plain">&nbsp;centerLatitude&nbsp;</span><span class="java_separator">)</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;</span><span class="java_separator">.</span><span class="java_plain">andLongitude</span><span class="java_separator">(</span><span class="java_plain">&nbsp;centerLongitude&nbsp;</span><span class="java_separator">)</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;</span><span class="java_separator">.</span><span class="java_plain">createQuery</span><span class="java_separator">();</span>
+</span>
+<!--  --><br/><span class="java_plain">org</span><span class="java_separator">.</span><span class="java_plain">hibernate</span><span class="java_separator">.</span><span class="java_type">Query</span><span class="java_plain">&nbsp;hibQuery&nbsp;</span><span class="java_operator">=</span><span class="java_plain">&nbsp;fullTextSession</span><span class="java_separator">.</span><span class="java_plain">createFullTextQuery</span><span class="java_separator">(</span><span class="java_plain">&nbsp;luceneQuery</span><span class="java_separator">,</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;&nbsp;</span><span class="java_type">Hotel</span><span class="java_separator">.</span><span class="java_keyword">class</span><span class="java_plain">&nbsp;</span><span class="java_separator">);</span>
+<!--  --><br/><span class="java_type">List</span><span class="java_plain">&nbsp;results&nbsp;</span><span class="java_operator">=</span><span class="java_plain">&nbsp;hibQuery</span><span class="java_separator">.</span><span class="java_plain">list</span><span class="java_separator">();</span></pre></div></div><br class="example-break"/><p>A fully working example can be found in the source code, in the
+    testsuite. See
+    <code class="methodname">SpatialIndexingTest.testSpatialAnnotationOnClassLevel()</code>
+    and in the <code class="classname">Hotel</code> class.</p><p>As an alternative to passing separate values for latitude and longitude
+    values, you can also pass an object implementing the <code class="classname">Coordinates</code>
+    interface:</p><div class="example"><a id="d0e7966"/><p class="title"><b>Example 9.6. DSL example with Coordinates</b></p><div class="example-contents"><pre xmlns="" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="JAVA"><!-- <br/> --><span class="java_type">Coordinates</span><!-- <br/> --><span class="java_plain">&nbsp;coordinates&nbsp;</span><!-- <br/> --><span class="java_operator">=</span><!-- <br/> --><span class="java_plain">&nbsp;</span><!-- <br/> --><span class="java_type">Point</span><!-- <br/> --><span class="java_separator">.</span><!-- <br/> --><span class="java_plain">fromDegrees</span><!-- <br/> --><span class="java_separator">(</span><!-- <br/> --><span class="java_literal">24d</span><!-- <br/> --><span class="java_separator">,</span><!-- <br/> --><span class="java_plain">&nbsp;</span><!-- <br/> --><span class="java_literal">31.5d</span><!-- <br/> --><span class="java_separator">);</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;&nbsp;</span><span class="java_type">Query</span><span class="java_plain">&nbsp;query&nbsp;</span><span class="java_operator">=</span><span class="java_plain">&nbsp;builder</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="java_separator">.</span><span class="java_plain">spatial</span><span class="java_separator">()</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="java_separator">.</span><span class="java_plain">onCoordinates</span><span class="java_separator">(</span><span class="java_plain">&nbsp;</span><span class="java_literal">&quot;location&quot;</span><span class="java_plain">&nbsp;</span><span class="java_separator">)</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="java_separator">.</span><span class="java_plain">within</span><span class="java_separator">(</span><span class="java_plain">&nbsp;</span><span class="java_literal">51</span><span class="java_separator">,</span><span class="java_plain">&nbsp;</span><span class="java_type">Unit</span><span class="java_separator">.</span><span class="java_plain">KM&nbsp;</span><span class="java_separator">)</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="java_separator">.</span><span class="java_plain">ofCoordinates</span><span class="java_separator">(</span><span class="java_plain">&nbsp;coordinates&nbsp;</span><span class="java_separator">)</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="java_separator">.</span><span class="java_plain">createQuery</span><span class="java_separator">();</span>
+</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;&nbsp;</span><span class="java_type">List</span><span class="java_plain">&nbsp;results&nbsp;</span><span class="java_operator">=</span><span class="java_plain">&nbsp;fullTextSession</span><span class="java_separator">.</span><span class="java_plain">createFullTextQuery</span><span class="java_separator">(</span><span class="java_plain">&nbsp;query</span><span class="java_separator">,</span><span class="java_plain">&nbsp;POI</span><span class="java_separator">.</span><span class="java_keyword">class</span><span class="java_plain">&nbsp;</span><span class="java_separator">).</span><span class="java_plain">list</span><span class="java_separator">();</span></pre></div></div><br class="example-break"/><div class="section" lang="en-US"><div class="titlepage"><div><div><h3 class="title"><a id="spatial-queries-distance"/>9.2.1. Returning distance to query point in the search results</h3></div></div></div><div class="section" lang="en-US"><div class="titlepage"><div><div><h4 class="title"><a id="spatial-distance-projection"/>9.2.1.1. Returning distance to the center in the results</h4></div></div></div><p>To get the distance to the center of the search returned with the
+      results you just need to project it:</p><div class="example"><a id="d0e7979"/><p class="title"><b>Example 9.7. Distance projection example</b></p><div class="example-contents"><pre xmlns="" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="JAVA"><!-- <br/> --><span class="java_type">double</span><!-- <br/> --><span class="java_plain">&nbsp;centerLatitude&nbsp;</span><!-- <br/> --><span class="java_operator">=</span><!-- <br/> --><span class="java_plain">&nbsp;</span><!-- <br/> --><span class="java_literal">24.0d</span><!-- <br/> --><span class="java_separator">;</span>
+<!--  --><br/><span class="java_type">double</span><span class="java_plain">&nbsp;centerLongitude</span><span class="java_operator">=</span><span class="java_plain">&nbsp;</span><span class="java_literal">32.0d</span><span class="java_separator">;</span>
+</span>
+<!--  --><br/><span class="java_type">QueryBuilder</span><span class="java_plain">&nbsp;builder&nbsp;</span><span class="java_operator">=</span><span class="java_plain">&nbsp;fullTextSession</span><span class="java_separator">.</span><span class="java_plain">getSearchFactory</span><span class="java_separator">()</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;</span><span class="java_separator">.</span><span class="java_plain">buildQueryBuilder</span><span class="java_separator">().</span><span class="java_plain">forEntity</span><span class="java_separator">(</span><span class="java_plain">POI</span><span class="java_separator">.</span><span class="java_keyword">class</span><span class="java_separator">).</span><span class="java_plain">get</span><span class="java_separator">();</span>
+<!--  --><br/><span class="java_plain">org</span><span class="java_separator">.</span><span class="java_plain">apache</span><span class="java_separator">.</span><span class="java_plain">lucene</span><span class="java_separator">.</span><span class="java_plain">search</span><span class="java_separator">.</span><span class="java_type">Query</span><span class="java_plain">&nbsp;luceneQuery&nbsp;</span><span class="java_operator">=</span><span class="java_plain">&nbsp;builder</span><span class="java_separator">.</span><span class="java_plain">spatial</span><span class="java_separator">()</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="java_separator">.</span><span class="java_plain">onCoordinates</span><span class="java_separator">(</span><span class="java_literal">&quot;location&quot;</span><span class="java_separator">)</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="java_separator">.</span><span class="java_plain">within</span><span class="java_separator">(</span><span class="java_literal">100</span><span class="java_separator">,</span><span class="java_plain">&nbsp;</span><span class="java_type">Unit</span><span class="java_separator">.</span><span class="java_plain">KM</span><span class="java_separator">)</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="java_separator">.</span><span class="java_plain">ofLatitude</span><span class="java_separator">(</span><span class="java_plain">centerLatitude</span><span class="java_separator">)</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="java_separator">.</span><span class="java_plain">andLongitude</span><span class="java_separator">(</span><span class="java_plain">centerLongitude</span><span class="java_separator">)</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;&nbsp;</span><span class="java_separator">.</span><span class="java_plain">createQuery</span><span class="java_separator">();</span>
+</span>
+<!--  --><br/><span class="java_type">FullTextQuery</span><span class="java_plain">&nbsp;hibQuery&nbsp;</span><span class="java_operator">=</span><span class="java_plain">&nbsp;fullTextSession</span><span class="java_separator">.</span><span class="java_plain">createFullTextQuery</span><span class="java_separator">(</span><span class="java_plain">luceneQuery</span><span class="java_separator">,</span><span class="java_plain">&nbsp;POI</span><span class="java_separator">.</span><span class="java_keyword">class</span><span class="java_separator">);</span>
+<!--  --><br/><span class="java_plain">hibQuery</span><span class="java_separator">.</span><span class="java_plain">setProjection</span><span class="java_separator">(</span><span class="java_type">FullTextQuery</span><span class="java_separator">.</span><span class="java_plain">SPATIAL_DISTANCE</span><span class="java_separator">,</span><span class="java_plain">&nbsp;</span><span class="java_type">FullTextQuery</span><span class="java_separator">.</span><span class="java_plain">THIS</span><span class="java_separator">);</span>
+<!--  --><br/><span class="java_plain">hibQuery</span><span class="java_separator">.</span><span class="java_plain">setSpatialParameters</span><span class="java_separator">(</span><span class="java_plain">centerLatitude</span><span class="java_separator">,</span><span class="java_plain">&nbsp;centerLongitude</span><span class="java_separator">,</span><span class="java_plain">&nbsp;</span><span class="java_literal">&quot;location&quot;</span><span class="java_separator">);</span>
+<!--  --><br/><span class="java_type">List</span><span class="java_plain">&nbsp;results&nbsp;</span><span class="java_operator">=</span><span class="java_plain">&nbsp;hibQuery</span><span class="java_separator">.</span><span class="java_plain">list</span><span class="java_separator">();</span></pre></div></div><br class="example-break"/><div class="itemizedlist"><ul><li><p>Use
+          <code class="classname">FullTextQuery</code>.<code class="literal">setProjection</code>
+          with FullTextQuery.SPATIAL_DISTANCE as one of the projected
+          fields.</p></li><li><p>Call
+          <code class="classname">FullTextQuery</code>.<code class="literal">setSpatialParameters</code>
+          with the latitude, longitude and the name of the spatial field used
+          to build the spatial query. Note that using coordinates different thans
+          the center used for the query will have unexpected results.</p></li></ul></div><div xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="note"><h2>Distance projection and null values</h2><p>Using distance projection on non @Spatial enabled entities and/or
+      with a non spatial Query will have unexpected results as entities not
+      spatially indexed and/or having null values for latitude or longitude
+      will be considered to be at (0,0)/(lat,0)/(0,long).</p><p>Using distance projection with a spatial query on spatially
+      indexed entities having, eventually, <code class="literal">null</code> values for
+      latitude and/or longitude is safe as they will not be found by the
+      spatial query and won't have distance calculated.</p></div></div><div class="section" lang="en-US"><div class="titlepage"><div><div><h4 class="title"><a id="spatial-distance-sort"/>9.2.1.2. Sorting by distance</h4></div></div></div><p>To sort the results by distance to the center of the search you
+      will have to build a Sort object using a
+      <code class="classname">DistanceSortField</code>:</p><div class="example"><a id="d0e8021"/><p class="title"><b>Example 9.8. Distance sort example</b></p><div class="example-contents"><pre xmlns="" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="JAVA"><!-- <br/> --><span class="java_type">double</span><!-- <br/> --><span class="java_plain">&nbsp;centerLatitude&nbsp;</span><!-- <br/> --><span class="java_operator">=</span><!-- <br/> --><span class="java_plain">&nbsp;</span><!-- <br/> --><span class="java_literal">24.0d</span><!-- <br/> --><span class="java_separator">;</span>
+<!--  --><br/><span class="java_type">double</span><span class="java_plain">&nbsp;centerLongitude&nbsp;</span><span class="java_operator">=</span><span class="java_plain">&nbsp;</span><span class="java_literal">32.0d</span><span class="java_separator">;</span>
+</span>
+<!--  --><br/><span class="java_type">QueryBuilder</span><span class="java_plain">&nbsp;builder&nbsp;</span><span class="java_operator">=</span><span class="java_plain">&nbsp;fullTextSession</span><span class="java_separator">.</span><span class="java_plain">getSearchFactory</span><span class="java_separator">()</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;&nbsp;</span><span class="java_separator">.</span><span class="java_plain">buildQueryBuilder</span><span class="java_separator">().</span><span class="java_plain">forEntity</span><span class="java_separator">(</span><span class="java_plain">&nbsp;POI</span><span class="java_separator">.</span><span class="java_keyword">class</span><span class="java_plain">&nbsp;</span><span class="java_separator">).</span><span class="java_plain">get</span><span class="java_separator">();</span>
+<!--  --><br/><span class="java_plain">org</span><span class="java_separator">.</span><span class="java_plain">apache</span><span class="java_separator">.</span><span class="java_plain">lucene</span><span class="java_separator">.</span><span class="java_plain">search</span><span class="java_separator">.</span><span class="java_type">Query</span><span class="java_plain">&nbsp;luceneQuery&nbsp;</span><span class="java_operator">=</span><span class="java_plain">&nbsp;builder</span><span class="java_separator">.</span><span class="java_plain">spatial</span><span class="java_separator">()</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="java_separator">.</span><span class="java_plain">onCoordinates</span><span class="java_separator">(</span><span class="java_literal">&quot;location&quot;</span><span class="java_separator">)</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="java_separator">.</span><span class="java_plain">within</span><span class="java_separator">(</span><span class="java_literal">100</span><span class="java_separator">,</span><span class="java_plain">&nbsp;</span><span class="java_type">Unit</span><span class="java_separator">.</span><span class="java_plain">KM</span><span class="java_separator">)</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="java_separator">.</span><span class="java_plain">ofLatitude</span><span class="java_separator">(</span><span class="java_plain">centerLatitude</span><span class="java_separator">)</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="java_separator">.</span><span class="java_plain">andLongitude</span><span class="java_separator">(</span><span class="java_plain">centerLongitude</span><span class="java_separator">)</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;&nbsp;</span><span class="java_separator">.</span><span class="java_plain">createQuery</span><span class="java_separator">();</span>
+</span>
+<!--  --><br/><span class="java_type">FullTextQuery</span><span class="java_plain">&nbsp;hibQuery&nbsp;</span><span class="java_operator">=</span><span class="java_plain">&nbsp;fullTextSession</span><span class="java_separator">.</span><span class="java_plain">createFullTextQuery</span><span class="java_separator">(</span><span class="java_plain">luceneQuery</span><span class="java_separator">,</span><span class="java_plain">&nbsp;POI</span><span class="java_separator">.</span><span class="java_keyword">class</span><span class="java_separator">);</span>
+<!--  --><br/><span class="java_type">Sort</span><span class="java_plain">&nbsp;distanceSort&nbsp;</span><span class="java_operator">=</span><span class="java_plain">&nbsp;</span><span class="java_keyword">new</span><span class="java_plain">&nbsp;</span><span class="java_type">Sort</span><span class="java_separator">(</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="java_keyword">new</span><span class="java_plain">&nbsp;</span><span class="java_type">DistanceSortField</span><span class="java_separator">(</span><span class="java_plain">centerLatitude</span><span class="java_separator">,</span><span class="java_plain">&nbsp;centerLongitude</span><span class="java_separator">,</span><span class="java_plain">&nbsp;</span><span class="java_literal">&quot;location&quot;</span><span class="java_separator">));</span>
+<!--  --><br/><span class="java_plain">hibQuery</span><span class="java_separator">.</span><span class="java_plain">setSort</span><span class="java_separator">(</span><span class="java_plain">distanceSort</span><span class="java_separator">);</span></pre></div></div><br class="example-break"/><p>The <code class="classname">DistanceSortField</code> must be constructed
+      using the same coordinates on the same spatial field used to build the
+      spatial query otherwise the sorting will occur with another center than
+      the query. This repetition is needed to allow you to define Queries with
+      any tool.</p><div xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="note"><h2>Sorting and null values</h2><p>Using distance sort on non @Spatial enabled entities and/or with a
+      non spatial Query will have also unexpected results as entities non
+      spatially indexed and/or with null values for latitude or longitude will
+      be considered to be at (0,0)/(lat,0)/(0,long)</p><p>Using distance sort with a spatial query on spatially indexed
+      entities having, potentially, <code class="literal">null</code> values for latitude
+      and/or longitude is safe as they will not be found by the spatial query
+      and so won't be sorted</p></div></div></div></div><div class="section" lang="en-US"><div class="titlepage"><div><div><h2 class="title"><a id="spatial-multiplecoordinates"/>9.3. Multiple Coordinate pairs</h2></div></div></div><p>You can associate multiple pairs of coordinates to the same entity,
+    as long as each pair is uniquelly identified by using a different name. This is achieved
+    by stacking multiple <code class="literal">@</code><code class="classname">Spatial</code>
+    annotations in a <code class="literal">@</code><code class="classname">Spatials</code> annotation,
+    and specifying the <code class="literal">name</code> attribute on the
+    <code class="literal">@</code><code class="classname">Spatial</code> annotation.</p><div class="example"><a id="d0e8064"/><p class="title"><b>Example 9.9. Multiple sets of coordinates</b></p><div class="example-contents"><pre xmlns="" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="JAVA"><!-- <br/> --><span class="java_keyword">import</span><!-- <br/> --><span class="java_plain">&nbsp;org</span><!-- <br/> --><span class="java_separator">.</span><!-- <br/> --><span class="java_plain">hibernate</span><!-- <br/> --><span class="java_separator">.</span><!-- <br/> --><span class="java_plain">search</span><!-- <br/> --><span class="java_separator">.</span><!-- <br/> --><span class="java_plain">annotations</span><!-- <br/> --><span class="java_separator">.</span><!-- <br/> --><span class="java_operator">*</span><!-- <br/> --><span class="java_separator">;</span>
+</span>
+<!--  --><br/><span class="java_plain">@</span><span class="java_type">Spatials</span><span class="java_separator">({</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;@</span><span class="java_type">Spatial</span><span class="java_separator">,</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;@</span><span class="java_type">Spatial</span><span class="java_separator">(</span><span class="java_plain">name</span><span class="java_operator">=</span><span class="java_literal">&quot;work&quot;</span><span class="java_separator">,</span><span class="java_plain">&nbsp;&nbsp;spatialMode&nbsp;</span><span class="java_operator">=</span><span class="java_plain">&nbsp;</span><span class="java_type">SpatialMode</span><span class="java_separator">.</span><span class="java_plain">GRID</span><span class="java_separator">)</span>
+<!--  --><br/><span class="java_separator">})</span>
+<!--  --><br/><span class="java_plain">@</span><span class="java_type">Entity</span>
+<!--  --><br/><span class="java_plain">@</span><span class="java_type">Indexed</span>
+<!--  --><br/><span class="java_keyword">public</span><span class="java_plain">&nbsp;</span><span class="java_keyword">class</span><span class="java_plain">&nbsp;</span><span class="java_type">UserEx</span><span class="java_plain">&nbsp;</span><span class="java_separator">{</span>
+</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;@</span><span class="java_type">Id</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;</span><span class="java_type">Integer</span><span class="java_plain">&nbsp;id</span><span class="java_separator">;</span>
+</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;@</span><span class="java_type">Latitude</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;</span><span class="java_type">Double</span><span class="java_plain">&nbsp;homeLatitude</span><span class="java_separator">;</span>
+</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;@</span><span class="java_type">Longitude</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;</span><span class="java_type">Double</span><span class="java_plain">&nbsp;homeLongitude</span><span class="java_separator">;</span>
+</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;@</span><span class="java_type">Latitude</span><span class="java_separator">(</span><span class="java_plain">of</span><span class="java_operator">=</span><span class="java_literal">&quot;work&quot;</span><span class="java_separator">)</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;</span><span class="java_type">Double</span><span class="java_plain">&nbsp;workLatitude</span><span class="java_separator">;</span>
+</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;@</span><span class="java_type">Longitude</span><span class="java_separator">(</span><span class="java_plain">of</span><span class="java_operator">=</span><span class="java_literal">&quot;work&quot;</span><span class="java_separator">)</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;</span><span class="java_type">Double</span><span class="java_plain">&nbsp;workLongitude</span><span class="java_separator">;</span>
+</pre></div></div><br class="example-break"/><p>In the example <a href="spatial.html#spatial-example-firstquery" title="Example 9.5. Search for an Hotel by distance">Example 9.5, “Search for an Hotel by distance”</a> we used
+  <code class="literal">onDefaultCoordinates()</code> which points to the coordinates
+  defined by a <code class="literal">@</code><code class="classname">Spatial</code> annotation
+  whose <code class="literal">name</code> attribute was not specified.</p><p>To target an alternative pair of coordinates at query time, we need
+  to specify the pair by name using <code class="methodname">onCoordinates</code>
+  <code class="literal">(String)</code> instead of
+  <code class="methodname">onDefaultCoordinates()</code>:</p><div class="example"><a id="d0e8095"/><p class="title"><b>Example 9.10. Querying on non-default coordinate set</b></p><div class="example-contents"><pre xmlns="" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" class="JAVA"><!-- <br/> --><span class="java_type">QueryBuilder</span><!-- <br/> --><span class="java_plain">&nbsp;builder&nbsp;</span><!-- <br/> --><span class="java_operator">=</span><!-- <br/> --><span class="java_plain">&nbsp;fullTextSession</span><!-- <br/> --><span class="java_separator">.</span><!-- <br/> --><span class="java_plain">getSearchFactory</span><!-- <br/> --><span class="java_separator">()</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;</span><span class="java_separator">.</span><span class="java_plain">buildQueryBuilder</span><span class="java_separator">().</span><span class="java_plain">forEntity</span><span class="java_separator">(</span><span class="java_plain">&nbsp;</span><span class="java_type">UserEx</span><span class="java_separator">.</span><span class="java_keyword">class</span><span class="java_plain">&nbsp;</span><span class="java_separator">).</span><span class="java_plain">get</span><span class="java_separator">();</span>
+</span>
+<!--  --><br/><span class="java_plain">org</span><span class="java_separator">.</span><span class="java_plain">apache</span><span class="java_separator">.</span><span class="java_plain">lucene</span><span class="java_separator">.</span><span class="java_plain">search</span><span class="java_separator">.</span><span class="java_type">Query</span><span class="java_plain">&nbsp;luceneQuery&nbsp;</span><span class="java_operator">=</span><span class="java_plain">&nbsp;builder</span><span class="java_separator">.</span><span class="java_plain">spatial</span><span class="java_separator">()</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;</span><span class="java_separator">.</span><span class="java_plain">onCoordinates</span><span class="java_separator">(</span><span class="java_plain">&nbsp;</span><span class="java_literal">&quot;work&quot;</span><span class="java_plain">&nbsp;</span><span class="java_separator">)</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;</span><span class="java_separator">.</span><span class="java_plain">within</span><span class="java_separator">(</span><span class="java_plain">&nbsp;radius</span><span class="java_separator">,</span><span class="java_plain">&nbsp;</span><span class="java_type">Unit</span><span class="java_separator">.</span><span class="java_plain">KM&nbsp;</span><span class="java_separator">)</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;</span><span class="java_separator">.</span><span class="java_plain">ofLatitude</span><span class="java_separator">(</span><span class="java_plain">&nbsp;centerLatitude&nbsp;</span><span class="java_separator">)</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;</span><span class="java_separator">.</span><span class="java_plain">andLongitude</span><span class="java_separator">(</span><span class="java_plain">&nbsp;centerLongitude&nbsp;</span><span class="java_separator">)</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;</span><span class="java_separator">.</span><span class="java_plain">createQuery</span><span class="java_separator">();</span>
+</span>
+<!--  --><br/><span class="java_plain">org</span><span class="java_separator">.</span><span class="java_plain">hibernate</span><span class="java_separator">.</span><span class="java_type">Query</span><span class="java_plain">&nbsp;hibQuery&nbsp;</span><span class="java_operator">=</span><span class="java_plain">&nbsp;fullTextSession</span><span class="java_separator">.</span><span class="java_plain">createFullTextQuery</span><span class="java_separator">(</span><span class="java_plain">&nbsp;luceneQuery</span><span class="java_separator">,</span>
+<!--  --><br/><span class="java_plain">&nbsp;&nbsp;&nbsp;</span><span class="java_type">Hotel</span><span class="java_separator">.</span><span class="java_keyword">class</span><span class="java_plain">&nbsp;</span><span class="java_separator">);</span>
+<!--  --><br/><span class="java_type">List</span><span class="java_plain">&nbsp;results&nbsp;</span><span class="java_operator">=</span><span class="java_plain">&nbsp;hibQuery</span><span class="java_separator">.</span><span class="java_plain">list</span><span class="java_separator">();</span></pre></div></div><br class="example-break"/></div><div class="section" lang="en-US"><div class="titlepage"><div><div><h2 class="title"><a id="spatial-behind-curtain"/>9.4. Insight: implementation details of Quad Tree indexing</h2></div></div></div><p>The present chapter is meant to provide a technical insight in
+    quad-tree (grid) indexing: how coordinates are mapped to the index and
+    how queries are implemented.</p><div class="section" lang="en-US"><div class="titlepage"><div><div><h3 class="title"><a id="d0e8105"/>9.4.1. At indexing level</h3></div></div></div><p>When Hibernate Search indexes the entity annotated with @Spatial,
+      it instantiates a SpatialFieldBridge to transform the latitude and
+      longitude fields accessed via the Coordinates interface to the multiple
+      index fields stored in the Lucene index.</p><p>Principle of the spatial index: the spatial index used in
+      Hibernate Search is a QuadTree (<a xmlns:xlink="http://www.w3.org/1999/xlink" href="http://en.wikipedia.org/wiki/Quadtree">http://en.wikipedia.org/wiki/Quadtree</a>).</p><p>To make computation in a flat coordinates system the latitude and
+      longitude field values will be projected with a sinusoidal projection
+      (<a xmlns:xlink="http://www.w3.org/1999/xlink" href="http://en.wikipedia.org/wiki/Sinusoidal_projection">
+      http://en.wikipedia.org/wiki/Sinusoidal_projection</a>). Origin
+      values space is :</p><p>[-90 -&gt; +90],]-180 -&gt; 180]</p><p>for latitude,longitude coordinates and projected space is:</p><p>]-pi -&gt; +pi],[-pi/2 -&gt; +pi/2]</p><p>for cartesian x,y coordinates (beware of fields order inversion: x
+      is longitude and y is latitude).</p><p>The index is divided into n levels labeled from 0 to n-1.</p><p>At the level 0 the projected space is the whole Earth. At the
+      level 1 the projected space is devided into 4 rectangles (called boxes
+      as in bounding box):</p><p>[-pi,-pi/2]-&gt;[0,0], [-pi,0]-&gt;[0,+pi/2],
+      [0,-pi/2]-&gt;[+pi,0] and [0,0]-&gt;[+pi,+pi/2]</p><p>At level n+1 each box of level n is divided into 4 new boxes and
+      so on. The numbers of boxes at a given level is 4^n.</p><p>Each box is given an id, in this format: [Box index on the X
+      axis]|[Box index on the Y axis] To calculate the index of a box on an
+      axis we divide the axis range in 2^n slots and find the slot the box
+      belongs to. At the n level the indexes on an axis are from -(2^n)/2 to
+      (2^n)/2. For instance, the 5th level has 4^5 = 1024 boxes with 32
+      indexes on each axis (32x32 is 1024) and the box of Id "0|8" is covering
+      the [0,8/32*pi/2]-&gt;[1/32*pi,9/32*pi/2] rectangle is projected
+      space.</p><p>Beware! The boxes are rectangles in projected space but the
+      related area on Earth is not a rectangle!</p><p>Now that we have all these boxes at all these levels will be
+      indexing points "into" them.</p><p>For a point (lat,long) we calculate its projection (x,y) and then
+      we calculate for each level of the spatial index, the ids of the boxes
+      it belongs to.</p><p>At each level the point is in one and only one box. For points on
+      the edges the box are considered exclusive n the left side and inclusive
+      on the right i-e ]start,end] (the points are normalized before
+      projection to [-90,+90],]-180,+180]).</p><p>We store in the Lucene document corresponding to the entity to
+      index one field for each level of the quad tree. The field is named: [spatial
+      index fields name]_HSSI_[n]. [spatial index fields name] is given either
+      by the parameter at class level annotation or derived from the name of
+      the spatial annoted method of he entitiy, HSSI stands for Hibernate
+      Search Spatial Index and n is the level of the quad tree.</p><p>We also store the latitude and longitude as a Numeric field under
+      [spatial index fields name]_HSSI_Latitude and [spatial index fields
+      name]_HSSI_Longitude fields. They will be used to filter precisely
+      results by distance in the second stage of the search.</p></div><div class="section" lang="en-US"><div class="titlepage"><div><div><h3 class="title"><a id="d0e8150"/>9.4.2. At search level</h3></div></div></div><p>Now that we have all these fields, what are they used for?</p><p>When you ask for a spatial search by providing a search discus
+      (center+radius) we will calculate the boxes ids that do cover the search
+      discus in the projected space, fetch all the documents that belong to
+      these boxes (thus narrowing the number of documents for which we will
+      have to calculate distance to the center) and then filter this subset
+      with a real distance calculation. This is called two level spatial
+      filtering.</p><div class="section" lang="en-US"><div class="titlepage"><div><div><h4 class="title"><a id="d0e8157"/>9.4.2.1. Step 1: compute the best quad tree level for the search
+        discus</h4></div></div></div><p>For a given search radius there is an optimal quad tree level where
+        the number of boxes to retrieve hall be minimal without bringing back
+        to many documents (level 0 has only 1 box but retrieve all documents).
+        The optimal quad tree level is the maximum level where the width of each box
+        is larger than the search area. Near the equator line where
+        projection deformation is minimal, this will lead to the retrieval of
+        at most 4 boxes. Towards the poles where the deformation is more
+        significant, it might need to examine more boxes but as the sinusoidal projection
+        has a simple Tissot's indicatrix (see
+        http://en.wikipedia.org/wiki/Sinusoidal_projection) in populated areas,
+        the overhead is minimal.</p></div><div class="section" lang="en-US"><div class="titlepage"><div><div><h4 class="title"><a id="d0e8162"/>9.4.2.2. Step 2: compute ids of the corresponding covering boxes at that
+        level</h4></div></div></div><p>Now that we have chosen the optimal level, we can compute the
+        ids of the boxes covering the search discus (which is not a discus in
+        projected space anymore).</p><p>This is done by
+        org.hibernate.search.spatial.impl.SpatialHelper.getQuadTreeCellsIds(Point
+        center, double radius, int quadTreeLevel)</p><p>It will calculate the bounding box of the search discus and then
+        call
+        org.hibernate.search.spatial.impl.SpatialHelper.getQuadTreeCellsIds(Point
+        lowerLeft, Point upperRight, int quadTreeLevel) that will do the actual
+        computation. If the bounding box crosses the meridian line it will cut
+        the search in two and make two calls to <code class="literal">getQuadTreeCellsIds(Point
+        lowerLeft, Point upperRight, int quadTreeLevel)</code> with left and
+        right parts of the box.</p><p>There are some geo related hacks (search radius too large,
+        search radius crossing the poles) that are handled in bounding box
+        computations done by Rectangle.fromBoundingCircle(Coordinates center, double
+        radius) (see
+        http://janmatuschek.de/LatitudeLongitudeBoundingCoordinates for
+        reference on those subjects).</p><p>The SpatialHelper.getQuadTreeCellsIds(Point lowerLeft, Point
+        upperRight, int quadTreeLevel) project the defining points of the bounding
+        box and compute the boxes they belong to. It returns all the box Ids
+        between the lower left to the upper right corners, thus covering the
+        area.</p></div><div class="section" lang="en-US"><div class="titlepage"><div><div><h4 class="title"><a id="d0e8178"/>9.4.2.3. Step 3: Lucene index lookup</h4></div></div></div><p>The Query is build with theses Ids to lookup for documents
+        having a [spatial index fields name]_HSSI_[n] (n the level found at
+        Step 1) field valued with one of the ids of Step 2.</p><p>See also the implementation of <code class="classname">org.hibernate.search.spatial.impl.QuadTreeFilter
+        </code>.</p><p>This Query will return all documents in the boxes covering the
+        projected bounding box of the search discus. So it is too large and
+        needs refining. But we have narrowed the distance calculation problems
+        to a subet of our datas.</p></div><div class="section" lang="en-US"><div class="titlepage"><div><div><h4 class="title"><a id="d0e8190"/>9.4.2.4. Step 4: refine</h4></div></div></div><p>A distance calculation filter is set after the Lucene index
+        lookup query of Step 3 to exclude false candidates from the result
+        list.</p><p>See SpatialQueryBuilderFromCoordinates.buildSpatialQuery(Coordinates center,
+        double radius, String fieldName)</p></div></div></div></div><HR xmlns=""/><a xmlns="" href=""/><ul class="docnav"><li class="previous"><a accesskey="p" href="search-monitoring.html"><strong>Prev</strong>Chapter 8. Monitoring</a></li><li class="up"><a accesskey="u" href="#"><strong>Top of page</strong></a></li><li class="home"><a accesskey="h" href="index.html"><strong>Front page</strong></a></li><li class="next"><a accesskey="n" href="search-lucene-native.html"><strong>Next</strong>Chapter 10. Advanced features</a></li></ul></body></html>

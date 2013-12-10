@@ -1,0 +1,18 @@
+dependencies {
+    provided( libraries.validation )
+    compile project( ':hibernate-core' )
+    compile( libraries.c3p0 )
+
+    testCompile( libraries.validator ) {
+        // for test runtime
+        transitive = true
+    }
+    testCompile project( ':hibernate-testing' )
+}
+
+jar {
+    manifest {
+        instruction 'Bundle-Description', 'Hibernate ORM C3P0'
+        instruction 'Bundle-SymbolicName', 'org.hibernate.c3p0'
+    }
+}

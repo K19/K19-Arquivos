@@ -1,0 +1,214 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml"><head><title>Chapter 2. Architecture</title><link rel="stylesheet" type="text/css" href="css/hibernate.css"/><meta name="generator" content="DocBook XSL Stylesheets V1.76.1"/><link rel="home" href="index.html" title="HIBERNATE - Relational Persistence for Idiomatic Java"/><link rel="up" href="index.html" title="HIBERNATE - Relational Persistence for Idiomatic Java"/><link rel="prev" href="ch01.html" title="Chapter 1. Tutorial"/><link rel="next" href="ch03.html" title="Chapter 3. Configuration"/><link rel="copyright" href="ln-d5e19.html" title="Legal Notice"/><meta xmlns:d="http://docbook.org/ns/docbook" xmlns:rf="java:org.jboss.highlight.XhtmlRendererFactory" http-equiv="Content-Type" content="text/html; charset=UTF-8"/></head><body><p xmlns:d="http://docbook.org/ns/docbook" id="title"><a href="http://www.hibernate.org" class="site_href"><strong>Hibernate.org</strong></a><a href="http://hibernate.org/Documentation/DocumentationOverview" class="doc_href"><strong>Community Documentation</strong></a></p><ul xmlns:d="http://docbook.org/ns/docbook" class="docnav"><li class="previous"><a accesskey="p" href="ch01.html"><strong>Prev</strong></a></li><li class="next"><a accesskey="n" href="ch03.html"><strong>Next</strong></a></li></ul><div class="chapter" title="Chapter 2. Architecture"><div class="titlepage"><div><div><h2 class="title"><a id="architecture"/>Chapter 2. Architecture</h2></div></div></div><div class="toc"><p><strong>Table of Contents</strong></p><dl><dt><span class="section"><a href="ch02.html#architecture-overview">2.1. Overview</a></span></dt><dd><dl><dt><span class="section"><a href="ch02.html#architecture-overview-minimal">2.1.1. Minimal architecture</a></span></dt><dt><span class="section"><a href="ch02.html#architecture-overview-comprehensive">2.1.2. Comprehensive architecture</a></span></dt><dt><span class="section"><a href="ch02.html#architecture-overview-terms">2.1.3. Basic APIs</a></span></dt></dl></dd><dt><span class="section"><a href="ch02.html#architecture-jmx">2.2. JMX Integration</a></span></dt><dt><span class="section"><a href="ch02.html#architecture-current-session">2.3. Contextual sessions</a></span></dt></dl></div>
+
+    
+
+    <div class="section" title="2.1. Overview"><div class="titlepage"><div><div><h2 class="title"><a id="architecture-overview"/>2.1. Overview</h2></div></div></div>
+        
+        
+        <p>
+            The diagram below provides a high-level view of the Hibernate architecture:
+        </p>
+
+        <div class="mediaobject" align="center"><img src="images/overview.png" align="middle"/></div>
+
+        <p>
+            Unfortunately we cannot provide a detailed view of all possible runtime architectures.  Hibernate is
+            sufficiently flexible to be used in a number of ways in many, many architectures.  We will, however,
+            illustrate 2 specifically since they are extremes.
+        </p>
+
+        <div class="section" title="2.1.1. Minimal architecture"><div class="titlepage"><div><div><h3 class="title"><a id="architecture-overview-minimal"/>2.1.1. Minimal architecture</h3></div></div></div>
+            
+
+            <p>
+                The "minimal" architecture has the application manage its own JDBC connections and provide those
+                connections to Hibernate; additionally the application manages transactions for itself.  This approach
+                uses a minimal subset of Hibernate APIs.
+            </p>
+            <div class="mediaobject" align="center"><img src="images/lite.png" align="middle"/></div>
+        </div>
+
+        <div class="section" title="2.1.2. Comprehensive architecture"><div class="titlepage"><div><div><h3 class="title"><a id="architecture-overview-comprehensive"/>2.1.2. Comprehensive architecture</h3></div></div></div>
+            
+
+            <p>
+                The "comprehensive" architecture abstracts the application away from the underlying JDBC/JTA APIs and
+                allows Hibernate to manage the details.
+            </p>
+            <div class="mediaobject" align="center"><img src="images/full_cream.png" align="middle"/></div>
+        </div>
+
+        <div class="section" title="2.1.3. Basic APIs"><div class="titlepage"><div><div><h3 class="title"><a id="architecture-overview-terms"/>2.1.3. Basic APIs</h3></div></div></div>
+            
+            <p>
+                Here are quick discussions about some of the API objects depicted in the preceding diagrams (you will
+                see them again in more detail in later chapters).
+                </p><div class="variablelist"><dl><dt><span class="term">SessionFactory (<code class="interfacename">org.hibernate.SessionFactory</code>)</span></dt><dd>
+                            <p>
+                                A thread-safe, immutable cache of compiled mappings for a single database.
+                                A factory for <code class="interfacename">org.hibernate.Session</code> instances.  A client
+                                of <code class="interfacename">org.hibernate.connection.ConnectionProvider</code>.  Optionally
+                                maintains a <code class="literal">second level cache</code> of data that is reusable between
+                                transactions at a process or cluster level.
+                            </p>
+                        </dd><dt><span class="term">Session (<code class="interfacename">org.hibernate.Session</code>)</span></dt><dd>
+                            <p>
+                                A single-threaded, short-lived object representing a conversation between
+                                the application and the persistent store.  Wraps a JDBC
+                                <code class="interfacename">java.sql.Connection</code>.  Factory for
+                                <code class="interfacename">org.hibernate.Transaction</code>.  Maintains a
+                                <code class="literal">first level cache</code> of persistent the application's persistent objects
+                                and collections; this cache is used when navigating the object graph or looking up
+                                objects by identifier.
+                            </p>
+                        </dd><dt><span class="term">Persistent objects and collections</span></dt><dd>
+                            <p>
+                                Short-lived, single threaded objects containing persistent state and business
+                                function.  These can be ordinary JavaBeans/POJOs. They are associated with exactly one
+                                <code class="interfacename">org.hibernate.Session</code>. Once the
+                                <code class="interfacename">org.hibernate.Session</code> is closed, they will be detached
+                                and free to use in any application layer (for example, directly as data transfer objects
+                                to and from presentation).  <a class="xref" href="ch11.html" title="Chapter 11. Working with objects">Chapter 11, <em>Working with objects</em></a> discusses transient,
+                                persistent and detached object states.
+                            </p>
+                        </dd><dt><span class="term">Transient and detached objects and collections</span></dt><dd>
+                            <p>
+                                Instances of persistent classes that are not currently associated with a
+                                <code class="interfacename">org.hibernate.Session</code>. They may have been instantiated by
+                                the application and not yet persisted, or they may have been instantiated by a
+                                closed <code class="interfacename">org.hibernate.Session</code>.
+                                <a class="xref" href="ch11.html" title="Chapter 11. Working with objects">Chapter 11, <em>Working with objects</em></a> discusses transient, persistent and detached object states.
+                            </p>
+                        </dd><dt><span class="term">Transaction (<code class="interfacename">org.hibernate.Transaction</code>)</span></dt><dd>
+                            <p>
+                                (Optional) A single-threaded, short-lived object used by the application to
+                                specify atomic units of work. It abstracts the application from the underlying JDBC,
+                                JTA or CORBA transaction. A <code class="interfacename">org.hibernate.Session</code> might span several
+                                <code class="interfacename">org.hibernate.Transaction</code>s in some cases. However,
+                                transaction demarcation, either using the underlying API or
+                                <code class="interfacename">org.hibernate.Transaction</code>, is never optional.
+                            </p>
+                        </dd><dt><span class="term">ConnectionProvider (<code class="interfacename">org.hibernate.connection.ConnectionProvider</code>)</span></dt><dd>
+                            <p>
+                                (Optional) A factory for, and pool of, JDBC connections. It abstracts the application from
+                                underlying <code class="interfacename">javax.sql.DataSource</code> or
+                                <code class="interfacename">java.sql.DriverManager</code>.  It is not exposed to application,
+                                but it can be extended and/or implemented by the developer.
+                            </p>
+                        </dd><dt><span class="term">TransactionFactory (<code class="interfacename">org.hibernate.TransactionFactory</code>)</span></dt><dd>
+                            <p>
+                                (Optional) A factory for <code class="interfacename">org.hibernate.Transaction</code>
+                                instances. It is not exposed to the application, but it can be extended and/or
+                                implemented by the developer.
+                            </p>
+                        </dd><dt><span class="term"><span class="emphasis"><em>Extension Interfaces</em></span></span></dt><dd>
+                            <p>
+                                Hibernate offers a range of optional extension interfaces you can implement to customize
+                                the behavior of your persistence layer. See the API documentation for details.
+                            </p>
+                        </dd></dl></div><p>
+            </p>
+        </div>
+    </div>
+
+    <div class="section" title="2.2. JMX Integration"><div class="titlepage"><div><div><h2 class="title"><a id="architecture-jmx"/>2.2. JMX Integration</h2></div></div></div>
+        
+
+        <p>
+            JMX is the J2EE standard for the management of Java components. Hibernate can be managed via
+            a JMX standard service. AN MBean implementation is provided in the distribution:
+            <code class="literal">org.hibernate.jmx.HibernateService</code>.
+        </p>
+
+        <p>
+            Another feature available as a JMX service is runtime Hibernate statistics. See
+            <a class="xref" href="ch03.html#configuration-optional-statistics" title="3.4.6. Hibernate statistics">Section 3.4.6, “Hibernate statistics”</a> for more information.
+        </p>
+    </div>
+
+    <div class="section" title="2.3. Contextual sessions"><div class="titlepage"><div><div><h2 class="title"><a id="architecture-current-session"/>2.3. Contextual sessions</h2></div></div></div>
+        
+        <p>
+            Most applications using Hibernate need some form of "contextual" session, where a given
+            session is in effect throughout the scope of a given context. However, across applications
+            the definition of what constitutes a context is typically different; different contexts
+            define different scopes to the notion of current. Applications using Hibernate prior
+            to version 3.0 tended to utilize either home-grown <code class="literal">ThreadLocal</code>-based
+            contextual sessions, helper classes such as <code class="literal">HibernateUtil</code>, or utilized
+            third-party frameworks, such as Spring or Pico, which provided proxy/interception-based contextual sessions.
+        </p>
+        <p>
+            Starting with version 3.0.1, Hibernate added the <code class="literal">SessionFactory.getCurrentSession()</code>
+            method. Initially, this assumed usage of <code class="literal">JTA</code> transactions, where the
+            <code class="literal">JTA</code> transaction defined both the scope and context of a current session.
+            Given the maturity of the numerous stand-alone
+            <code class="literal">JTA TransactionManager</code> implementations, most, if not all,
+            applications should be using <code class="literal">JTA</code> transaction management, whether or not
+            they are deployed into a <code class="literal">J2EE</code> container.  Based on that, the
+            <code class="literal">JTA</code>-based contextual sessions are all you need to use.
+        </p>
+        <p>
+            However, as of version 3.1, the processing behind
+            <code class="literal">SessionFactory.getCurrentSession()</code> is now pluggable.  To that
+            end, a new extension interface, <code class="literal">org.hibernate.context.spi.CurrentSessionContext</code>,
+            and a new configuration parameter, <code class="literal">hibernate.current_session_context_class</code>,
+            have been added to allow pluggability of the scope and context of defining current sessions.
+        </p>
+        <p>
+            See the Javadocs for the <code class="literal">org.hibernate.context.spi.CurrentSessionContext</code>
+            interface for a detailed discussion of its contract.  It defines a single method,
+            <code class="literal">currentSession()</code>, by which the implementation is responsible for
+            tracking the current contextual session.  Out-of-the-box, Hibernate comes with three
+            implementations of this interface:
+        </p>
+
+        <div class="itemizedlist"><ul class="itemizedlist"><li class="listitem">
+                <p>
+                    <code class="literal">org.hibernate.context.internal.JTASessionContext</code>: current sessions
+                    are tracked and scoped by a <code class="literal">JTA</code> transaction.  The processing
+                    here is exactly the same as in the older JTA-only approach.  See the Javadocs
+                    for details.
+                </p>
+            </li><li class="listitem">
+                <p>
+                    <code class="literal">org.hibernate.context.internal.ThreadLocalSessionContext</code>:current
+                    sessions are tracked by thread of execution. See the Javadocs for details.
+                </p>
+            </li><li class="listitem">
+                <p>
+                    <code class="literal">org.hibernate.context.internal.ManagedSessionContext</code>: current
+                    sessions are tracked by thread of execution. However, you are responsible to
+                    bind and unbind a <code class="literal">Session</code> instance with static methods
+                    on this class: it does not open, flush, or close a <code class="literal">Session</code>.
+                </p>
+            </li></ul></div>
+
+        <p>
+            The first two implementations provide a "one session - one database transaction" programming
+            model. This is also known and used as <span class="emphasis"><em>session-per-request</em></span>. The beginning
+            and end of a Hibernate session is defined by the duration of a database transaction.
+            If you use programmatic transaction demarcation in plain JSE without JTA, you are advised to
+            use the Hibernate <code class="literal">Transaction</code> API to hide the underlying transaction system
+            from your code. If you use JTA, you can utilize the JTA interfaces to demarcate transactions. If you
+            execute in an EJB container that supports CMT, transaction boundaries are defined declaratively
+            and you do not need any transaction or session demarcation operations in your code.
+            Refer to <a class="xref" href="ch13.html" title="Chapter 13. Transactions and Concurrency">Chapter 13, <em>Transactions and Concurrency</em></a> for more information and code examples.
+        </p>
+
+        <p>
+            The <code class="literal">hibernate.current_session_context_class</code> configuration parameter
+            defines which <code class="literal">org.hibernate.context.spi.CurrentSessionContext</code> implementation
+            should be used.  For backwards compatibility, if this configuration parameter is not set
+            but a <code class="literal">org.hibernate.transaction.TransactionManagerLookup</code> is configured,
+            Hibernate will use the <code class="literal">org.hibernate.context.internal.JTASessionContext</code>.
+            Typically, the value of this parameter would just name the implementation class to
+            use. For the three out-of-the-box implementations, however, there are three corresponding
+            short names: "jta", "thread", and "managed".
+        </p>
+        
+    </div>
+
+</div><hr xmlns="" xmlns:d="http://docbook.org/ns/docbook"/><a xmlns="" xmlns:d="http://docbook.org/ns/docbook" href="legalnotice.html"/><ul xmlns:d="http://docbook.org/ns/docbook" class="docnav"><li class="previous"><a accesskey="p" href="ch01.html"><strong>Prev</strong>Chapter 1. Tutorial</a></li><li class="up"><a accesskey="u" href="#"><strong>Up</strong></a></li><li class="home"><a accesskey="h" href="index.html"><strong>Home</strong></a></li><li class="next"><a accesskey="n" href="ch03.html"><strong>Next</strong>Chapter 3. Configuration</a></li></ul></body></html>
